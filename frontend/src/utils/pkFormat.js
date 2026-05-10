@@ -35,6 +35,27 @@ export const formatAmountCeilPK = (value) =>
 
 export const formatCurrencyPK = (value) => formatAmountPK(value);
 
+export const formatCurrencyShortPK = (value) => {
+  const num = toNumberPK(value);
+  
+  if (num >= 1000000) {
+    // For millions: show with high precision (5 significant digits)
+    return (num / 1000000).toLocaleString('en-PK', {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 4,
+    }) + 'M';
+  } else if (num >= 100000) {
+    // For hundreds of thousands: show with K
+    return (num / 1000).toLocaleString('en-PK', {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 1,
+    }) + 'K';
+  }
+  
+  // For values < 100K, use normal formatting
+  return formatAmountPK(num);
+};
+
 export const formatRatePK = (value) =>
   toNumberPK(value).toLocaleString('en-PK', {
     minimumFractionDigits: 2,

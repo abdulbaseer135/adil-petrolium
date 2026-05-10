@@ -6,9 +6,9 @@ import { EmptyState }    from '../../components/ui/EmptyState';
 import { ConfirmDialog } from '../../components/common/ConfirmDialog';
 import { CustomerStatementGroups, buildCustomerStatementGroups, filterCustomerStatementGroups } from '../../components/admin/CustomerStatementGroups';
 import { SectionHeader, Section } from '../../components/ui/Section';
-import { formatCurrencyPK, formatDatePK, formatNumberPK, toInputDatePK } from '../../utils/pkFormat';
+import { formatCurrencyPK, formatDatePK, formatNumberPK, toInputDatePK, formatCurrencyShortPK } from '../../utils/pkFormat';
 
-const fmt     = formatCurrencyPK;
+const fmt     = formatCurrencyShortPK;
 const fmtL    = (v) => `${formatNumberPK(v, 0, 0)} L`;
 const formatNumber = formatNumberPK;
 const fmtDate = formatDatePK;
@@ -278,14 +278,14 @@ export default function DailyRecord() {
           }
         />
 
-        <div className="report-stat-grid">
+        <div className="report-stat-grid" style={{ marginInline: 'var(--space-4)' }}>
           <SummaryCard label="Total Sale" value={loadingSummary ? 'Loading…' : fmt(dailySummary.totalSalesAmount)} accent="var(--color-primary)" hint="Debit transactions in the selected date." />
           <SummaryCard label="Total Fuel Sold" value={loadingSummary ? 'Loading…' : fmtL(dailySummary.totalFuelSold)} accent="var(--color-warning)" hint="Total litres sold across all entries." />
           <SummaryCard label="Total Payments" value={loadingSummary ? 'Loading…' : fmt(dailySummary.totalPaymentsReceived)} accent="var(--color-success)" hint="Credit transactions received." />
           <SummaryCard label="Remaining" value={loadingSummary ? 'Loading…' : fmt(dailySummary.totalSalesAmount - dailySummary.totalPaymentsReceived)} accent="var(--color-warning)" hint="Outstanding amount after payments." />
         </div>
 
-        <div className="report-filter" style={{ minWidth: 240, maxWidth: 420 }}>
+        <div className="report-filter" style={{ minWidth: 240, maxWidth: 400, marginInline: 'var(--space-4)' }}>
           <span className="report-filter__label">Search</span>
           <input
             className="report-filter__control"

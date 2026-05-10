@@ -5,11 +5,11 @@ import { EmptyState } from '../../components/ui/EmptyState';
 import { SkeletonTable } from '../../components/ui/Skeleton';
 import { CustomerStatementGroups, buildCustomerStatementGroups, filterCustomerStatementGroups } from '../../components/admin/CustomerStatementGroups';
 import { SectionHeader, Section } from '../../components/ui/Section';
-import { formatCurrencyPK, formatDateTimePK, formatNumberPK } from '../../utils/pkFormat';
+import { formatCurrencyPK, formatDateTimePK, formatNumberPK, formatCurrencyShortPK } from '../../utils/pkFormat';
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
-const fmt = formatCurrencyPK;
+const fmt = formatCurrencyShortPK;
 const fmtL = (v) => `${formatNumberPK(v, 0, 0)} L`;
 const fmtDT = formatDateTimePK;
 const formatNumber = formatNumberPK;
@@ -103,27 +103,9 @@ export default function MonthlyReport() {
             Monthly transaction review grouped by day and customer activity.
           </p>
         </div>
-
-        <div className="report-toolbar">
-          <div className="report-filter">
-            <span className="report-filter__label">Month</span>
-            <select className="report-filter__control" value={month} onChange={(e) => setMonth(Number(e.target.value))}>
-              {MONTHS.map((label, index) => <option key={label} value={index + 1}>{label}</option>)}
-            </select>
-          </div>
-
-          <div className="report-filter">
-            <span className="report-filter__label">Year</span>
-            <select className="report-filter__control" value={year} onChange={(e) => setYear(Number(e.target.value))}>
-              {availableYears.map((item) => <option key={item} value={item}>{item}</option>)}
-            </select>
-          </div>
-
-          <Button onClick={handleReload} loading={reloading}>Reload</Button>
-        </div>
       </div>
 
-      <div className="report-stat-grid">
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: 'var(--space-4)', marginInline: 'var(--space-4)' }}>
         <div className="report-stat-card" style={{ '--card-accent': 'var(--color-primary)' }}>
           <div style={{ fontSize: 'var(--text-xs)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--color-text-muted)' }}>Total Sale</div>
           <div style={{ marginTop: 'var(--space-2)', fontSize: 'var(--text-lg)', fontWeight: 700, color: 'var(--color-primary)', fontVariantNumeric: 'tabular-nums' }}>{loading ? 'Loading…' : fmt(summary.totalSales)}</div>
@@ -146,15 +128,35 @@ export default function MonthlyReport() {
         </div>
       </div>
 
-      <div className="report-filter" style={{ minWidth: 220, maxWidth: 320 }}>
-        <span className="report-filter__label">Search</span>
-        <input
-          className="report-filter__control"
-          type="search"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="Search customer name..."
-        />
+      <div style={{ display: 'flex', gap: 'var(--space-3)', alignItems: 'flex-end', marginBottom: 'var(--space-4)', marginInline: 'var(--space-4)' }}>
+        <div className="report-filter" style={{ minWidth: 240, maxWidth: 400 }}>
+          <span className="report-filter__label">Search</span>
+          <input
+            className="report-filter__control"
+            type="search"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search customer name..."
+          />
+        </div>
+
+        <div style={{ flex: 1 }} />
+
+        <div className="report-filter">
+          <span className="report-filter__label">Month</span>
+          <select className="report-filter__control" value={month} onChange={(e) => setMonth(Number(e.target.value))}>
+            {MONTHS.map((label, index) => <option key={label} value={index + 1}>{label}</option>)}
+          </select>
+        </div>
+
+        <div className="report-filter">
+          <span className="report-filter__label">Year</span>
+          <select className="report-filter__control" value={year} onChange={(e) => setYear(Number(e.target.value))}>
+            {availableYears.map((item) => <option key={item} value={item}>{item}</option>)}
+          </select>
+        </div>
+
+        <Button onClick={handleReload} loading={reloading}>Reload</Button>
       </div>
 
       <CustomerStatementGroups

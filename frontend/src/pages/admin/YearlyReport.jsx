@@ -3,9 +3,9 @@ import { getTransactions } from '../../api/transactionApi';
 import { Button } from '../../components/ui/Button';
 import { CustomerStatementGroups, buildCustomerStatementGroups, filterCustomerStatementGroups } from '../../components/admin/CustomerStatementGroups';
 import { SectionHeader, Section } from '../../components/ui/Section';
-import { formatCurrencyPK, formatDateTimePK, formatNumberPK } from '../../utils/pkFormat';
+import { formatCurrencyPK, formatDateTimePK, formatNumberPK, formatCurrencyShortPK } from '../../utils/pkFormat';
 
-const fmt = formatCurrencyPK;
+const fmt = formatCurrencyShortPK;
 const fmtL = (v) => `${formatNumberPK(v, 0, 0)} L`;
 const fmtDT = formatDateTimePK;
 const formatNumber = formatNumberPK;
@@ -68,19 +68,9 @@ export default function YearlyReport() {
             Yearly transaction review for the selected financial year.
           </p>
         </div>
-
-        <div className="report-toolbar">
-          <div className="report-filter">
-            <span className="report-filter__label">Year</span>
-            <select className="report-filter__control" value={year} onChange={(e) => setYear(Number(e.target.value))}>
-              {[2023, 2024, 2025, 2026].map((y) => <option key={y} value={y}>{y}</option>)}
-            </select>
-          </div>
-          <Button onClick={loadYear}>Reload</Button>
-        </div>
       </div>
 
-      <div className="report-stat-grid">
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: 'var(--space-4)', marginInline: 'var(--space-4)' }}>
         <div className="report-stat-card" style={{ '--card-accent': 'var(--color-primary)' }}>
           <div style={{ fontSize: 'var(--text-xs)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--color-text-muted)' }}>Total Sale</div>
           <div style={{ marginTop: 'var(--space-2)', fontSize: 'var(--text-lg)', fontWeight: 700, color: 'var(--color-primary)', fontVariantNumeric: 'tabular-nums' }}>{loading ? 'Loading…' : fmt(summary.sales)}</div>
@@ -103,15 +93,28 @@ export default function YearlyReport() {
         </div>
       </div>
 
-      <div className="report-filter" style={{ minWidth: 220, maxWidth: 320 }}>
-        <span className="report-filter__label">Search</span>
-        <input
-          className="report-filter__control"
-          type="search"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="Search customer name..."
-        />
+      <div style={{ display: 'flex', gap: 'var(--space-3)', alignItems: 'flex-end', marginBottom: 'var(--space-4)', marginInline: 'var(--space-4)' }}>
+        <div className="report-filter" style={{ minWidth: 240, maxWidth: 400 }}>
+          <span className="report-filter__label">Search</span>
+          <input
+            className="report-filter__control"
+            type="search"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search customer name..."
+          />
+        </div>
+
+        <div style={{ flex: 1 }} />
+
+        <div className="report-filter">
+          <span className="report-filter__label">Year</span>
+          <select className="report-filter__control" value={year} onChange={(e) => setYear(Number(e.target.value))}>
+            {[2023, 2024, 2025, 2026].map((y) => <option key={y} value={y}>{y}</option>)}
+          </select>
+        </div>
+
+        <Button onClick={loadYear}>Reload</Button>
       </div>
 
       <CustomerStatementGroups

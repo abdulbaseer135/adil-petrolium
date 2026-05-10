@@ -133,6 +133,15 @@ export const TransactionForm = ({
 
     if (!form.transactionDate) {
       next.transactionDate = 'Transaction date is required';
+    } else {
+      // Prevent future dates
+      const selectedDate = new Date(form.transactionDate);
+      const today = new Date();
+      today.setHours(23, 59, 59, 999);
+      
+      if (selectedDate > today) {
+        next.transactionDate = 'Transaction date cannot be in the future';
+      }
     }
 
     if (form.referenceNo && form.referenceNo.length > 100) {
@@ -278,6 +287,7 @@ export const TransactionForm = ({
               value={form.transactionDate}
               onChange={(e) => setField('transactionDate', e.target.value)}
               error={errors.transactionDate}
+              max={toInputDateTimePK(new Date())}
               required
             />
           </div>

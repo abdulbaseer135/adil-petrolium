@@ -85,7 +85,7 @@ export default function AdminLayout() {
           {!collapsed && <span style={{ fontWeight: 750, fontSize: 'var(--text-sm)', color: '#fff', whiteSpace: 'nowrap', letterSpacing: '-0.01em' }}>Adil Petroleum</span>}
         </div>
 
-        <nav className="sidebar-nav" style={{ flex: 1, overflowY: 'auto', padding: 'var(--space-2) var(--space-2) var(--space-3)' }}>
+        <nav className="sidebar-nav" style={{ flex: 1, overflow: 'hidden', padding: 'var(--space-2) var(--space-2) var(--space-3)' }}>
           {NAV.map(({ to, label, icon, end }) => (
             <NavLink
               key={to}
@@ -189,7 +189,7 @@ export default function AdminLayout() {
         </div>
       </aside>
 
-      <main className="admin-shell__main" style={{ flex: 1, overflow: 'auto', display: 'flex', flexDirection: 'column' }}>
+      <main className="admin-shell__main" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
         <header style={{
           minHeight: 'var(--topbar-height)',
           background: 'color-mix(in oklch, var(--color-surface) 92%, var(--color-bg))',

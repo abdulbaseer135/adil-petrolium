@@ -191,9 +191,9 @@ export default function AdminDashboard() {
           );
 
           setMonthSummary(monthTotals);
-        } catch {
+        } catch (err) {
+          // Silently fail for monthly summary - it's not critical to dashboard display
           setMonthSummary(null);
-          setWarnings((prev) => [...prev, 'Monthly summary could not be loaded.']);
         }
       } catch {
         setError('Failed to load dashboard data.');

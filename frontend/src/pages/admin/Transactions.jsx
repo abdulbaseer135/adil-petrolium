@@ -652,7 +652,7 @@ export default function Transactions() {
       </div>
 
       {isStatementMode && selectedCustomer ? (
-        <div className="financial-detail-card">
+        <div className="financial-detail-card" style={{ marginTop: 'var(--space-6)' }}>
           <div className="financial-detail-card__body" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 'var(--space-5)', borderBottom: '1px solid var(--color-divider)', paddingBottom: 'var(--space-5)' }}>
             <div style={{ borderRight: '1px solid var(--color-divider)', paddingRight: 'var(--space-5)' }}>
               <div style={SECTION_TITLE}>Account Holder</div>
@@ -726,7 +726,7 @@ export default function Transactions() {
         </div>
       ) : null}
 
-      <div className="report-stat-grid">
+      <div className="report-stat-grid" style={{ marginTop: 'var(--space-6)' }}>
         <StatementCard
           label="Total Sales"
           value={formatMoney(totals.sales)}
@@ -770,7 +770,7 @@ export default function Transactions() {
           actionLabel="Record Entry"
         />
       ) : (
-        <div className="financial-table-shell">
+        <div className="financial-table-shell" style={{ marginTop: 'var(--space-6)' }}>
           <div className="financial-table-toolbar">
             <div>
               <h2
@@ -804,15 +804,15 @@ export default function Transactions() {
           <div className="financial-table-wrap">
             <table className="financial-table" style={{ tableLayout: 'fixed' }}>
               <colgroup>
-                <col style={{ width: '15%' }} />
-                <col style={{ width: '17%' }} />
-                <col style={{ width: '11%' }} />
-                <col style={{ width: '11%' }} />
+                <col style={{ width: '13%' }} />
+                <col style={{ width: '16%' }} />
+                <col style={{ width: '10%' }} />
+                <col style={{ width: '10%' }} />
                 <col style={{ width: '8%' }} />
-                <col style={{ width: '9%' }} />
+                <col style={{ width: '8%' }} />
                 <col style={{ width: '10%' }} />
                 <col style={{ width: '10%' }} />
-                <col style={{ width: '9%' }} />
+                <col style={{ width: '15%' }} />
               </colgroup>
 
               <thead>
