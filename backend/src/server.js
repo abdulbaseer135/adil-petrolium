@@ -57,7 +57,16 @@ app.use(cors({
 app.options('*', cors());
 
 // ─── Body Parsing ────────────────────────────────────────────
-app.use(compression());
+// Never compress SSE: gzip buffers small writes, so pings never flush and clients/tests time out.
+app.use(compression({
+  filter: (req, res) => {
+    const type = res.getHeader('Content-Type');
+    if (typeof type === 'string' && type.toLowerCase().includes('text/event-stream')) {
+      return false;
+    }
+    return compression.filter(req, res);
+  },
+}));
 app.use(cookieParser());
 app.use(express.json({ limit: '10kb' }));
 app.use(express.urlencoded({ extended: true, limit: '10kb' }));
