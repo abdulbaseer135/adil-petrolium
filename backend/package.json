@@ -1,0 +1,57 @@
+{
+  "name": "petro-dealer-backend",
+  "version": "1.0.0",
+  "description": "Adil Petroleum Dealer Management System — Backend API",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js",
+    "test": "mocha 'tests/**/*.test.js' --timeout 10000 --exit",
+    "test:unit": "mocha 'tests/unit/**/*.test.js' --timeout 10000 --exit",
+    "test:integration": "mocha 'tests/integration/**/*.test.js' --timeout 20000 --exit",
+    "test:coverage": "nyc npm test",
+    "lint": "eslint src/"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "compression": "^1.7.4",
+    "cookie-parser": "^1.4.6",
+    "cors": "^2.8.5",
+    "docx": "^9.6.1",
+    "dotenv": "^16.4.5",
+    "exceljs": "^4.4.0",
+    "express": "^4.19.2",
+    "express-mongo-sanitize": "^2.2.0",
+    "express-rate-limit": "^7.3.1",
+    "express-validator": "^7.1.0",
+    "helmet": "^7.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.4.1",
+    "pino": "^9.2.0",
+    "pino-http": "^10.2.0",
+    "pino-pretty": "^11.2.1",
+    "uuid": "^10.0.0"
+  },
+  "overrides": {
+    "serialize-javascript": "^7.0.5",
+    "cookie": "0.7.2"
+  },
+  "devDependencies": {
+    "chai": "^5.1.1",
+    "mocha": "^10.4.0",
+    "nodemon": "^3.1.4",
+    "nyc": "^17.0.0",
+    "sinon": "^21.1.2",
+    "supertest": "^7.0.0"
+  },
+  "nyc": {
+    "reporter": [
+      "text",
+      "lcov"
+    ],
+    "exclude": [
+      "tests/**",
+      "src/config/**"
+    ]
+  }
+}

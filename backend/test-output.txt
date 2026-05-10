@@ -1,0 +1,1073 @@
+
+> petro-dealer-backend@1.0.0 test
+> mocha 'tests/**/*.test.js' --timeout 10000 --exit
+
+
+
+  Auth Integration Tests
+{"level":30,"time":1778321256000,"service":"petro-dealer-api","env":"development","uri":"mongodb://localhost:27017/petro_dealer","msg":"Connected to test MongoDB"}
+    Login
+{"level":40,"time":1778321256358,"service":"petro-dealer-api","env":"development","reqId":"69e320df-ae4a-485a-a213-7b9ea7c26d56","method":"GET","url":"/api/v1/health","statusCode":404,"ms":5,"ip":"::ffff:127.0.0.1","msg":"GET /api/v1/health 404 5ms"}
+{"level":40,"time":1778321256378,"service":"petro-dealer-api","env":"development","statusCode":403,"message":"invalid csrf token","msg":"Client error"}
+      1) should login admin with email and password and set cookies
+{"level":40,"time":1778321256668,"service":"petro-dealer-api","env":"development","reqId":"1b4ba12f-0de0-4ca5-94a2-82e2ee9a34fd","method":"GET","url":"/api/v1/health","statusCode":404,"ms":1,"ip":"::ffff:127.0.0.1","msg":"GET /api/v1/health 404 1ms"}
+{"level":40,"time":1778321256671,"service":"petro-dealer-api","env":"development","statusCode":403,"message":"invalid csrf token","msg":"Client error"}
+      2) should login customer with email and password
+{"level":40,"time":1778321256963,"service":"petro-dealer-api","env":"development","reqId":"5c8e9f50-773b-4a64-a69b-2f1a31a6f9f7","method":"GET","url":"/api/v1/health","statusCode":404,"ms":1,"ip":"::ffff:127.0.0.1","msg":"GET /api/v1/health 404 1ms"}
+{"level":40,"time":1778321256966,"service":"petro-dealer-api","env":"development","statusCode":403,"message":"invalid csrf token","msg":"Client error"}
+      3) should login customer using phone number as password fallback
+    Login Failures
+{"level":40,"time":1778321256978,"service":"petro-dealer-api","env":"development","reqId":"57872f8d-f47f-4058-8744-2f30adcb1c2d","method":"GET","url":"/api/v1/health","statusCode":404,"ms":1,"ip":"::ffff:127.0.0.1","msg":"GET /api/v1/health 404 1ms"}
+{"level":40,"time":1778321256981,"service":"petro-dealer-api","env":"development","statusCode":403,"message":"invalid csrf token","msg":"Client error"}
+      4) should fail login with invalid email
+{"level":40,"time":1778321257261,"service":"petro-dealer-api","env":"development","reqId":"faa2de16-7fc5-46c0-a537-b5a5cb02b29e","method":"GET","url":"/api/v1/health","statusCode":404,"ms":1,"ip":"::ffff:127.0.0.1","msg":"GET /api/v1/health 404 1ms"}
+{"level":40,"time":1778321257263,"service":"petro-dealer-api","env":"development","statusCode":403,"message":"invalid csrf token","msg":"Client error"}
+      5) should fail login with wrong password
+{"level":40,"time":1778321257273,"service":"petro-dealer-api","env":"development","reqId":"912eb38f-f30d-499e-a181-af5a1fc81936","method":"GET","url":"/api/v1/health","statusCode":404,"ms":0,"ip":"::ffff:127.0.0.1","msg":"GET /api/v1/health 404 0ms"}
+{"level":40,"time":1778321257275,"service":"petro-dealer-api","env":"development","statusCode":403,"message":"invalid csrf token","msg":"Client error"}
+{"level":40,"time":1778321257278,"service":"petro-dealer-api","env":"development","statusCode":403,"message":"invalid csrf token","msg":"Client error"}
+      6) should not leak whether email exists in error response
+    GET /api/v1/auth/me
+{"level":40,"time":1778321257287,"service":"petro-dealer-api","env":"development","statusCode":401,"message":"Authentication required","reqId":"0d17734f-7131-4f4c-8899-ce19d2000846","msg":"Client error"}
+{"level":40,"time":1778321257288,"service":"petro-dealer-api","env":"development","reqId":"0d17734f-7131-4f4c-8899-ce19d2000846","method":"GET","url":"/api/v1/auth/me","statusCode":401,"ms":1,"ip":"::ffff:127.0.0.1","msg":"GET /api/v1/auth/me 401 1ms"}
+      Γ£ö should reject unauthenticated request with 401
+{"level":40,"time":1778321257630,"service":"petro-dealer-api","env":"development","reqId":"47aa7d70-08ea-41b3-a700-e56884ac5b19","method":"GET","url":"/api/v1/health","statusCode":404,"ms":0,"ip":"::ffff:127.0.0.1","msg":"GET /api/v1/health 404 0ms"}
+{"level":40,"time":1778321257633,"service":"petro-dealer-api","env":"development","statusCode":403,"message":"invalid csrf token","msg":"Client error"}
+{"level":40,"time":1778321257638,"service":"petro-dealer-api","env":"development","statusCode":401,"message":"Authentication required","reqId":"47797746-1c6f-4416-b181-173e92692a05","msg":"Client error"}
+{"level":40,"time":1778321257638,"service":"petro-dealer-api","env":"development","reqId":"47797746-1c6f-4416-b181-173e92692a05","method":"GET","url":"/api/v1/auth/me","statusCode":401,"ms":1,"ip":"::ffff:127.0.0.1","msg":"GET /api/v1/auth/me 401 1ms"}
+      7) should return authenticated user profile
+      8) should not expose password or sensitive fields in /me response
+    Token Refresh
+      9) should refresh access token and rotate refresh token
+      10) should log token refresh with userId
+{"level":40,"time":1778321257663,"service":"petro-dealer-api","env":"development","statusCode":403,"message":"invalid csrf token","msg":"Client error"}
+      11) should fail refresh without refresh token
+      12) should reject refresh with invalid/tampered refresh token
+    Logout
+      13) should logout and clear cookies
+    Role-Based Access Control
+      14) should allow admin to access admin-only routes
+      15) should deny customer access to admin-only routes
+    Failed Login Attempts & Lockout
+{"level":40,"time":1778321257954,"service":"petro-dealer-api","env":"development","statusCode":403,"message":"invalid csrf token","msg":"Client error"}
+      16) should increment failed attempts on wrong password
+{"level":40,"time":1778321258245,"service":"petro-dealer-api","env":"development","statusCode":403,"message":"invalid csrf token","msg":"Client error"}
+      17) should reset failed attempts on successful login
+    Auth Security Logging
+      18) should log successful login with user info
+{"level":40,"time":1778321258268,"service":"petro-dealer-api","env":"development","statusCode":403,"message":"invalid csrf token","msg":"Client error"}
+      Γ£ö should log failed login attempts
+    Error Response Format
+{"level":40,"time":1778321258279,"service":"petro-dealer-api","env":"development","statusCode":403,"message":"invalid csrf token","msg":"Client error"}
+      19) should return standardized error response
+      20) should return success response with data on login
+{"level":30,"time":1778321258295,"service":"petro-dealer-api","env":"development","msg":"Test MongoDB connection closed"}
+
+  CSRF protection
+{"level":30,"time":1778321258297,"service":"petro-dealer-api","env":"development","reqId":"a7264788-8c9e-469e-a1b1-dacf3886e559","method":"GET","url":"/health","statusCode":200,"ms":0,"ip":"::ffff:127.0.0.1","msg":"GET /health 200 0ms"}
+    Γ£ö sets XSRF-TOKEN cookie on GET /health
+{"level":40,"time":1778321258301,"service":"petro-dealer-api","env":"development","statusCode":403,"message":"invalid csrf token","msg":"Client error"}
+    Γ£ö rejects POST without X-XSRF-TOKEN header
+
+  Customers Integration Tests
+{"level":30,"time":1778321258309,"service":"petro-dealer-api","env":"development","uri":"mongodb://localhost:27017/petro_dealer","msg":"Connected to test MongoDB"}
+    Customer Creation
+      21) admin can create customer with valid data
+      22) customer can only be created by admin (auth check)
+      23) should reject duplicate email with 409
+      24) should reject duplicate customer code with 409
+      25) should validate required fields
+    Customer Listing & Ownership
+      26) admin can list only their own customers
+      27) admin cannot read another admin's customer by ID
+      28) admin cannot update another admin's customer
+      29) admin cannot delete another admin's customer
+    Customer Self-Service Endpoints
+      30) customer can retrieve only their own profile
+      31) customer cannot access another customer's profile
+    Export & Reporting
+      32) admin can export their own customers
+      33) customer can export only their own data
+    Error Response Format
+      34) should return standardized error response on validation failure
+      35) should return 404 for non-existent customer
+{"level":30,"time":1778321258422,"service":"petro-dealer-api","env":"development","msg":"Test MongoDB connection closed"}
+
+  Events Routes Integration
+{"level":30,"time":1778321258426,"service":"petro-dealer-api","env":"development","uri":"mongodb://localhost:27017/petro_dealer","msg":"Connected to test MongoDB"}
+    GET /api/v1/events/transactions
+{"level":40,"time":1778321258430,"service":"petro-dealer-api","env":"development","statusCode":401,"message":"Authentication required","reqId":"6095cf2d-b82c-411e-98f9-8a940c690c29","msg":"Client error"}
+{"level":40,"time":1778321258430,"service":"petro-dealer-api","env":"development","reqId":"6095cf2d-b82c-411e-98f9-8a940c690c29","method":"GET","url":"/api/v1/events/transactions","statusCode":401,"ms":1,"ip":"::ffff:127.0.0.1","msg":"GET /api/v1/events/transactions 401 1ms"}
+      Γ£ö should reject without authentication
+      36) should establish SSE connection with authenticated customer
+      37) should send connection ping
+      38) should handle multiple concurrent connections
+      39) should prevent customer from accessing other customer SSE
+{"level":30,"time":1778321258449,"service":"petro-dealer-api","env":"development","msg":"Test MongoDB connection closed"}
+
+  Transactions Integration Tests
+{"level":30,"time":1778321258454,"service":"petro-dealer-api","env":"development","uri":"mongodb://localhost:27017/petro_dealer","msg":"Connected to test MongoDB"}
+    Transaction Creation
+      40) admin can create fuel sale transaction for owned customer
+      41) admin can create payment transaction
+      42) admin can create opening balance transaction
+      43) admin can create credit note transaction
+    Ownership & Access Control
+      44) admin cannot create transaction for unowned customer
+      45) customer can only read their own transaction history
+    Running Balance Calculation
+      46) should correctly calculate running balance through multiple transactions
+    Date Filtering
+      47) should filter transactions by single day
+      48) should filter transactions by month
+      49) should filter transactions by custom date range
+    Pagination & Sorting
+      50) should support pagination with page and limit
+      51) should return metadata in paginated response
+    Void Transaction
+      52) should void transaction and restore balance
+    Validation & Error Handling
+      53) should reject missing customerId
+      54) should reject missing transactionType
+      55) should reject invalid transaction type
+      56) should return 404 for non-existent transaction
+    Error Response Format
+      57) should return standardized error response
+      58) should return success response with data on create
+{"level":30,"time":1778321258588,"service":"petro-dealer-api","env":"development","msg":"Test MongoDB connection closed"}
+
+  Auth Service Unit Tests
+{"level":30,"time":1778321258593,"service":"petro-dealer-api","env":"development","uri":"mongodb://localhost:27017/petro_dealer","msg":"Connected to test MongoDB"}
+    Login Success
+{"level":30,"time":1778321259162,"service":"petro-dealer-api","env":"development","userId":"69ff076af8efe9a213ec6e0c","role":"admin","ip":"127.0.0.1","msg":"User logged in"}
+      Γ£ö should login admin with correct email and password (554ms)
+{"level":30,"time":1778321259693,"service":"petro-dealer-api","env":"development","userId":"69ff076bf8efe9a213ec6e1e","role":"customer","ip":"127.0.0.1","msg":"User logged in"}
+      Γ£ö should login customer with correct credentials (528ms)
+{"level":30,"time":1778321260221,"service":"petro-dealer-api","env":"development","userId":"69ff076bf8efe9a213ec6e2e","role":"admin","ip":"127.0.0.1","msg":"User logged in"}
+      Γ£ö should reset failed login attempts on success (526ms)
+      59) should return user without sensitive fields
+    Login Failure
+{"level":40,"time":1778321260228,"service":"petro-dealer-api","env":"development","email":"[REDACTED]","ip":"127.0.0.1","msg":"Login failed ΓÇö invalid credentials"}
+      Γ£ö should throw 401 for non-existent email
+{"level":40,"time":1778321260751,"service":"petro-dealer-api","env":"development","userId":"69ff076cf8efe9a213ec6e4c","ip":"127.0.0.1","msg":"Login failed ΓÇö invalid credentials"}
+      Γ£ö should throw 401 for incorrect password (521ms)
+      Γ£ö should throw 403 for inactive account (522ms)
+{"level":40,"time":1778321261820,"service":"petro-dealer-api","env":"development","userId":"69ff076df8efe9a213ec6e5f","ip":"127.0.0.1","msg":"Login failed ΓÇö invalid credentials"}
+      Γ£ö should increment failed attempts on wrong password (543ms)
+    Phone Fallback Login
+{"level":30,"time":1778321262349,"service":"petro-dealer-api","env":"development","userId":"69ff076df8efe9a213ec6e6a","role":"customer","ip":"127.0.0.1","msg":"User logged in"}
+      Γ£ö should allow login with phone number instead of password (525ms)
+{"level":30,"time":1778321262880,"service":"petro-dealer-api","env":"development","userId":"69ff076ef8efe9a213ec6e7a","role":"customer","ip":"127.0.0.1","msg":"User logged in"}
+      Γ£ö should handle different phone number formats (528ms)
+    Account Lockout
+{"level":40,"time":1778321263404,"service":"petro-dealer-api","env":"development","userId":"69ff076ef8efe9a213ec6e8a","ip":"127.0.0.1","msg":"Login failed ΓÇö invalid credentials"}
+{"level":40,"time":1778321263664,"service":"petro-dealer-api","env":"development","userId":"69ff076ef8efe9a213ec6e8a","ip":"127.0.0.1","msg":"Login failed ΓÇö invalid credentials"}
+{"level":40,"time":1778321263926,"service":"petro-dealer-api","env":"development","userId":"69ff076ef8efe9a213ec6e8a","ip":"127.0.0.1","msg":"Login failed ΓÇö invalid credentials"}
+{"level":40,"time":1778321264189,"service":"petro-dealer-api","env":"development","userId":"69ff076ef8efe9a213ec6e8a","ip":"127.0.0.1","msg":"Login failed ΓÇö invalid credentials"}
+{"level":40,"time":1778321264452,"service":"petro-dealer-api","env":"development","userId":"69ff076ef8efe9a213ec6e8a","ip":"127.0.0.1","msg":"Login failed ΓÇö invalid credentials"}
+      Γ£ö should lock account after 5 failed attempts (1571ms)
+      Γ£ö should prevent login during lockout period (277ms)
+    Password Validation
+      Γ£ö should use bcrypt for password comparison (785ms)
+      60) should handle invalid password hash gracefully
+    Token Generation
+      61) should generate valid access token
+      62) should generate valid refresh token
+      63) should save refresh token to database
+    Security Logging
+      64) should log successful login
+{"level":40,"time":1778321265540,"service":"petro-dealer-api","env":"development","email":"[REDACTED]","ip":"192.168.1.100","msg":"Login failed ΓÇö invalid credentials"}
+      Γ£ö should log failed login attempts
+{"level":40,"time":1778321265543,"service":"petro-dealer-api","env":"development","email":"[REDACTED]","ip":"127.0.0.1","msg":"Login failed ΓÇö invalid credentials"}
+      Γ£ö should not log plaintext passwords
+{"level":30,"time":1778321265550,"service":"petro-dealer-api","env":"development","msg":"Test MongoDB connection closed"}
+
+  Auth Validator Unit
+    recoverAdminSchema
+      65) validates valid recovery input
+      Γ£ö rejects missing email
+      Γ£ö rejects invalid email format
+      Γ£ö rejects recovery key < 10 characters
+      Γ£ö rejects recovery key > 64 characters
+      Γ£ö rejects password < 12 characters
+      Γ£ö rejects password > 128 characters
+      Γ£ö rejects missing recovery key
+      Γ£ö rejects missing password
+    adminChangePasswordSchema
+      66) validates matching passwords
+      Γ£ö rejects mismatched passwords
+      Γ£ö rejects old password when blank
+      Γ£ö rejects new password < 12 chars
+    adminLoginSchema
+      Γ£ö validates valid login credentials
+      Γ£ö rejects missing email
+      Γ£ö rejects missing password
+    customerLoginSchema
+      Γ£ö validates valid customer login
+      Γ£ö rejects missing customer code
+      Γ£ö rejects missing password
+
+  Daily Record Service Unit
+{"level":30,"time":1778321265559,"service":"petro-dealer-api","env":"development","uri":"mongodb://localhost:27017/petro_dealer","msg":"Connected to test MongoDB"}
+    67) "before all" hook for "should parse date correctly"
+{"level":30,"time":1778321265581,"service":"petro-dealer-api","env":"development","msg":"Test MongoDB connection closed"}
+
+  Excel Service Unit
+    formatters
+      Γ£ö should format money correctly in PKR
+    parsePkDateStart
+      68) should parse date for start of day (5 AM UTC)
+      69) should handle string date format
+    parsePkDateEnd
+      Γ£ö should parse date for end of day (6:59 PM UTC)
+    parsePkMonthStart and parsePkMonthEnd
+      70) should parse month start correctly
+      Γ£ö should parse month end correctly
+      Γ£ö should handle month boundary correctly
+    parsePkYearStart and parsePkYearEnd
+      71) should parse year start
+      Γ£ö should parse year end
+    safeSheetName
+      Γ£ö should clean invalid Excel sheet characters
+      Γ£ö should handle asterisk and question mark
+      Γ£ö should limit sheet name to 31 characters
+      Γ£ö should handle empty/null with fallback
+      Γ£ö should use custom fallback
+      Γ£ö should collapse multiple spaces
+      Γ£ö should handle backslash and forward slash
+      Γ£ö should handle colon
+    createWorkbook
+      Γ£ö should create workbook with correct metadata
+    buildDetailText
+      Γ£ö should build text for fuel_sale with all details
+      Γ£ö should build text for payment
+      Γ£ö should build text for opening_balance
+      Γ£ö should handle credit_note
+      Γ£ö should omit optional fields if not provided
+    groupTransactions
+      Γ£ö should group transactions by customer
+    summarizeTransactions
+      Γ£ö should calculate correct totals
+      Γ£ö should handle empty transactions
+      Γ£ö should track fuel quantities by type
+
+  Professional Statement Service Unit
+    Formatting Functions
+      Γ£ö should format date correctly
+      Γ£ö should format money with PKR locale
+      Γ£ö should exist and be importable
+      Γ£ö should export required functions
+    Document Generation
+      Γ£ö should handle empty transaction data
+      Γ£ö should generate valid document structure
+
+  SSE Utility
+    addClient
+      Γ£ö should add client to a customer
+      Γ£ö should handle multiple clients for same customer
+      Γ£ö should not send events to other customers
+      Γ£ö should register close handler on client
+    sendEvent
+      Γ£ö should format event with correct SSE syntax
+      Γ£ö should not error on non-existent customer
+      Γ£ö should ignore write errors on individual clients
+      Γ£ö should handle complex data structures
+      72) should handle numeric customer IDs
+    cleanup on connection close
+      Γ£ö should remove client from map on close
+      Γ£ö should remove customer entry when no clients remain
+      Γ£ö should keep customer entry if other clients exist
+
+  Transaction Service Unit Tests
+{"level":30,"time":1778321265596,"service":"petro-dealer-api","env":"development","uri":"mongodb://localhost:27017/petro_dealer","msg":"Connected to test MongoDB"}
+    Running Balance Computation
+      73) should compute fuel sale and update running balance
+      74) should correctly compute payment and reduce balance
+      75) should compute overpayment creating negative balance (credit)
+      76) should handle opening balance correctly
+    Void Transaction
+      77) should void transaction and restore balance
+{"level":30,"time":1778321265623,"service":"petro-dealer-api","env":"development","msg":"Test MongoDB connection closed"}
+
+  Calculation Engine ΓÇö Unit Tests
+    computeTotal()
+      Γ£ö fuel_sale: qty ├ù rate
+      Γ£ö fuel_sale: exact integer pricing keeps exact result
+      Γ£ö fuel_sale: floating point result rounded to 2dp
+      Γ£ö payment: always 0
+      Γ£ö adjustment: uses amount directly
+      Γ£ö credit_note: uses amount directly
+      Γ£ö opening_balance: uses amount directly
+      Γ£ö throws on invalid type
+      Γ£ö throws on fuel_sale without quantity
+      Γ£ö throws on fuel_sale without rate
+    computeBalance()
+      Γ£ö fuel sale adds to balance
+      Γ£ö payment reduces balance
+      Γ£ö partial payment reduces balance correctly
+      Γ£ö overpayment creates credit (negative balance)
+      Γ£ö precision: no floating point drift
+      Γ£ö handles large numbers correctly
+      Γ£ö handles negative previous balance
+      Γ£ö complex scenario: opening + fuel + payment + credit
+    Edge Cases
+      Γ£ö should handle zero amounts
+      Γ£ö should handle decimal precision correctly
+      Γ£ö should handle very small fractional amounts
+
+
+  97 passing (10s)
+  77 failing
+
+  1) Auth Integration Tests
+       Login
+         should login admin with email and password and set cookies:
+
+      AssertionError: expected 403 to equal 200
+      + expected - actual
+
+      -403
+      +200
+      
+      at Context.<anonymous> (tests\integration\auth.test.js:86:29)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+
+  2) Auth Integration Tests
+       Login
+         should login customer with email and password:
+
+      AssertionError: expected 403 to equal 200
+      + expected - actual
+
+      -403
+      +200
+      
+      at Context.<anonymous> (tests\integration\auth.test.js:113:29)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+
+  3) Auth Integration Tests
+       Login
+         should login customer using phone number as password fallback:
+
+      AssertionError: expected 403 to equal 200
+      + expected - actual
+
+      -403
+      +200
+      
+      at Context.<anonymous> (tests\integration\auth.test.js:137:29)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+
+  4) Auth Integration Tests
+       Login Failures
+         should fail login with invalid email:
+
+      AssertionError: expected 403 to equal 401
+      + expected - actual
+
+      -403
+      +401
+      
+      at Context.<anonymous> (tests\integration\auth.test.js:157:29)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+
+  5) Auth Integration Tests
+       Login Failures
+         should fail login with wrong password:
+
+      AssertionError: expected 403 to equal 401
+      + expected - actual
+
+      -403
+      +401
+      
+      at Context.<anonymous> (tests\integration\auth.test.js:177:29)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+
+  6) Auth Integration Tests
+       Login Failures
+         should not leak whether email exists in error response:
+
+      AssertionError: expected 403 to equal 401
+      + expected - actual
+
+      -403
+      +401
+      
+      at Context.<anonymous> (tests\integration\auth.test.js:194:30)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+
+  7) Auth Integration Tests
+       GET /api/v1/auth/me
+         should return authenticated user profile:
+
+      AssertionError: expected 401 to equal 200
+      + expected - actual
+
+      -401
+      +200
+      
+      at Context.<anonymous> (tests\integration\auth.test.js:229:29)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+
+  8) Auth Integration Tests
+       GET /api/v1/auth/me
+         should not expose password or sensitive fields in /me response:
+     ValidationError: User validation failed: password: Password must be at least 12 characters
+      at Document.invalidate (node_modules\mongoose\lib\document.js:3381:32)
+      at X:\tail website\backend\node_modules\mongoose\lib\document.js:3142:17
+      at X:\tail website\backend\node_modules\mongoose\lib\schemaType.js:1443:9
+      at process.processTicksAndRejections (node:internal/process/task_queues:85:11)
+
+  9) Auth Integration Tests
+       Token Refresh
+         should refresh access token and rotate refresh token:
+     ValidationError: User validation failed: password: Password must be at least 12 characters
+      at Document.invalidate (node_modules\mongoose\lib\document.js:3381:32)
+      at X:\tail website\backend\node_modules\mongoose\lib\document.js:3142:17
+      at X:\tail website\backend\node_modules\mongoose\lib\schemaType.js:1443:9
+      at process.processTicksAndRejections (node:internal/process/task_queues:85:11)
+
+  10) Auth Integration Tests
+       Token Refresh
+         should log token refresh with userId:
+     ValidationError: User validation failed: password: Password must be at least 12 characters
+      at Document.invalidate (node_modules\mongoose\lib\document.js:3381:32)
+      at X:\tail website\backend\node_modules\mongoose\lib\document.js:3142:17
+      at X:\tail website\backend\node_modules\mongoose\lib\schemaType.js:1443:9
+      at process.processTicksAndRejections (node:internal/process/task_queues:85:11)
+
+  11) Auth Integration Tests
+       Token Refresh
+         should fail refresh without refresh token:
+
+      AssertionError: expected 403 to equal 401
+      + expected - actual
+
+      -403
+      +401
+      
+      at Context.<anonymous> (tests\integration\auth.test.js:307:29)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+
+  12) Auth Integration Tests
+       Token Refresh
+         should reject refresh with invalid/tampered refresh token:
+     ValidationError: User validation failed: password: Password must be at least 12 characters
+      at Document.invalidate (node_modules\mongoose\lib\document.js:3381:32)
+      at X:\tail website\backend\node_modules\mongoose\lib\document.js:3142:17
+      at X:\tail website\backend\node_modules\mongoose\lib\schemaType.js:1443:9
+      at process.processTicksAndRejections (node:internal/process/task_queues:85:11)
+
+  13) Auth Integration Tests
+       Logout
+         should logout and clear cookies:
+     ValidationError: User validation failed: password: Password must be at least 12 characters
+      at Document.invalidate (node_modules\mongoose\lib\document.js:3381:32)
+      at X:\tail website\backend\node_modules\mongoose\lib\document.js:3142:17
+      at X:\tail website\backend\node_modules\mongoose\lib\schemaType.js:1443:9
+      at process.processTicksAndRejections (node:internal/process/task_queues:85:11)
+
+  14) Auth Integration Tests
+       Role-Based Access Control
+         should allow admin to access admin-only routes:
+     ValidationError: User validation failed: password: Password must be at least 12 characters
+      at Document.invalidate (node_modules\mongoose\lib\document.js:3381:32)
+      at X:\tail website\backend\node_modules\mongoose\lib\document.js:3142:17
+      at X:\tail website\backend\node_modules\mongoose\lib\schemaType.js:1443:9
+      at process.processTicksAndRejections (node:internal/process/task_queues:85:11)
+
+  15) Auth Integration Tests
+       Role-Based Access Control
+         should deny customer access to admin-only routes:
+     ValidationError: User validation failed: password: Password must be at least 12 characters
+      at Document.invalidate (node_modules\mongoose\lib\document.js:3381:32)
+      at X:\tail website\backend\node_modules\mongoose\lib\document.js:3142:17
+      at X:\tail website\backend\node_modules\mongoose\lib\schemaType.js:1443:9
+      at process.processTicksAndRejections (node:internal/process/task_queues:85:11)
+
+  16) Auth Integration Tests
+       Failed Login Attempts & Lockout
+         should increment failed attempts on wrong password:
+
+      AssertionError: expected 403 to equal 401
+      + expected - actual
+
+      -403
+      +401
+      
+      at Context.<anonymous> (tests\integration\auth.test.js:414:29)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+
+  17) Auth Integration Tests
+       Failed Login Attempts & Lockout
+         should reset failed attempts on successful login:
+
+      AssertionError: expected 403 to equal 401
+      + expected - actual
+
+      -403
+      +401
+      
+      at Context.<anonymous> (tests\integration\auth.test.js:475:29)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+
+  18) Auth Integration Tests
+       Auth Security Logging
+         should log successful login with user info:
+     ValidationError: User validation failed: password: Password must be at least 12 characters
+      at Document.invalidate (node_modules\mongoose\lib\document.js:3381:32)
+      at X:\tail website\backend\node_modules\mongoose\lib\document.js:3142:17
+      at X:\tail website\backend\node_modules\mongoose\lib\schemaType.js:1443:9
+      at process.processTicksAndRejections (node:internal/process/task_queues:85:11)
+
+  19) Auth Integration Tests
+       Error Response Format
+         should return standardized error response:
+
+      AssertionError: expected 403 to equal 401
+      + expected - actual
+
+      -403
+      +401
+      
+      at Context.<anonymous> (tests\integration\auth.test.js:552:29)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+
+  20) Auth Integration Tests
+       Error Response Format
+         should return success response with data on login:
+     ValidationError: User validation failed: password: Password must be at least 12 characters
+      at Document.invalidate (node_modules\mongoose\lib\document.js:3381:32)
+      at X:\tail website\backend\node_modules\mongoose\lib\document.js:3142:17
+      at X:\tail website\backend\node_modules\mongoose\lib\schemaType.js:1443:9
+      at process.processTicksAndRejections (node:internal/process/task_queues:85:11)
+
+  21) Customers Integration Tests
+       Customer Creation
+         admin can create customer with valid data:
+     ValidationError: User validation failed: password: Password must be at least 12 characters
+      at Document.invalidate (node_modules\mongoose\lib\document.js:3381:32)
+      at X:\tail website\backend\node_modules\mongoose\lib\document.js:3142:17
+      at X:\tail website\backend\node_modules\mongoose\lib\schemaType.js:1443:9
+      at process.processTicksAndRejections (node:internal/process/task_queues:85:11)
+
+  22) Customers Integration Tests
+       Customer Creation
+         customer can only be created by admin (auth check):
+     ValidationError: User validation failed: password: Password must be at least 12 characters
+      at Document.invalidate (node_modules\mongoose\lib\document.js:3381:32)
+      at X:\tail website\backend\node_modules\mongoose\lib\document.js:3142:17
+      at X:\tail website\backend\node_modules\mongoose\lib\schemaType.js:1443:9
+      at process.processTicksAndRejections (node:internal/process/task_queues:85:11)
+
+  23) Customers Integration Tests
+       Customer Creation
+         should reject duplicate email with 409:
+     ValidationError: User validation failed: password: Password must be at least 12 characters
+      at Document.invalidate (node_modules\mongoose\lib\document.js:3381:32)
+      at X:\tail website\backend\node_modules\mongoose\lib\document.js:3142:17
+      at X:\tail website\backend\node_modules\mongoose\lib\schemaType.js:1443:9
+      at process.processTicksAndRejections (node:internal/process/task_queues:85:11)
+
+  24) Customers Integration Tests
+       Customer Creation
+         should reject duplicate customer code with 409:
+     ValidationError: User validation failed: password: Password must be at least 12 characters
+      at Document.invalidate (node_modules\mongoose\lib\document.js:3381:32)
+      at X:\tail website\backend\node_modules\mongoose\lib\document.js:3142:17
+      at X:\tail website\backend\node_modules\mongoose\lib\schemaType.js:1443:9
+      at process.processTicksAndRejections (node:internal/process/task_queues:85:11)
+
+  25) Customers Integration Tests
+       Customer Creation
+         should validate required fields:
+     ValidationError: User validation failed: password: Password must be at least 12 characters
+      at Document.invalidate (node_modules\mongoose\lib\document.js:3381:32)
+      at X:\tail website\backend\node_modules\mongoose\lib\document.js:3142:17
+      at X:\tail website\backend\node_modules\mongoose\lib\schemaType.js:1443:9
+      at process.processTicksAndRejections (node:internal/process/task_queues:85:11)
+
+  26) Customers Integration Tests
+       Customer Listing & Ownership
+         admin can list only their own customers:
+     ValidationError: User validation failed: password: Password must be at least 12 characters
+      at Document.invalidate (node_modules\mongoose\lib\document.js:3381:32)
+      at X:\tail website\backend\node_modules\mongoose\lib\document.js:3142:17
+      at X:\tail website\backend\node_modules\mongoose\lib\schemaType.js:1443:9
+      at process.processTicksAndRejections (node:internal/process/task_queues:85:11)
+
+  27) Customers Integration Tests
+       Customer Listing & Ownership
+         admin cannot read another admin's customer by ID:
+     ValidationError: User validation failed: password: Password must be at least 12 characters
+      at Document.invalidate (node_modules\mongoose\lib\document.js:3381:32)
+      at X:\tail website\backend\node_modules\mongoose\lib\document.js:3142:17
+      at X:\tail website\backend\node_modules\mongoose\lib\schemaType.js:1443:9
+      at process.processTicksAndRejections (node:internal/process/task_queues:85:11)
+
+  28) Customers Integration Tests
+       Customer Listing & Ownership
+         admin cannot update another admin's customer:
+     ValidationError: User validation failed: password: Password must be at least 12 characters
+      at Document.invalidate (node_modules\mongoose\lib\document.js:3381:32)
+      at X:\tail website\backend\node_modules\mongoose\lib\document.js:3142:17
+      at X:\tail website\backend\node_modules\mongoose\lib\schemaType.js:1443:9
+      at process.processTicksAndRejections (node:internal/process/task_queues:85:11)
+
+  29) Customers Integration Tests
+       Customer Listing & Ownership
+         admin cannot delete another admin's customer:
+     ValidationError: User validation failed: password: Password must be at least 12 characters
+      at Document.invalidate (node_modules\mongoose\lib\document.js:3381:32)
+      at X:\tail website\backend\node_modules\mongoose\lib\document.js:3142:17
+      at X:\tail website\backend\node_modules\mongoose\lib\schemaType.js:1443:9
+      at process.processTicksAndRejections (node:internal/process/task_queues:85:11)
+
+  30) Customers Integration Tests
+       Customer Self-Service Endpoints
+         customer can retrieve only their own profile:
+     ValidationError: User validation failed: password: Password must be at least 12 characters
+      at Document.invalidate (node_modules\mongoose\lib\document.js:3381:32)
+      at X:\tail website\backend\node_modules\mongoose\lib\document.js:3142:17
+      at X:\tail website\backend\node_modules\mongoose\lib\schemaType.js:1443:9
+      at process.processTicksAndRejections (node:internal/process/task_queues:85:11)
+
+  31) Customers Integration Tests
+       Customer Self-Service Endpoints
+         customer cannot access another customer's profile:
+     ValidationError: User validation failed: password: Password must be at least 12 characters
+      at Document.invalidate (node_modules\mongoose\lib\document.js:3381:32)
+      at X:\tail website\backend\node_modules\mongoose\lib\document.js:3142:17
+      at X:\tail website\backend\node_modules\mongoose\lib\schemaType.js:1443:9
+      at process.processTicksAndRejections (node:internal/process/task_queues:85:11)
+
+  32) Customers Integration Tests
+       Export & Reporting
+         admin can export their own customers:
+     ValidationError: User validation failed: password: Password must be at least 12 characters
+      at Document.invalidate (node_modules\mongoose\lib\document.js:3381:32)
+      at X:\tail website\backend\node_modules\mongoose\lib\document.js:3142:17
+      at X:\tail website\backend\node_modules\mongoose\lib\schemaType.js:1443:9
+      at process.processTicksAndRejections (node:internal/process/task_queues:85:11)
+
+  33) Customers Integration Tests
+       Export & Reporting
+         customer can export only their own data:
+     ValidationError: User validation failed: password: Password must be at least 12 characters
+      at Document.invalidate (node_modules\mongoose\lib\document.js:3381:32)
+      at X:\tail website\backend\node_modules\mongoose\lib\document.js:3142:17
+      at X:\tail website\backend\node_modules\mongoose\lib\schemaType.js:1443:9
+      at process.processTicksAndRejections (node:internal/process/task_queues:85:11)
+
+  34) Customers Integration Tests
+       Error Response Format
+         should return standardized error response on validation failure:
+     ValidationError: User validation failed: password: Password must be at least 12 characters
+      at Document.invalidate (node_modules\mongoose\lib\document.js:3381:32)
+      at X:\tail website\backend\node_modules\mongoose\lib\document.js:3142:17
+      at X:\tail website\backend\node_modules\mongoose\lib\schemaType.js:1443:9
+      at process.processTicksAndRejections (node:internal/process/task_queues:85:11)
+
+  35) Customers Integration Tests
+       Error Response Format
+         should return 404 for non-existent customer:
+     ValidationError: User validation failed: password: Password must be at least 12 characters
+      at Document.invalidate (node_modules\mongoose\lib\document.js:3381:32)
+      at X:\tail website\backend\node_modules\mongoose\lib\document.js:3142:17
+      at X:\tail website\backend\node_modules\mongoose\lib\schemaType.js:1443:9
+      at process.processTicksAndRejections (node:internal/process/task_queues:85:11)
+
+  36) Events Routes Integration
+       GET /api/v1/events/transactions
+         should establish SSE connection with authenticated customer:
+     ValidationError: User validation failed: password: Password must be at least 12 characters
+      at Document.invalidate (node_modules\mongoose\lib\document.js:3381:32)
+      at X:\tail website\backend\node_modules\mongoose\lib\document.js:3142:17
+      at X:\tail website\backend\node_modules\mongoose\lib\schemaType.js:1443:9
+      at process.processTicksAndRejections (node:internal/process/task_queues:85:11)
+
+  37) Events Routes Integration
+       GET /api/v1/events/transactions
+         should send connection ping:
+     ValidationError: User validation failed: password: Password must be at least 12 characters
+      at Document.invalidate (node_modules\mongoose\lib\document.js:3381:32)
+      at X:\tail website\backend\node_modules\mongoose\lib\document.js:3142:17
+      at X:\tail website\backend\node_modules\mongoose\lib\schemaType.js:1443:9
+      at process.processTicksAndRejections (node:internal/process/task_queues:85:11)
+
+  38) Events Routes Integration
+       GET /api/v1/events/transactions
+         should handle multiple concurrent connections:
+     ValidationError: User validation failed: password: Password must be at least 12 characters
+      at Document.invalidate (node_modules\mongoose\lib\document.js:3381:32)
+      at X:\tail website\backend\node_modules\mongoose\lib\document.js:3142:17
+      at X:\tail website\backend\node_modules\mongoose\lib\schemaType.js:1443:9
+      at process.processTicksAndRejections (node:internal/process/task_queues:85:11)
+
+  39) Events Routes Integration
+       GET /api/v1/events/transactions
+         should prevent customer from accessing other customer SSE:
+     ValidationError: User validation failed: password: Password must be at least 12 characters
+      at Document.invalidate (node_modules\mongoose\lib\document.js:3381:32)
+      at X:\tail website\backend\node_modules\mongoose\lib\document.js:3142:17
+      at X:\tail website\backend\node_modules\mongoose\lib\schemaType.js:1443:9
+      at process.processTicksAndRejections (node:internal/process/task_queues:85:11)
+
+  40) Transactions Integration Tests
+       Transaction Creation
+         admin can create fuel sale transaction for owned customer:
+     ValidationError: User validation failed: password: Password must be at least 12 characters
+      at Document.invalidate (node_modules\mongoose\lib\document.js:3381:32)
+      at X:\tail website\backend\node_modules\mongoose\lib\document.js:3142:17
+      at X:\tail website\backend\node_modules\mongoose\lib\schemaType.js:1443:9
+      at process.processTicksAndRejections (node:internal/process/task_queues:85:11)
+
+  41) Transactions Integration Tests
+       Transaction Creation
+         admin can create payment transaction:
+     ValidationError: User validation failed: password: Password must be at least 12 characters
+      at Document.invalidate (node_modules\mongoose\lib\document.js:3381:32)
+      at X:\tail website\backend\node_modules\mongoose\lib\document.js:3142:17
+      at X:\tail website\backend\node_modules\mongoose\lib\schemaType.js:1443:9
+      at process.processTicksAndRejections (node:internal/process/task_queues:85:11)
+
+  42) Transactions Integration Tests
+       Transaction Creation
+         admin can create opening balance transaction:
+     ValidationError: User validation failed: password: Password must be at least 12 characters
+      at Document.invalidate (node_modules\mongoose\lib\document.js:3381:32)
+      at X:\tail website\backend\node_modules\mongoose\lib\document.js:3142:17
+      at X:\tail website\backend\node_modules\mongoose\lib\schemaType.js:1443:9
+      at process.processTicksAndRejections (node:internal/process/task_queues:85:11)
+
+  43) Transactions Integration Tests
+       Transaction Creation
+         admin can create credit note transaction:
+     ValidationError: User validation failed: password: Password must be at least 12 characters
+      at Document.invalidate (node_modules\mongoose\lib\document.js:3381:32)
+      at X:\tail website\backend\node_modules\mongoose\lib\document.js:3142:17
+      at X:\tail website\backend\node_modules\mongoose\lib\schemaType.js:1443:9
+      at process.processTicksAndRejections (node:internal/process/task_queues:85:11)
+
+  44) Transactions Integration Tests
+       Ownership & Access Control
+         admin cannot create transaction for unowned customer:
+     ValidationError: User validation failed: password: Password must be at least 12 characters
+      at Document.invalidate (node_modules\mongoose\lib\document.js:3381:32)
+      at X:\tail website\backend\node_modules\mongoose\lib\document.js:3142:17
+      at X:\tail website\backend\node_modules\mongoose\lib\schemaType.js:1443:9
+      at process.processTicksAndRejections (node:internal/process/task_queues:85:11)
+
+  45) Transactions Integration Tests
+       Ownership & Access Control
+         customer can only read their own transaction history:
+     ValidationError: User validation failed: password: Password must be at least 12 characters
+      at Document.invalidate (node_modules\mongoose\lib\document.js:3381:32)
+      at X:\tail website\backend\node_modules\mongoose\lib\document.js:3142:17
+      at X:\tail website\backend\node_modules\mongoose\lib\schemaType.js:1443:9
+      at process.processTicksAndRejections (node:internal/process/task_queues:85:11)
+
+  46) Transactions Integration Tests
+       Running Balance Calculation
+         should correctly calculate running balance through multiple transactions:
+     ValidationError: User validation failed: password: Password must be at least 12 characters
+      at Document.invalidate (node_modules\mongoose\lib\document.js:3381:32)
+      at X:\tail website\backend\node_modules\mongoose\lib\document.js:3142:17
+      at X:\tail website\backend\node_modules\mongoose\lib\schemaType.js:1443:9
+      at process.processTicksAndRejections (node:internal/process/task_queues:85:11)
+
+  47) Transactions Integration Tests
+       Date Filtering
+         should filter transactions by single day:
+     ValidationError: User validation failed: password: Password must be at least 12 characters
+      at Document.invalidate (node_modules\mongoose\lib\document.js:3381:32)
+      at X:\tail website\backend\node_modules\mongoose\lib\document.js:3142:17
+      at X:\tail website\backend\node_modules\mongoose\lib\schemaType.js:1443:9
+      at process.processTicksAndRejections (node:internal/process/task_queues:85:11)
+
+  48) Transactions Integration Tests
+       Date Filtering
+         should filter transactions by month:
+     ValidationError: User validation failed: password: Password must be at least 12 characters
+      at Document.invalidate (node_modules\mongoose\lib\document.js:3381:32)
+      at X:\tail website\backend\node_modules\mongoose\lib\document.js:3142:17
+      at X:\tail website\backend\node_modules\mongoose\lib\schemaType.js:1443:9
+      at process.processTicksAndRejections (node:internal/process/task_queues:85:11)
+
+  49) Transactions Integration Tests
+       Date Filtering
+         should filter transactions by custom date range:
+     ValidationError: User validation failed: password: Password must be at least 12 characters
+      at Document.invalidate (node_modules\mongoose\lib\document.js:3381:32)
+      at X:\tail website\backend\node_modules\mongoose\lib\document.js:3142:17
+      at X:\tail website\backend\node_modules\mongoose\lib\schemaType.js:1443:9
+      at process.processTicksAndRejections (node:internal/process/task_queues:85:11)
+
+  50) Transactions Integration Tests
+       Pagination & Sorting
+         should support pagination with page and limit:
+     ValidationError: User validation failed: password: Password must be at least 12 characters
+      at Document.invalidate (node_modules\mongoose\lib\document.js:3381:32)
+      at X:\tail website\backend\node_modules\mongoose\lib\document.js:3142:17
+      at X:\tail website\backend\node_modules\mongoose\lib\schemaType.js:1443:9
+      at process.processTicksAndRejections (node:internal/process/task_queues:85:11)
+
+  51) Transactions Integration Tests
+       Pagination & Sorting
+         should return metadata in paginated response:
+     ValidationError: User validation failed: password: Password must be at least 12 characters
+      at Document.invalidate (node_modules\mongoose\lib\document.js:3381:32)
+      at X:\tail website\backend\node_modules\mongoose\lib\document.js:3142:17
+      at X:\tail website\backend\node_modules\mongoose\lib\schemaType.js:1443:9
+      at process.processTicksAndRejections (node:internal/process/task_queues:85:11)
+
+  52) Transactions Integration Tests
+       Void Transaction
+         should void transaction and restore balance:
+     ValidationError: User validation failed: password: Password must be at least 12 characters
+      at Document.invalidate (node_modules\mongoose\lib\document.js:3381:32)
+      at X:\tail website\backend\node_modules\mongoose\lib\document.js:3142:17
+      at X:\tail website\backend\node_modules\mongoose\lib\schemaType.js:1443:9
+      at process.processTicksAndRejections (node:internal/process/task_queues:85:11)
+
+  53) Transactions Integration Tests
+       Validation & Error Handling
+         should reject missing customerId:
+     ValidationError: User validation failed: password: Password must be at least 12 characters
+      at Document.invalidate (node_modules\mongoose\lib\document.js:3381:32)
+      at X:\tail website\backend\node_modules\mongoose\lib\document.js:3142:17
+      at X:\tail website\backend\node_modules\mongoose\lib\schemaType.js:1443:9
+      at process.processTicksAndRejections (node:internal/process/task_queues:85:11)
+
+  54) Transactions Integration Tests
+       Validation & Error Handling
+         should reject missing transactionType:
+     ValidationError: User validation failed: password: Password must be at least 12 characters
+      at Document.invalidate (node_modules\mongoose\lib\document.js:3381:32)
+      at X:\tail website\backend\node_modules\mongoose\lib\document.js:3142:17
+      at X:\tail website\backend\node_modules\mongoose\lib\schemaType.js:1443:9
+      at process.processTicksAndRejections (node:internal/process/task_queues:85:11)
+
+  55) Transactions Integration Tests
+       Validation & Error Handling
+         should reject invalid transaction type:
+     ValidationError: User validation failed: password: Password must be at least 12 characters
+      at Document.invalidate (node_modules\mongoose\lib\document.js:3381:32)
+      at X:\tail website\backend\node_modules\mongoose\lib\document.js:3142:17
+      at X:\tail website\backend\node_modules\mongoose\lib\schemaType.js:1443:9
+      at process.processTicksAndRejections (node:internal/process/task_queues:85:11)
+
+  56) Transactions Integration Tests
+       Validation & Error Handling
+         should return 404 for non-existent transaction:
+     ValidationError: User validation failed: password: Password must be at least 12 characters
+      at Document.invalidate (node_modules\mongoose\lib\document.js:3381:32)
+      at X:\tail website\backend\node_modules\mongoose\lib\document.js:3142:17
+      at X:\tail website\backend\node_modules\mongoose\lib\schemaType.js:1443:9
+      at process.processTicksAndRejections (node:internal/process/task_queues:85:11)
+
+  57) Transactions Integration Tests
+       Error Response Format
+         should return standardized error response:
+     ValidationError: User validation failed: password: Password must be at least 12 characters
+      at Document.invalidate (node_modules\mongoose\lib\document.js:3381:32)
+      at X:\tail website\backend\node_modules\mongoose\lib\document.js:3142:17
+      at X:\tail website\backend\node_modules\mongoose\lib\schemaType.js:1443:9
+      at process.processTicksAndRejections (node:internal/process/task_queues:85:11)
+
+  58) Transactions Integration Tests
+       Error Response Format
+         should return success response with data on create:
+     ValidationError: User validation failed: password: Password must be at least 12 characters
+      at Document.invalidate (node_modules\mongoose\lib\document.js:3381:32)
+      at X:\tail website\backend\node_modules\mongoose\lib\document.js:3142:17
+      at X:\tail website\backend\node_modules\mongoose\lib\schemaType.js:1443:9
+      at process.processTicksAndRejections (node:internal/process/task_queues:85:11)
+
+  59) Auth Service Unit Tests
+       Login Success
+         should return user without sensitive fields:
+     ValidationError: User validation failed: password: Password must be at least 12 characters
+      at Document.invalidate (node_modules\mongoose\lib\document.js:3381:32)
+      at X:\tail website\backend\node_modules\mongoose\lib\document.js:3142:17
+      at X:\tail website\backend\node_modules\mongoose\lib\schemaType.js:1443:9
+      at process.processTicksAndRejections (node:internal/process/task_queues:85:11)
+
+  60) Auth Service Unit Tests
+       Password Validation
+         should handle invalid password hash gracefully:
+     ValidationError: User validation failed: password: Password must be at least 12 characters
+      at Document.invalidate (node_modules\mongoose\lib\document.js:3381:32)
+      at X:\tail website\backend\node_modules\mongoose\lib\document.js:3142:17
+      at X:\tail website\backend\node_modules\mongoose\lib\schemaType.js:1443:9
+      at process.processTicksAndRejections (node:internal/process/task_queues:85:11)
+
+  61) Auth Service Unit Tests
+       Token Generation
+         should generate valid access token:
+     ValidationError: User validation failed: password: Password must be at least 12 characters
+      at Document.invalidate (node_modules\mongoose\lib\document.js:3381:32)
+      at X:\tail website\backend\node_modules\mongoose\lib\document.js:3142:17
+      at X:\tail website\backend\node_modules\mongoose\lib\schemaType.js:1443:9
+      at process.processTicksAndRejections (node:internal/process/task_queues:85:11)
+
+  62) Auth Service Unit Tests
+       Token Generation
+         should generate valid refresh token:
+     ValidationError: User validation failed: password: Password must be at least 12 characters
+      at Document.invalidate (node_modules\mongoose\lib\document.js:3381:32)
+      at X:\tail website\backend\node_modules\mongoose\lib\document.js:3142:17
+      at X:\tail website\backend\node_modules\mongoose\lib\schemaType.js:1443:9
+      at process.processTicksAndRejections (node:internal/process/task_queues:85:11)
+
+  63) Auth Service Unit Tests
+       Token Generation
+         should save refresh token to database:
+     ValidationError: User validation failed: password: Password must be at least 12 characters
+      at Document.invalidate (node_modules\mongoose\lib\document.js:3381:32)
+      at X:\tail website\backend\node_modules\mongoose\lib\document.js:3142:17
+      at X:\tail website\backend\node_modules\mongoose\lib\schemaType.js:1443:9
+      at process.processTicksAndRejections (node:internal/process/task_queues:85:11)
+
+  64) Auth Service Unit Tests
+       Security Logging
+         should log successful login:
+     TypeError: Attempted to wrap info which is already wrapped
+      at checkWrappedMethod (node_modules\sinon\lib\sinon\util\core\wrap-method.js:88:21)
+      at wrapMethod (node_modules\sinon\lib\sinon\util\core\wrap-method.js:153:13)
+      at spy (node_modules\sinon\lib\sinon\spy.js:192:16)
+      at Sandbox.spy (node_modules\sinon\lib\sinon\sandbox.js:206:32)
+      at Context.<anonymous> (tests\unit\authService.test.js:426:28)
+      at process.processImmediate (node:internal/timers:504:21)
+  --------------
+  Error: Stack Trace for original
+      at extendObjectWithWrappedMethods (node_modules\sinon\lib\sinon\util\core\wrap-method.js:251:34)
+      at wrapMethod (node_modules\sinon\lib\sinon\util\core\wrap-method.js:263:5)
+      at spy (node_modules\sinon\lib\sinon\spy.js:192:16)
+      at Sandbox.spy (node_modules\sinon\lib\sinon\sandbox.js:206:32)
+      at Context.<anonymous> (tests\integration\auth.test.js:494:28)
+      at process.processImmediate (node:internal/timers:504:21)
+
+  65) Auth Validator Unit
+       recoverAdminSchema
+         validates valid recovery input:
+     AssertionError: expected { details: [ { ΓÇª(2) } ] } to not exist
+      at Context.<anonymous> (tests\unit\authValidator.test.js:14:34)
+      at process.processImmediate (node:internal/timers:504:21)
+
+  66) Auth Validator Unit
+       adminChangePasswordSchema
+         validates matching passwords:
+     AssertionError: expected { details: [ { ΓÇª(2) }, ΓÇª(2) ] } to not exist
+      at Context.<anonymous> (tests\unit\authValidator.test.js:103:34)
+      at process.processImmediate (node:internal/timers:504:21)
+
+  67) Daily Record Service Unit
+       "before all" hook for "should parse date correctly":
+     ValidationError: User validation failed: password: Password must be at least 12 characters
+      at Document.invalidate (node_modules\mongoose\lib\document.js:3381:32)
+      at X:\tail website\backend\node_modules\mongoose\lib\document.js:3142:17
+      at X:\tail website\backend\node_modules\mongoose\lib\schemaType.js:1443:9
+      at process.processTicksAndRejections (node:internal/process/task_queues:85:11)
+
+  68) Excel Service Unit
+       parsePkDateStart
+         should parse date for start of day (5 AM UTC):
+     AssertionError: expected '2024-05-09T19:00:00.000Z' to include '2024-05-10T05:00:00'
+      at Context.<anonymous> (tests\unit\excelService.test.js:18:39)
+      at process.processImmediate (node:internal/timers:504:21)
+
+  69) Excel Service Unit
+       parsePkDateStart
+         should handle string date format:
+
+      AssertionError: expected 24 to equal 25
+      + expected - actual
+
+      -24
+      +25
+      
+      at Context.<anonymous> (tests\unit\excelService.test.js:24:38)
+      at process.processImmediate (node:internal/timers:504:21)
+
+  70) Excel Service Unit
+       parsePkMonthStart and parsePkMonthEnd
+         should parse month start correctly:
+
+      AssertionError: expected 1 to equal 2
+      + expected - actual
+
+      -1
+      +2
+      
+      at Context.<anonymous> (tests\unit\excelService.test.js:44:39)
+      at process.processImmediate (node:internal/timers:504:21)
+
+  71) Excel Service Unit
+       parsePkYearStart and parsePkYearEnd
+         should parse year start:
+
+      AssertionError: expected 2023 to equal 2024
+      + expected - actual
+
+      -2023
+      +2024
+      
+      at Context.<anonymous> (tests\unit\excelService.test.js:64:42)
+      at process.processImmediate (node:internal/timers:504:21)
+
+  72) SSE Utility
+       sendEvent
+         should handle numeric customer IDs:
+     AssertionError: expected '' to include 'event: test'
+      at Context.<anonymous> (tests\unit\sseUtil.test.js:108:35)
+      at process.processImmediate (node:internal/timers:504:21)
+
+  73) Transaction Service Unit Tests
+       Running Balance Computation
+         should compute fuel sale and update running balance:
+     ValidationError: User validation failed: password: Password must be at least 12 characters
+      at Document.invalidate (node_modules\mongoose\lib\document.js:3381:32)
+      at X:\tail website\backend\node_modules\mongoose\lib\document.js:3142:17
+      at X:\tail website\backend\node_modules\mongoose\lib\schemaType.js:1443:9
+      at process.processTicksAndRejections (node:internal/process/task_queues:85:11)
+
+  74) Transaction Service Unit Tests
+       Running Balance Computation
+         should correctly compute payment and reduce balance:
+     ValidationError: User validation failed: password: Password must be at least 12 characters
+      at Document.invalidate (node_modules\mongoose\lib\document.js:3381:32)
+      at X:\tail website\backend\node_modules\mongoose\lib\document.js:3142:17
+      at X:\tail website\backend\node_modules\mongoose\lib\schemaType.js:1443:9
+      at process.processTicksAndRejections (node:internal/process/task_queues:85:11)
+
+  75) Transaction Service Unit Tests
+       Running Balance Computation
+         should compute overpayment creating negative balance (credit):
+     ValidationError: User validation failed: password: Password must be at least 12 characters
+      at Document.invalidate (node_modules\mongoose\lib\document.js:3381:32)
+      at X:\tail website\backend\node_modules\mongoose\lib\document.js:3142:17
+      at X:\tail website\backend\node_modules\mongoose\lib\schemaType.js:1443:9
+      at process.processTicksAndRejections (node:internal/process/task_queues:85:11)
+
+  76) Transaction Service Unit Tests
+       Running Balance Computation
+         should handle opening balance correctly:
+     ValidationError: User validation failed: password: Password must be at least 12 characters
+      at Document.invalidate (node_modules\mongoose\lib\document.js:3381:32)
+      at X:\tail website\backend\node_modules\mongoose\lib\document.js:3142:17
+      at X:\tail website\backend\node_modules\mongoose\lib\schemaType.js:1443:9
+      at process.processTicksAndRejections (node:internal/process/task_queues:85:11)
+
+  77) Transaction Service Unit Tests
+       Void Transaction
+         should void transaction and restore balance:
+     ValidationError: User validation failed: password: Password must be at least 12 characters
+      at Document.invalidate (node_modules\mongoose\lib\document.js:3381:32)
+      at X:\tail website\backend\node_modules\mongoose\lib\document.js:3142:17
+      at X:\tail website\backend\node_modules\mongoose\lib\schemaType.js:1443:9
+      at process.processTicksAndRejections (node:internal/process/task_queues:85:11)
+
+
+
