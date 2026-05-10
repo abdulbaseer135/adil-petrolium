@@ -71,21 +71,42 @@ describe('Events Routes Integration', function () {
         password: 'Cust@12345678',
       });
 
-      const res = await getSseResponse(agent, '/api/v1/events/transactions');
-      const chunks = [];
-      await new Promise((resolve, reject) => {
-        const timer = setTimeout(resolve, 2000);
-        res.on('data', (c) => {
-          chunks.push(c.toString());
-          if (chunks.join('').includes(': connected')) {
+      // Attach `data` inside `response` (sync) so the first chunk cannot be missed.
+      const text = await new Promise((resolve, reject) => {
+        const timer = setTimeout(() => reject(new Error('SSE ping timeout')), 8000);
+        const parts = [];
+        agent
+          .get('/api/v1/events/transactions')
+          .set('Accept', 'text/event-stream')
+          .buffer(false)
+          .on('response', (res) => {
+            if (res.statusCode !== 200) {
+              clearTimeout(timer);
+              reject(new Error(`expected 200, got ${res.statusCode}`));
+              return;
+            }
+            res.setEncoding('utf8');
+            res.on('data', (c) => {
+              parts.push(c);
+              if (parts.join('').includes(': connected')) {
+                clearTimeout(timer);
+                res.destroy();
+                resolve(parts.join(''));
+              }
+            });
+            res.on('error', (e) => {
+              clearTimeout(timer);
+              reject(e);
+            });
+          })
+          .on('error', (e) => {
             clearTimeout(timer);
-            resolve();
-          }
-        });
-        res.on('error', reject);
+            reject(e);
+          })
+          .end();
       });
-      expect(chunks.join('')).to.include(': connected');
-      res.destroy();
+
+      expect(text).to.include(': connected');
     });
 
     it('should handle multiple concurrent connections', async () => {
