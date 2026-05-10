@@ -1,0 +1,115 @@
+:root {
+  --text-xs:   clamp(0.72rem, 0.68rem + 0.16vw, 0.8rem);
+  --text-sm:   clamp(0.82rem, 0.78rem + 0.22vw, 0.95rem);
+  --text-base: clamp(0.95rem, 0.92rem + 0.2vw, 1.05rem);
+  --text-lg:   clamp(1.06rem, 1rem + 0.5vw, 1.25rem);
+  --text-xl:   clamp(1.35rem, 1.15rem + 0.9vw, 1.8rem);
+  --text-2xl:  clamp(1.85rem, 1.45rem + 1.9vw, 2.8rem);
+
+  --space-1: 0.25rem;
+  --space-2: 0.45rem;
+  --space-3: 0.7rem;
+  --space-4: 0.95rem;
+  --space-5: 1.15rem;
+  --space-6: 1.25rem;
+  --space-8: 1.75rem;
+  --space-10: 2.25rem;
+  --space-12: 2.75rem;
+  --space-16: 3.5rem;
+  --space-20: 4.5rem;
+  --space-24: 5.5rem;
+
+  --color-bg:               #eef3f5;
+  --color-surface:          #ffffff;
+  --color-surface-2:        #f7fafc;
+  --color-surface-offset:   #edf3f6;
+  --color-surface-offset-2: #e6edf1;
+  --color-surface-dynamic:  #dfe8ed;
+  --color-divider:          #d6e0e6;
+  --color-border:           #c8d3da;
+
+  --color-text:         #10212b;
+  --color-text-muted:   #5f6e78;
+  --color-text-faint:   #8d9aa3;
+  --color-text-inverse: #f7fbfc;
+
+  --color-primary:           #0c7380;
+  --color-primary-hover:     #095c67;
+  --color-primary-active:    #073f46;
+  --color-primary-light:     #d7ecef;
+  --color-primary-highlight: #d7ecef;
+
+  --color-success:           #2f6e40;
+  --color-success-hover:     #245631;
+  --color-success-light:     #dbe9dc;
+  --color-success-highlight: #dbe9dc;
+
+  --color-error:           #9e3430;
+  --color-error-hover:     #7f2926;
+  --color-error-light:     #f2dddd;
+  --color-error-highlight: #f2dddd;
+
+  --color-warning:         #99611f;
+  --color-warning-hover:   #7d4d17;
+  --color-warning-light:   #efe0c8;
+
+  --color-gold:           #bb8716;
+  --color-gold-hover:     #94690f;
+  --color-gold-light:     #f1e5c2;
+  --color-gold-highlight: #f1e5c2;
+
+  --sidebar-width:   224px;
+  --topbar-height:   52px;
+  --content-narrow:  640px;
+  --content-default: 1040px;
+  --content-wide:    1280px;
+
+  --radius-sm:   0.35rem;
+  --radius-md:   0.5rem;
+  --radius-lg:   0.7rem;
+  --radius-xl:   0.95rem;
+  --radius-2xl:  1.15rem;
+  --radius-full: 9999px;
+
+  --color-sidebar-bg:     #132634;
+  --color-sidebar-text:   rgba(241, 248, 250, 0.72);
+  --color-sidebar-active: rgba(255,255,255,0.1);
+  --color-sidebar-hover:  rgba(255,255,255,0.055);
+  --color-sidebar-border: rgba(255,255,255,0.08);
+
+  --shadow-sm: 0 1px 2px rgba(16,33,43,0.06);
+  --shadow-md: 0 6px 16px rgba(16,33,43,0.09);
+  --shadow-lg: 0 16px 36px rgba(16,33,43,0.13);
+
+  --control-height-sm: 28px;
+  --control-height-md: 34px;
+  --control-height-lg: 40px;
+
+  --transition: 180ms cubic-bezier(0.16, 1, 0.3, 1);
+  --transition-interactive: 180ms cubic-bezier(0.16, 1, 0.3, 1);
+  --transition-slow: 320ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* ─── Animations ─── */
+@keyframes shimmer {
+  0%   { background-position: -400px 0; }
+  100% { background-position:  400px 0; }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0);   }
+}
+
+@keyframes pulse {                                    /* ✅ added — live badge */
+  0%, 100% { opacity: 1;   }
+  50%       { opacity: 0.4; }
+}
+
+@keyframes slideIn {                                  /* ✅ added — modals/drawers */
+  from { opacity: 0; transform: translateX(-8px); }
+  to   { opacity: 1; transform: translateX(0);    }
+}
+
+.animate-fadeIn  { animation: fadeIn  220ms ease-out forwards; }
+.animate-slideIn { animation: slideIn 220ms ease-out forwards; } /* ✅ added */

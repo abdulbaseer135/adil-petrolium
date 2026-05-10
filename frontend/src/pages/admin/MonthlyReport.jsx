@@ -1,0 +1,171 @@
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { getTransactions } from '../../api/transactionApi';
+import { Button } from '../../components/ui/Button';
+import { EmptyState } from '../../components/ui/EmptyState';
+import { SkeletonTable } from '../../components/ui/Skeleton';
+import { CustomerStatementGroups, buildCustomerStatementGroups, filterCustomerStatementGroups } from '../../components/admin/CustomerStatementGroups';
+import { SectionHeader, Section } from '../../components/ui/Section';
+import { formatCurrencyPK, formatDateTimePK, formatNumberPK } from '../../utils/pkFormat';
+
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+const fmt = formatCurrencyPK;
+const fmtL = (v) => `${formatNumberPK(v, 0, 0)} L`;
+const fmtDT = formatDateTimePK;
+const formatNumber = formatNumberPK;
+
+const controlStyle = {
+  padding: 'var(--space-2) var(--space-3)',
+  border: '1px solid var(--color-border)',
+  borderRadius: 'var(--radius-md)',
+  fontSize: 'var(--text-sm)',
+  background: 'var(--color-surface)',
+  color: 'var(--color-text)',
+  minHeight: 40,
+};
+
+export default function MonthlyReport() {
+  const currentDate = useMemo(() => new Date(), []);
+  const [month, setMonth] = useState(currentDate.getMonth() + 1);
+  const [year, setYear] = useState(currentDate.getFullYear());
+  const [transactions, setTransactions] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [reloading, setReloading] = useState(false);
+  const [error, setError] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const availableYears = useMemo(() => [2023, 2024, 2025, 2026], []);
+
+  const loadMonthly = useCallback(async (targetYear = year, targetMonth = month) => {
+    setLoading(true);
+    setError('');
+    try {
+      const startDate = `${targetYear}-${String(targetMonth).padStart(2, '0')}-01`;
+      const monthEnd = new Date(targetYear, targetMonth, 0).getDate();
+      const endDate = `${targetYear}-${String(targetMonth).padStart(2, '0')}-${String(monthEnd).padStart(2, '0')}`;
+
+      const all = [];
+      let page = 1;
+      let totalPages = 1;
+
+      do {
+        const res = await getTransactions({
+          startDate,
+          endDate,
+          page,
+          limit: 100,
+          sort: 'transactionDate',
+        });
+
+        all.push(...(res.data?.data || []));
+        totalPages = res.data?.meta?.totalPages || 1;
+        page += 1;
+      } while (page <= totalPages);
+
+      setTransactions(all.filter((tx) => !tx.isVoided));
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to load monthly details');
+      setTransactions([]);
+    } finally {
+      setLoading(false);
+      setReloading(false);
+    }
+  }, [year, month]);
+
+  useEffect(() => {
+    loadMonthly();
+  }, [loadMonthly]);
+
+  const handleReload = async () => {
+    setReloading(true);
+    await loadMonthly();
+  };
+
+  const summary = useMemo(() => transactions.reduce((acc, tx) => {
+    acc.totalFuelSold += Number(tx.fuelQuantity) || 0;
+    acc.totalSales += Number(tx.totalAmount) || 0;
+    acc.totalPayments += Number(tx.paymentReceived) || 0;
+    return acc;
+  }, { totalFuelSold: 0, totalSales: 0, totalPayments: 0 }), [transactions]);
+
+  const statementGroups = useMemo(() => buildCustomerStatementGroups(transactions), [transactions]);
+  const filteredStatementGroups = useMemo(
+    () => filterCustomerStatementGroups(statementGroups, searchQuery),
+    [statementGroups, searchQuery]
+  );
+
+  return (
+    <div className="animate-fadeIn report-page">
+      <div className="report-hero">
+        <div className="page-shell__title-group">
+          <h1 style={{ fontSize: 'var(--text-xl)', fontWeight: 700, letterSpacing: '-0.02em' }}>Monthly Report</h1>
+          <p style={{ color: 'var(--color-text-muted)', fontSize: 'var(--text-sm)', marginTop: 'var(--space-1)' }}>
+            Monthly transaction review grouped by day and customer activity.
+          </p>
+        </div>
+
+        <div className="report-toolbar">
+          <div className="report-filter">
+            <span className="report-filter__label">Month</span>
+            <select className="report-filter__control" value={month} onChange={(e) => setMonth(Number(e.target.value))}>
+              {MONTHS.map((label, index) => <option key={label} value={index + 1}>{label}</option>)}
+            </select>
+          </div>
+
+          <div className="report-filter">
+            <span className="report-filter__label">Year</span>
+            <select className="report-filter__control" value={year} onChange={(e) => setYear(Number(e.target.value))}>
+              {availableYears.map((item) => <option key={item} value={item}>{item}</option>)}
+            </select>
+          </div>
+
+          <Button onClick={handleReload} loading={reloading}>Reload</Button>
+        </div>
+      </div>
+
+      <div className="report-stat-grid">
+        <div className="report-stat-card" style={{ '--card-accent': 'var(--color-primary)' }}>
+          <div style={{ fontSize: 'var(--text-xs)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--color-text-muted)' }}>Total Sale</div>
+          <div style={{ marginTop: 'var(--space-2)', fontSize: 'var(--text-lg)', fontWeight: 700, color: 'var(--color-primary)', fontVariantNumeric: 'tabular-nums' }}>{loading ? 'Loading…' : fmt(summary.totalSales)}</div>
+          <div style={{ marginTop: 'var(--space-1)', fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)' }}>Debit transactions in the period.</div>
+        </div>
+        <div className="report-stat-card" style={{ '--card-accent': 'var(--color-warning)' }}>
+          <div style={{ fontSize: 'var(--text-xs)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--color-text-muted)' }}>Total Fuel Sold</div>
+          <div style={{ marginTop: 'var(--space-2)', fontSize: 'var(--text-lg)', fontWeight: 700, color: 'var(--color-warning)', fontVariantNumeric: 'tabular-nums' }}>{loading ? 'Loading…' : fmtL(summary.totalFuelSold)}</div>
+          <div style={{ marginTop: 'var(--space-1)', fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)' }}>Total litres sold across all entries.</div>
+        </div>
+        <div className="report-stat-card" style={{ '--card-accent': 'var(--color-success)' }}>
+          <div style={{ fontSize: 'var(--text-xs)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--color-text-muted)' }}>Total Payments</div>
+          <div style={{ marginTop: 'var(--space-2)', fontSize: 'var(--text-lg)', fontWeight: 700, color: 'var(--color-success)', fontVariantNumeric: 'tabular-nums' }}>{loading ? 'Loading…' : fmt(summary.totalPayments)}</div>
+          <div style={{ marginTop: 'var(--space-1)', fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)' }}>Credit transactions received.</div>
+        </div>
+        <div className="report-stat-card" style={{ '--card-accent': 'var(--color-warning)' }}>
+          <div style={{ fontSize: 'var(--text-xs)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--color-text-muted)' }}>Remaining</div>
+          <div style={{ marginTop: 'var(--space-2)', fontSize: 'var(--text-lg)', fontWeight: 700, color: 'var(--color-warning)', fontVariantNumeric: 'tabular-nums' }}>{loading ? 'Loading…' : fmt(summary.totalSales - summary.totalPayments)}</div>
+          <div style={{ marginTop: 'var(--space-1)', fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)' }}>Outstanding amount after payments.</div>
+        </div>
+      </div>
+
+      <div className="report-filter" style={{ minWidth: 220, maxWidth: 320 }}>
+        <span className="report-filter__label">Search</span>
+        <input
+          className="report-filter__control"
+          type="search"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder="Search customer name..."
+        />
+      </div>
+
+      <CustomerStatementGroups
+        groups={filteredStatementGroups}
+        loading={loading}
+        error={error}
+        onRetry={handleReload}
+        emptyIcon="🧾"
+        emptyTitle="No purchases for this month"
+        emptyDescription="No customer purchases found for the selected month."
+      />
+    </div>
+  );
+}
