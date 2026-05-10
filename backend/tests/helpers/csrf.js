@@ -22,8 +22,9 @@ const requestWithCsrf = async (agentOrApp, method, path, body) => {
   if (!isAgentWithJar(agentOrApp)) {
     req.set('Cookie', '');
   }
-  if (body !== undefined) {
-    req.send(body);
+  const payload = body !== undefined ? body : (method === 'post' || method === 'put' || method === 'patch' ? {} : undefined);
+  if (payload !== undefined) {
+    return req.send(payload);
   }
   return req;
 };

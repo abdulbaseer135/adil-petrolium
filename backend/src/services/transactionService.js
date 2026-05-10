@@ -36,7 +36,16 @@ const computeTotal = ({ transactionType, fuelQuantity, rate, amount }) => {
     return normalizeMoney(fuelQuantity * rate);
   }
 
-  if (['adjustment', 'credit_note', 'opening_balance'].includes(transactionType)) {
+  if (transactionType === 'credit_note') {
+    if (amount === undefined || amount === null || amount === '') {
+      throw new AppError('Amount is required for this transaction type', 400);
+    }
+    const n = normalizeMoney(amount);
+    if (n < 0) throw new AppError('Amount must be zero or greater', 400);
+    return -n;
+  }
+
+  if (['adjustment', 'opening_balance'].includes(transactionType)) {
     if (amount === undefined || amount === null || amount === '') {
       throw new AppError('Amount is required for this transaction type', 400);
     }
@@ -63,7 +72,7 @@ const validatePayload = ({ transactionType, fuelType, paymentReceived, totalAmou
     throw new AppError('Payment transaction requires payment received amount', 400);
   }
 
-  if (['adjustment', 'credit_note', 'opening_balance'].includes(transactionType) && Number(totalAmount) < 0) {
+  if (['adjustment', 'opening_balance'].includes(transactionType) && Number(totalAmount) < 0) {
     throw new AppError('Amount must be zero or greater', 400);
   }
 };
@@ -101,9 +110,16 @@ const createTransaction = async ({
 
         if (!profile) throw new AppError('Customer not found', 404);
 
-        finalAmount = totalAmount !== undefined
-          ? normalizeMoney(totalAmount)
-          : computeTotal({ transactionType, fuelQuantity, rate, amount });
+        const rawAmount =
+          totalAmount !== undefined && totalAmount !== null && totalAmount !== ''
+            ? totalAmount
+            : amount;
+        finalAmount = computeTotal({
+          transactionType,
+          fuelQuantity,
+          rate,
+          amount: rawAmount,
+        });
 
         validatePayload({
           transactionType,
@@ -149,9 +165,16 @@ const createTransaction = async ({
         const profile = await CustomerProfile.findById(customerId).populate('userId', 'name email');
         if (!profile) throw new AppError('Customer not found', 404);
 
-        finalAmount = totalAmount !== undefined
-          ? normalizeMoney(totalAmount)
-          : computeTotal({ transactionType, fuelQuantity, rate, amount });
+        const rawAmount =
+          totalAmount !== undefined && totalAmount !== null && totalAmount !== ''
+            ? totalAmount
+            : amount;
+        finalAmount = computeTotal({
+          transactionType,
+          fuelQuantity,
+          rate,
+          amount: rawAmount,
+        });
 
         validatePayload({
           transactionType,

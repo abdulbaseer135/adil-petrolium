@@ -13,6 +13,10 @@ const RefreshToken = require('../../src/models/RefreshToken');
 
 let counter = 0;
 
+const syncCustomerBalance = async (customerId, currentBalance) => {
+  await CustomerProfile.findByIdAndUpdate(customerId, { currentBalance });
+};
+
 /**
  * Generate unique identifier for test data
  * @returns {number} Monotonically increasing counter
@@ -166,6 +170,7 @@ const createFuelSale = async (opts = {}) => {
     paymentReceived: 0,
   });
 
+  await syncCustomerBalance(customerId, updatedBalance);
   return tx;
 };
 
@@ -206,6 +211,7 @@ const createPayment = async (opts = {}) => {
     updatedBalance,
   });
 
+  await syncCustomerBalance(customerId, updatedBalance);
   return tx;
 };
 
@@ -242,6 +248,7 @@ const createOpeningBalance = async (opts = {}) => {
     paymentReceived: 0,
   });
 
+  await syncCustomerBalance(customerId, amount);
   return tx;
 };
 
@@ -271,20 +278,22 @@ const createCreditNote = async (opts = {}) => {
     throw new Error('createCreditNote requires customerId, userId, createdBy');
   }
 
-  const updatedBalance = previousBalance + amount;
+  const signed = -Math.abs(amount);
+  const updatedBalance = previousBalance + signed;
 
   const tx = await Transaction.create({
     customerId,
     userId,
     createdBy,
     transactionType: 'credit_note',
-    totalAmount: amount,
+    totalAmount: signed,
     previousBalance,
     updatedBalance,
     paymentReceived: 0,
     referenceNo,
   });
 
+  await syncCustomerBalance(customerId, updatedBalance);
   return tx;
 };
 

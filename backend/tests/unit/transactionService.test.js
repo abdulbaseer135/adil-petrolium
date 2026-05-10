@@ -175,7 +175,15 @@ const computeTotal = ({ transactionType, fuelQuantity, rate, amount }) => {
     return parseFloat((fuelQuantity * rate).toFixed(2));
   }
 
-  if (['adjustment', 'credit_note', 'opening_balance'].includes(transactionType)) {
+  if (transactionType === 'credit_note') {
+    if (amount === undefined || amount === null) {
+      throw new Error('Amount is required for this transaction type');
+    }
+    const n = parseFloat(parseFloat(amount).toFixed(2));
+    return parseFloat((-Math.abs(n)).toFixed(2));
+  }
+
+  if (['adjustment', 'opening_balance'].includes(transactionType)) {
     if (amount === undefined || amount === null) {
       throw new Error('Amount is required for this transaction type');
     }
@@ -247,12 +255,12 @@ describe('Calculation Engine — Unit Tests', () => {
       expect(result).to.equal(-500);
     });
 
-    it('credit_note: uses amount directly', () => {
+    it('credit_note: reduces balance (negative signed amount)', () => {
       const result = computeTotal({
         transactionType: 'credit_note',
         amount: 200,
       });
-      expect(result).to.equal(200);
+      expect(result).to.equal(-200);
     });
 
     it('opening_balance: uses amount directly', () => {
@@ -333,8 +341,8 @@ describe('Calculation Engine — Unit Tests', () => {
       balance = computeBalance(balance, 0, 3000); // Payment: -3000 => 12000
       expect(balance).to.equal(12000);
 
-      balance = computeBalance(balance, 1000, 0); // Credit note: +1000 => 13000
-      expect(balance).to.equal(13000);
+      balance = computeBalance(balance, -1000, 0); // Credit note: -1000 => 11000
+      expect(balance).to.equal(11000);
     });
   });
 

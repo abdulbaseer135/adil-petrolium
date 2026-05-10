@@ -7,8 +7,9 @@ const createCustomer = async (req, res, next) => {
     const result = await customerService.createCustomer({
       ...req.body, createdBy: req.user._id, requestId: req.id,
     });
-    // Return the created profile (consistent with other customer endpoints)
-    return sendSuccess(res, result.profile, 'Customer created successfully', 201);
+    const raw = result.profile.toObject ? result.profile.toObject() : { ...result.profile };
+    const data = { ...raw, id: raw._id };
+    return sendSuccess(res, data, 'Customer created successfully', 201);
   } catch (err) { next(err); }
 };
 

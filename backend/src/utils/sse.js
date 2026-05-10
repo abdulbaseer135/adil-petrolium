@@ -3,11 +3,12 @@
 const clientsByCustomer = new Map();
 
 function addClient(customerId, res) {
-  if (!clientsByCustomer.has(customerId)) clientsByCustomer.set(customerId, new Set());
-  clientsByCustomer.get(customerId).add(res);
+  const key = String(customerId);
+  if (!clientsByCustomer.has(key)) clientsByCustomer.set(key, new Set());
+  clientsByCustomer.get(key).add(res);
 
   // Remove when connection closes
-  reqCleanup(res, customerId);
+  reqCleanup(res, key);
 }
 
 function reqCleanup(res, customerId) {
