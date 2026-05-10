@@ -20,6 +20,9 @@
   "overrides": {
     "serialize-javascript": "^7.0.5"
   },
+  "devDependencies": {
+    "typescript": "4.9.5"
+  },
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
