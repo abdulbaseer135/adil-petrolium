@@ -13,22 +13,22 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Use Node.js 18
+      - name: Use Node.js 20        # ← Changed from 18 to 20
         uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json   # ← Cache scoped to frontend
 
       - name: Install frontend dependencies
         working-directory: frontend
-        run: |
-          npm ci
+        run: npm ci
 
       - name: Run frontend tests
         working-directory: frontend
         env:
           CI: true
-        run: |
-          npm test -- --watchAll=false
+        run: npm test -- --watchAll=false
 
   backend-tests:
     name: Backend tests
@@ -40,26 +40,30 @@ jobs:
         ports:
           - 27017:27017
         options: >-
-          --health-cmd "mongosh --eval 'db.adminCommand({ ping: 1 })'" \
-          --health-interval=10s --health-timeout=5s --health-retries=5
+          --health-cmd "mongosh --eval 'db.adminCommand({ ping: 1 })'"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Use Node.js 18
+      - name: Use Node.js 20        # ← Changed from 18 to 20
         uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: backend/package-lock.json    # ← Cache scoped to backend
 
       - name: Install backend dependencies
         working-directory: backend
-        run: |
-          npm ci
+        run: npm ci
 
       - name: Run backend tests
         working-directory: backend
         env:
           MONGO_URI: mongodb://127.0.0.1:27017/test_ci
           NODE_ENV: test
-        run: |
-          npm test -- --watchAll=false
+          JWT_SECRET: ci-test-secret-not-used-in-prod         # ← Add any required env vars
+          CSRF_SECRET: ci-test-csrf-secret
+        run: npm test -- --exit                               # ← --exit ensures Mocha doesn't hang
