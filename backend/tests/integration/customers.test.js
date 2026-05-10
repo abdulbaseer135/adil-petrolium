@@ -252,7 +252,7 @@ describe('Customers Integration Tests', function () {
       });
 
       // Admin1 tries to update admin2's customer
-      const res = await putWithCsrf(agent1, `/api/v1/customers/${cust2._id}`).send({
+      const res = await putWithCsrf(agent1, `/api/v1/customers/${cust2._id}`, {
         phone: '03009999999',
       });
 

@@ -26,6 +26,7 @@ const {
 const {
   loginWithCsrf,
   getCSRFToken,
+  postWithCsrf,
 } = require('../helpers/csrf');
 const logger = require('../../src/utils/logger');
 
@@ -42,6 +43,7 @@ describe('Auth Integration Tests', function () {
   });
 
   afterEach(async () => {
+    sinon.restore();
     // Ensure each test leaves the DB clean for the next suite
     await clearDB();
   });

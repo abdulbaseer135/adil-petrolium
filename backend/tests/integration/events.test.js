@@ -6,8 +6,25 @@ const { connectTestDB, clearDB, closeDB } = require('../helpers/setup');
 const { createCustomer, createAdmin } = require('../fixtures/factories');
 const { loginWithCsrf } = require('../helpers/csrf');
 
+/** SSE responses stay open; resolve on first response bytes with buffering disabled */
+const getSseResponse = (agent, path) =>
+  new Promise((resolve, reject) => {
+    const req = agent.get(path).set('Accept', 'text/event-stream').buffer(false);
+    const timer = setTimeout(() => reject(new Error('SSE test timed out waiting for response')), 8000);
+    req
+      .on('response', (res) => {
+        clearTimeout(timer);
+        resolve(res);
+      })
+      .on('error', (err) => {
+        clearTimeout(timer);
+        reject(err);
+      })
+      .end();
+  });
+
 describe('Events Routes Integration', function () {
-  this.timeout(10000);
+  this.timeout(15000);
 
   before(async () => {
     process.env.NODE_ENV = 'test';
@@ -37,13 +54,12 @@ describe('Events Routes Integration', function () {
       });
       expect(loginRes.status).to.equal(200);
 
-      // Now connect to SSE
-      const res = await agent.get('/api/v1/events/transactions').set('Accept', 'text/event-stream');
-
-      expect(res.status).to.equal(200);
-      expect(res.headers['content-type']).to.include('text/event-stream');
+      const res = await getSseResponse(agent, '/api/v1/events/transactions');
+      expect(res.statusCode).to.equal(200);
+      expect(String(res.headers['content-type'] || '')).to.include('text/event-stream');
       expect(res.headers['cache-control']).to.equal('no-cache');
-      expect(res.headers.connection).to.equal('keep-alive');
+      expect(String(res.headers.connection || '').toLowerCase()).to.equal('keep-alive');
+      res.destroy();
     });
 
     it('should send connection ping', async () => {
@@ -55,9 +71,21 @@ describe('Events Routes Integration', function () {
         password: 'Cust@12345678',
       });
 
-      const res = await agent.get('/api/v1/events/transactions').set('Accept', 'text/event-stream');
-
-      expect(res.text).to.include(': connected');
+      const res = await getSseResponse(agent, '/api/v1/events/transactions');
+      const chunks = [];
+      await new Promise((resolve, reject) => {
+        const timer = setTimeout(resolve, 2000);
+        res.on('data', (c) => {
+          chunks.push(c.toString());
+          if (chunks.join('').includes(': connected')) {
+            clearTimeout(timer);
+            resolve();
+          }
+        });
+        res.on('error', reject);
+      });
+      expect(chunks.join('')).to.include(': connected');
+      res.destroy();
     });
 
     it('should handle multiple concurrent connections', async () => {
@@ -75,11 +103,13 @@ describe('Events Routes Integration', function () {
         password: 'Cust@12345678',
       });
 
-      const res1 = await agent1.get('/api/v1/events/transactions');
-      const res2 = await agent2.get('/api/v1/events/transactions');
+      const res1 = await getSseResponse(agent1, '/api/v1/events/transactions');
+      const res2 = await getSseResponse(agent2, '/api/v1/events/transactions');
 
-      expect(res1.status).to.equal(200);
-      expect(res2.status).to.equal(200);
+      expect(res1.statusCode).to.equal(200);
+      expect(res2.statusCode).to.equal(200);
+      res1.destroy();
+      res2.destroy();
     });
 
     it('should prevent customer from accessing other customer SSE', async () => {

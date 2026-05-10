@@ -37,38 +37,28 @@ const fmtDateTime = (value) =>
     timeZone: PK_TIMEZONE,
   });
 
+/** Pakistan (UTC+5) calendar bounds as UTC instants — host TZ independent */
 const parsePkDateStart = (dateStr) => {
   const [year, month, day] = String(dateStr).split('-').map(Number);
-  const local = new Date(year, month - 1, day, 0, 0, 0, 0);
-  // Pakistan is UTC+5, so midnight PKT = 19:00 UTC previous day
-  return new Date(local.getTime() - 5 * 60 * 60 * 1000);
+  return new Date(Date.UTC(year, month - 1, day, -5, 0, 0, 0));
 };
 
 const parsePkDateEnd = (dateStr) => {
   const [year, month, day] = String(dateStr).split('-').map(Number);
-  const local = new Date(year, month - 1, day, 23, 59, 59, 999);
-  return new Date(local.getTime() - 5 * 60 * 60 * 1000);
+  return new Date(Date.UTC(year, month - 1, day, 18, 59, 59, 999));
 };
 
-const parsePkMonthStart = (year, month) => {
-  const local = new Date(year, month - 1, 1, 0, 0, 0, 0);
-  return new Date(local.getTime() - 5 * 60 * 60 * 1000);
-};
+const parsePkMonthStart = (year, month) =>
+  new Date(Date.UTC(year, month - 1, 1, -5, 0, 0, 0));
 
 const parsePkMonthEnd = (year, month) => {
-  const local = new Date(year, month, 0, 23, 59, 59, 999);
-  return new Date(local.getTime() - 5 * 60 * 60 * 1000);
+  const lastDay = new Date(Date.UTC(year, month, 0)).getUTCDate();
+  return new Date(Date.UTC(year, month - 1, lastDay, 18, 59, 59, 999));
 };
 
-const parsePkYearStart = (year) => {
-  const local = new Date(year, 0, 1, 0, 0, 0, 0);
-  return new Date(local.getTime() - 5 * 60 * 60 * 1000);
-};
+const parsePkYearStart = (year) => new Date(Date.UTC(year, 0, 1, -5, 0, 0, 0));
 
-const parsePkYearEnd = (year) => {
-  const local = new Date(year, 11, 31, 23, 59, 59, 999);
-  return new Date(local.getTime() - 5 * 60 * 60 * 1000);
-};
+const parsePkYearEnd = (year) => new Date(Date.UTC(year, 11, 31, 18, 59, 59, 999));
 
 const safeSheetName = (value, fallback = 'Sheet') => {
   const cleaned = String(value || fallback)

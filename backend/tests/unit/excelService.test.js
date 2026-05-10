@@ -12,16 +12,16 @@ describe('Excel Service Unit', function () {
   });
 
   describe('parsePkDateStart', function () {
-    it('should parse date for start of day (5 AM UTC)', () => {
+    it('should parse date for start of day in PKT (midnight PKT → prior evening UTC)', () => {
       const result = excelService.parsePkDateStart('2024-05-10');
       expect(result).to.be.a('date');
-      expect(result.toISOString()).to.include('2024-05-10T05:00:00');
+      expect(result.toISOString()).to.include('2024-05-09T19:00:00');
     });
 
     it('should handle string date format', () => {
       const result = excelService.parsePkDateStart('2024-12-25');
-      expect(result.getUTCMonth()).to.equal(11); // December is month 11
-      expect(result.getUTCDate()).to.equal(25);
+      expect(result.getUTCMonth()).to.equal(11);
+      expect(result.getUTCDate()).to.equal(24);
       expect(result.getUTCFullYear()).to.equal(2024);
     });
   });
@@ -41,14 +41,14 @@ describe('Excel Service Unit', function () {
     it('should parse month start correctly', () => {
       const result = excelService.parsePkMonthStart(2024, 3);
       expect(result.getUTCFullYear()).to.equal(2024);
-      expect(result.getUTCMonth()).to.equal(2); // March is month 2
-      expect(result.getUTCDate()).to.equal(1);
+      expect(result.getUTCMonth()).to.equal(1);
+      expect(result.getUTCDate()).to.equal(29);
     });
 
     it('should parse month end correctly', () => {
       const result = excelService.parsePkMonthEnd(2024, 2);
-      expect(result.getUTCMonth()).to.equal(1); // February
-      expect(result.getUTCDate()).to.equal(29); // 2024 is leap year
+      expect(result.getUTCMonth()).to.equal(1);
+      expect(result.getUTCDate()).to.equal(29);
     });
 
     it('should handle month boundary correctly', () => {
@@ -61,9 +61,9 @@ describe('Excel Service Unit', function () {
   describe('parsePkYearStart and parsePkYearEnd', function () {
     it('should parse year start', () => {
       const result = excelService.parsePkYearStart(2024);
-      expect(result.getUTCFullYear()).to.equal(2024);
-      expect(result.getUTCMonth()).to.equal(0);
-      expect(result.getUTCDate()).to.equal(1);
+      expect(result.getUTCFullYear()).to.equal(2023);
+      expect(result.getUTCMonth()).to.equal(11);
+      expect(result.getUTCDate()).to.equal(31);
     });
 
     it('should parse year end', () => {

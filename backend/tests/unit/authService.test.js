@@ -34,6 +34,10 @@ describe('Auth Service Unit Tests', function () {
     await clearDB();
   });
 
+  afterEach(() => {
+    sinon.restore();
+  });
+
   after(async () => {
     await clearDB();
     await closeDB();
@@ -348,17 +352,15 @@ describe('Auth Service Unit Tests', function () {
     it('should handle invalid password hash gracefully', async () => {
       const admin = await createAdmin();
 
-      // Manually corrupt the password hash
+      // Bypass pre('save') hashing — assigning + save() would re-hash to valid bcrypt
+      await User.updateOne({ _id: admin._id }, { $set: { password: 'invalid-hash' } });
       const user = await User.findById(admin._id).select('+password');
-      user.password = 'invalid-hash';
-      await user.save({ validateBeforeSave: false });
 
-      // comparePassword should throw
       try {
         await user.comparePassword('anypassword');
         expect.fail('Should have thrown');
       } catch (err) {
-        expect(err.message).to.include('Invalid password hash');
+        expect(err.message).to.include('Invalid password hash in database');
       }
     });
   });
