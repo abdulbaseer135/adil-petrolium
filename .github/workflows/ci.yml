@@ -64,6 +64,6 @@ jobs:
         env:
           MONGO_URI: mongodb://127.0.0.1:27017/test_ci
           NODE_ENV: test
-          JWT_SECRET: ci-test-secret-not-used-in-prod         # ← Add any required env vars
-          CSRF_SECRET: ci-test-csrf-secret
+          JWT_ACCESS_SECRET: ci-test-jwt-access-secret-not-used-in-prod
+          JWT_REFRESH_SECRET: ci-test-jwt-refresh-secret-not-used-in-prod
         run: npm test -- --exit                               # ← --exit ensures Mocha doesn't hang
