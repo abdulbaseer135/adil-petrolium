@@ -3,6 +3,8 @@ const { Packer } = require('docx');
 const {
   generateMonthlyExcel,
   generateDailyExcel,
+  generateEnhancedDailyExcel,
+  generateEnhancedMonthlyExcel,
   generateYearlyExcel,
   generateCustomerStatement,
 } = require('../services/excelService');
@@ -87,7 +89,7 @@ const getMonthlyReport = async (req, res, next) => {
 const exportMonthly = async (req, res, next) => {
   try {
     const { year, month } = req.query;
-    const workbook = await generateMonthlyExcel(parseInt(year, 10), parseInt(month, 10), req.query.customerId || null);
+    const workbook = await generateEnhancedMonthlyExcel(parseInt(year, 10), parseInt(month, 10), req.query.customerId || null);
     const filename = `petro_monthly_${year}_${String(month).padStart(2,'0')}.xlsx`;
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
@@ -104,7 +106,7 @@ const exportMonthly = async (req, res, next) => {
 const exportDaily = async (req, res, next) => {
   try {
     const { date } = req.query;
-    const workbook = await generateDailyExcel(date, req.query.customerId || null);
+    const workbook = await generateEnhancedDailyExcel(date, req.query.customerId || null);
     const filename = `petro_daily_${date}.xlsx`;
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
@@ -154,21 +156,47 @@ const exportMyStatement = async (req, res, next) => {
   } catch (err) { next(err); }
 };
 
-// ─── Professional Word Document Exports ─────────────────────────────────────
+const parsePkDateStart = (dateStr) => {
+  const [year, month, day] = String(dateStr).split('-').map(Number);
+  return new Date(Date.UTC(year, month - 1, day, -5, 0, 0, 0));
+};
+
+const parsePkDateEnd = (dateStr) => {
+  const [year, month, day] = String(dateStr).split('-').map(Number);
+  return new Date(Date.UTC(year, month - 1, day, 18, 59, 59, 999));
+};
+
+const parsePkYearStart = (year) => new Date(Date.UTC(year, 0, 1, -5, 0, 0, 0));
+const parsePkYearEnd = (year) => new Date(Date.UTC(year, 11, 31, 18, 59, 59, 999));
+
+const exportAdminStatementExcel = async (req, res, next) => {
+  try {
+    const { customerId, startDate, endDate } = req.query;
+
+    const workbook = await generateCustomerStatement({
+      customerId,
+      startDate,
+      endDate,
+    });
+
+    const filename = `statement_${customerId}_${Date.now()}.xlsx`;
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    await workbook.xlsx.write(res);
+    res.end();
+
+    await createAuditLog({
+      action: 'REPORT_EXPORTED', actor: req.user._id,
+      actorEmail: req.user.email, actorRole: req.user.role,
+      details: { reportType: 'admin_statement_excel', customerId },
+      requestId: req.id,
+    });
+  } catch (err) { next(err); }
+};
 
 const exportAdminStatementWord = async (req, res, next) => {
   try {
     const { customerId, startDate, endDate } = req.query;
-    const parsePkDateStart = (dateStr) => {
-      const [year, month, day] = String(dateStr).split('-').map(Number);
-      return new Date(Date.UTC(year, month - 1, day, -5, 0, 0, 0));
-    };
-    const parsePkDateEnd = (dateStr) => {
-      const [year, month, day] = String(dateStr).split('-').map(Number);
-      return new Date(Date.UTC(year, month - 1, day, 18, 59, 59, 999));
-    };
-    const parsePkYearStart = (year) => new Date(Date.UTC(year, 0, 1, -5, 0, 0, 0));
-    const parsePkYearEnd = (year) => new Date(Date.UTC(year, 11, 31, 18, 59, 59, 999));
 
     const today = new Date();
     const todayKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
@@ -184,9 +212,9 @@ const exportAdminStatementWord = async (req, res, next) => {
     const filename = `statement_${customerId}_${Date.now()}.docx`;
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-    
+
     await Packer.toStream(doc, res);
-    
+
     await createAuditLog({
       action: 'REPORT_EXPORTED', actor: req.user._id,
       actorEmail: req.user.email, actorRole: req.user.role,
@@ -196,4 +224,4 @@ const exportAdminStatementWord = async (req, res, next) => {
   } catch (err) { next(err); }
 };
 
-module.exports = { getMonthlyReport, exportMonthly, exportDaily, exportYearly, exportMyStatement, exportAdminStatementWord };
+module.exports = { getMonthlyReport, exportMonthly, exportDaily, exportYearly, exportMyStatement, exportAdminStatementExcel, exportAdminStatementWord };

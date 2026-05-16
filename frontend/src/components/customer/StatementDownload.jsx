@@ -8,6 +8,8 @@ export const StatementDownload = ({ customerCode }) => {
   const [start, setStart] = useState('');
   const [end, setEnd] = useState('');
 
+  const todayStr = React.useMemo(() => new Date().toISOString().split('T')[0], []);
+
   const downloadExcel = async () => {
     setLoading(true); setError('');
     try {
@@ -33,12 +35,12 @@ export const StatementDownload = ({ customerCode }) => {
       <div className="sdp-row">
         <div className="sdp-field">
           <label className="sdp-label">From</label>
-          <input className="sdp-input" type="date" value={start} onChange={e => setStart(e.target.value)} />
+          <input className="sdp-input" type="date" value={start} onChange={e => setStart(e.target.value)} max={todayStr} />
         </div>
 
         <div className="sdp-field">
           <label className="sdp-label">To</label>
-          <input className="sdp-input" type="date" value={end} onChange={e => setEnd(e.target.value)} />
+          <input className="sdp-input" type="date" value={end} onChange={e => setEnd(e.target.value)} max={todayStr} />
         </div>
 
         <div className="sdp-actions">

@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { getCustomers } from '../../api/customerApi';
+import { downloadAdminStatementExcel } from '../../api/reportApi';
 import { getTransactions, voidTransaction } from '../../api/transactionApi';
 import { TransactionForm } from '../../components/admin/TransactionForm';
 import { Pagination } from '../../components/common/Pagination';
@@ -168,6 +169,7 @@ export default function Transactions() {
   const [voidReason, setVoidReason] = useState('');
   const [voidLoading, setVoidLoading] = useState(false);
 
+  const todayStr = useMemo(() => new Date().toISOString().split('T')[0], []);
   const { page, limit, goTo } = usePagination(20);
 
   const customerIdFromUrl = searchParams.get('customerId');
@@ -208,10 +210,11 @@ export default function Transactions() {
     setError('');
 
     try {
+      const isStatement = Boolean(filters.customerId);
       const params = {
-        page,
-        limit,
-        sort: '-transactionDate',
+        page: isStatement ? 1 : page,
+        limit: isStatement ? 10000 : limit,
+        sort: 'transactionDate',
         customerId: filters.customerId || undefined,
         startDate: filters.startDate || undefined,
         endDate: filters.endDate || undefined,
@@ -221,7 +224,11 @@ export default function Transactions() {
       setRows(res.data?.data || []);
       setMeta(res.data?.meta || null);
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to load statement');
+      const apiErr = err.response?.data;
+      const detail = Array.isArray(apiErr?.errors)
+        ? apiErr.errors.map((e) => e.message).filter(Boolean).join('. ')
+        : '';
+      setError(detail || apiErr?.message || 'Failed to load statement');
     } finally {
       if (inFlightRequestRef.current === requestKey) {
         inFlightRequestRef.current = '';
@@ -301,16 +308,18 @@ export default function Transactions() {
 
     return ordered
       .map((tx) => {
-        const debit = Number(tx.totalAmount) || 0;
-        const credit = Number(tx.paymentReceived) || 0;
-        balance += debit - credit;
+        const total = Number(tx.totalAmount) || 0;
+        const payment = Number(tx.paymentReceived) || 0;
+        const debit = total > 0 ? total : 0;
+        const credit = payment + (total < 0 ? Math.abs(total) : 0);
+        balance += total - payment;
 
         return {
           ...tx,
           id: tx.id || tx._id,
           debit,
           credit,
-          runningBalance: balance,
+          runningBalance: Number(tx.updatedBalance ?? balance),
         };
       });
   }, [rows]);
@@ -320,8 +329,8 @@ export default function Transactions() {
       statementRows.reduce(
         (acc, tx) => {
           if (!tx.isVoided) {
-            acc.sales += tx.debit;
-            acc.payments += tx.credit;
+            acc.sales += Number(tx.debit) || 0;
+            acc.payments += Number(tx.credit) || 0;
             if (tx.transactionType === 'fuel_sale') {
               acc.totalFuel += Number(tx.fuelQuantity) || 0;
             }
@@ -360,202 +369,48 @@ export default function Transactions() {
   const activeCount = statementRows.filter((tx) => !tx.isVoided).length;
   const voidedCount = statementRows.filter((tx) => tx.isVoided).length;
 
-  const handleShareStatement = useCallback(() => {
+  const handleShareStatement = useCallback(async () => {
     if (!isStatementMode || !selectedCustomer) return;
 
-    const formatWordDate = (value) => {
-      const date = new Date(value);
-      const day = String(date.getDate()).padStart(2, '0');
-      const month = date.toLocaleString('en-US', { month: 'short', timeZone: PK_TIMEZONE });
-      const year = date.getFullYear();
-      return `${day}-${month}-${year}`;
-    };
+    const customerId = selectedCustomer.id || selectedCustomer._id;
+    if (!customerId) {
+      setError('Could not resolve customer for export');
+      return;
+    }
 
-    const formatWordDateTime = (value) => {
-      const date = new Date(value);
-      const day = String(date.getDate()).padStart(2, '0');
-      const month = date.toLocaleString('en-US', { month: 'short', timeZone: PK_TIMEZONE });
-      const year = date.getFullYear();
-      const time = date
-        .toLocaleString('en-US', {
-          hour: '2-digit',
-          minute: '2-digit',
-          hour12: true,
-          timeZone: PK_TIMEZONE,
-        })
+    try {
+      const response = await downloadAdminStatementExcel({
+        customerId,
+        startDate: filters.startDate || undefined,
+        endDate: filters.endDate || undefined,
+      });
+
+      const blob = new Blob([response.data], {
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      });
+      const accountName = selectedCustomer?.userId?.name || selectedCustomer?.customerCode || 'Customer';
+      const safeName = String(accountName)
+        .replace(/[^a-z0-9]+/gi, '-')
+        .replace(/^-|-$/g, '')
         .toLowerCase();
-      return `${day}-${month}-${year}, ${time}`;
-    };
 
-    const rowsHtml = statementRows
-      .map(
-        (tx) => `
-          <tr>
-            <td>${escapeHtml(formatWordDateTime(tx.transactionDate))}</td>
-            <td>${escapeHtml(
-              tx.transactionType === 'payment'
-                ? 'Payment'
-                : tx.transactionType === 'fuel_sale'
-                  ? 'Sale'
-                  : tx.transactionType === 'opening_balance'
-                    ? 'Opening Balance'
-                    : 'Sale'
-            )}</td>
-            <td>${escapeHtml(tx.fuelType ? tx.fuelType.toUpperCase() : '-')}</td>
-            <td>${escapeHtml(
-              tx.transactionType === 'payment' ? '-' : tx.vehicleNo || tx.customerId?.vehicleInfo || selectedCustomer.vehicleInfo || '-'
-            )}</td>
-            <td class="num">${escapeHtml(tx.fuelQuantity ? formatNumber(tx.fuelQuantity) : '-')}</td>
-            <td class="num">${escapeHtml(tx.rate ? formatRate(tx.rate) : '-')}</td>
-            <td class="num">${escapeHtml(tx.debit ? formatMoney(tx.debit) : '-')}</td>
-            <td class="num">${escapeHtml(tx.credit ? formatMoney(tx.credit) : '-')}</td>
-            <td class="num">${escapeHtml(formatBalance(tx.runningBalance))}</td>
-          </tr>
-        `
-      )
-      .join('');
+      const fromPart = filters.startDate || 'start';
+      const toPart = filters.endDate || 'today';
+      const filename = `statement-${safeName}-${fromPart}-${toPart}.xlsx`;
 
-    const accountName = selectedCustomer.userId?.name || 'Customer';
-    const address = selectedCustomer.address || '—';
-    const phone = selectedCustomer.phone || selectedCustomer.userId?.phone || '—';
-    const email = selectedCustomer.userId?.email || '—';
-    const accountNature = 'Customer Account';
-    const dateFrom = filters.startDate ? formatWordDate(filters.startDate) : 'Beginning';
-    const dateTo = filters.endDate ? formatWordDate(filters.endDate) : 'Today';
-    const currentBalance = Number(selectedCustomer.currentBalance || 0);
-    const balanceRemark = closingBalance > 0 ? 'Amount receivable' : 'Advance credit balance';
-    const remainingBalance = closingBalance;
-
-    const html = `
-      <!doctype html>
-      <html xmlns:o="urn:schemas-microsoft-com:office:office"
-            xmlns:w="urn:schemas-microsoft-com:office:word"
-            xmlns="http://www.w3.org/TR/REC-html40">
-      <head>
-        <meta charset="utf-8" />
-        <title>Statement - ${escapeHtml(accountName)}</title>
-        <style>
-          body { font-family: Segoe UI, Tahoma, Geneva, Verdana, sans-serif; margin: 0; color: #1f2937; background: #ffffff; }
-          .sheet { max-width: 1120px; margin: 0 auto; padding: 24px; }
-          .page-title { margin: 0; font-size: 28px; font-weight: 800; letter-spacing: -0.02em; color: #111827; }
-          .page-subtitle { margin-top: 6px; font-size: 13px; color: #6b7280; }
-          .summary-title { font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: #6b7280; font-weight: 700; margin-bottom: 10px; }
-          .buyer-section { margin-top: 12px; border: 1px solid #d1d5db; border-radius: 18px; overflow: hidden; }
-          .buyer-header { background: linear-gradient(90deg, #0f172a 0, #1f2937 100%); color: #fff; padding: 14px 18px; }
-          .buyer-header .title { font-size: 16px; font-weight: 800; letter-spacing: -0.01em; }
-          .buyer-header .desc { font-size: 12px; opacity: 0.85; margin-top: 4px; }
-          table { width: 100%; border-collapse: collapse; table-layout: fixed; }
-          th, td { border-bottom: 1px solid #e5e7eb; padding: 9px 10px; font-size: 12px; vertical-align: top; }
-          th { background: #f3f4f6; text-align: left; color: #4b5563; font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; }
-          tbody tr:nth-child(even) td { background: #fcfcfd; }
-          .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
-          .foot { margin-top: 14px; font-size: 10px; color: #6b7280; text-align: center; }
-        </style>
-      </head>
-      <body>
-        <div class="sheet">
-          <div class="page-title">Account Statement</div>
-          <div class="page-subtitle">Full customer account statement with transaction details and closing balance.</div>
-
-          <div style="margin-top:14px;font-size:12px;line-height:1.8">
-            <div><strong>Customer:</strong> ${escapeHtml(accountName)}</div>
-            <div><strong>Type:</strong> ${escapeHtml(accountNature)}</div>
-            <div><strong>Phone:</strong> ${escapeHtml(phone)}</div>
-            <div><strong>Email:</strong> ${escapeHtml(email)}</div>
-            <div><strong>Address:</strong> ${escapeHtml(address)}</div>
-            <div><strong>Current Balance:</strong> ${escapeHtml(formatBalance(currentBalance))}</div>
-            <div><strong>Statement Period:</strong> ${escapeHtml(dateFrom)} - ${escapeHtml(dateTo)}</div>
-            <div><strong>Account:</strong> ${escapeHtml(accountNature)}</div>
-          </div>
-
-          <div class="buyer-section">
-            <div class="buyer-header">
-              <div class="title">${escapeHtml(accountName)}</div>
-              <div class="desc">
-                Qty ${escapeHtml(formatNumber(totals.totalFuel || 0))} L ·
-                Sale ${escapeHtml(formatMoney(totals.sales))} ·
-                Payment ${escapeHtml(formatMoney(totals.payments))} ·
-                Remaining ${escapeHtml(formatBalance(remainingBalance))}
-              </div>
-            </div>
-
-            <table>
-              <thead>
-                <tr>
-                  <th>Date</th>
-                  <th>Type</th>
-                  <th>Product</th>
-                  <th>Vehicle</th>
-                  <th class="num">Qty</th>
-                  <th class="num">Rate</th>
-                  <th class="num">Debit</th>
-                  <th class="num">Credit</th>
-                  <th class="num">Balance</th>
-                </tr>
-              </thead>
-              <tbody>${rowsHtml}</tbody>
-            </table>
-          </div>
-
-          <table style="width:100%;margin-top:18px;border-collapse:collapse;table-layout:fixed">
-            <tr>
-              <td style="width:50%;padding:10px;border:1px solid #e5e7eb;background:#f8fafc;vertical-align:top">
-                <div style="font-size:12px;font-weight:700;color:#6b7280;margin-bottom:8px">SALES DETAIL</div>
-                <div style="font-size:12px;margin-bottom:6px">PMG ${escapeHtml(productTotals?.pmg ? formatNumber(productTotals.pmg) : '0')} L</div>
-                <div style="font-size:12px;margin-bottom:6px">HSD ${escapeHtml(productTotals?.hsd ? formatNumber(productTotals.hsd) : '0')} L</div>
-                <div style="font-size:12px;margin-bottom:6px">NR ${escapeHtml(productTotals?.nr ? formatNumber(productTotals.nr) : '0')} L</div>
-                <div style="font-size:12px;font-weight:700;color:#E8312B">Total Dr. Transactions ${escapeHtml(String(statementRows.filter(t => !t.isVoided && (t.debit || t.totalAmount) > 0).length))}</div>
-              </td>
-              <td style="width:50%;padding:10px;border:1px solid #e5e7eb;background:#f8fafc;vertical-align:top">
-                <div style="font-size:12px;font-weight:700;color:#6b7280;margin-bottom:8px">BALANCE SUMMARY</div>
-                <div style="font-size:12px;margin-bottom:6px">Opening Balance: ${escapeHtml(formatBalance(openingBalance))}</div>
-                <div style="font-size:12px;margin-bottom:6px">Total Sales: ${escapeHtml(formatMoney(totals.sales))}</div>
-                <div style="font-size:12px;margin-bottom:6px">Total Payments: ${escapeHtml(formatMoney(totals.payments))}</div>
-                <div style="font-size:12px;margin-bottom:6px;font-weight:700;color:${closingBalance > 0 ? '#C0392B' : '#27AE60'}">Closing Balance: ${escapeHtml(formatBalance(closingBalance))}</div>
-                <div style="font-size:12px;font-style:italic;color:#2C3E50">Balance Remarks: ${escapeHtml(balanceRemark)}</div>
-              </td>
-            </tr>
-          </table>
-
-          <div class="foot">Prepared for customer sharing · Pakistan datetime format applied</div>
-        </div>
-      </body>
-      </html>
-    `;
-
-    const safeName = String(accountName || 'customer')
-      .replace(/[^a-z0-9]+/gi, '-')
-      .replace(/^-|-$/g, '')
-      .toLowerCase();
-
-    const fromPart = filters.startDate || 'start';
-    const toPart = filters.endDate || 'today';
-    const filename = `statement-${safeName}-${fromPart}-${toPart}.doc`;
-
-    const wordBlob = new Blob([html], {
-      type: 'application/msword;charset=utf-8',
-    });
-
-    const downloadUrl = URL.createObjectURL(wordBlob);
-    const anchor = document.createElement('a');
-    anchor.href = downloadUrl;
-    anchor.download = filename;
-    document.body.appendChild(anchor);
-    anchor.click();
-    document.body.removeChild(anchor);
-    URL.revokeObjectURL(downloadUrl);
-  }, [
-    isStatementMode,
-    selectedCustomer,
-    statementRows,
-    filters.startDate,
-    filters.endDate,
-    totals.totalFuel,
-    totals.sales,
-    totals.payments,
-    closingBalance,
-    openingBalance,
-  ]);
+      const downloadUrl = URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      anchor.href = downloadUrl;
+      anchor.download = filename;
+      document.body.appendChild(anchor);
+      anchor.click();
+      document.body.removeChild(anchor);
+      URL.revokeObjectURL(downloadUrl);
+    } catch (err) {
+      console.error('Error downloading statement:', err);
+      setError(err.response?.data?.message || 'Failed to download statement');
+    }
+  }, [isStatementMode, selectedCustomer, filters.startDate, filters.endDate]);
 
   return (
     <div>
@@ -613,6 +468,7 @@ export default function Transactions() {
                   startDate: e.target.value,
                 }))
               }
+              max={todayStr}
               style={{ height: '40px' }}
             />
           </div>
@@ -628,6 +484,7 @@ export default function Transactions() {
                   endDate: e.target.value,
                 }))
               }
+              max={todayStr}
               style={{ height: '40px' }}
             />
           </div>
@@ -683,7 +540,7 @@ export default function Transactions() {
               <div style={{ marginTop: 'var(--space-2)', display: 'grid', gap: 'var(--space-2)' }}>
                 <div style={{ fontSize: 'var(--text-sm)' }}>
                   <span style={{ color: 'var(--color-text-muted)' }}>Phone: </span>
-                  <span style={{ fontWeight: 500 }}>{selectedCustomer.userId?.phone || '—'}</span>
+                  <span style={{ fontWeight: 500 }}>{selectedCustomer.phone || '—'}</span>
                 </div>
                 <div style={{ fontSize: 'var(--text-sm)' }}>
                   <span style={{ color: 'var(--color-text-muted)' }}>Address: </span>
@@ -892,13 +749,11 @@ export default function Transactions() {
                       </td>
 
                       <td style={{ ...numericCellStyle, padding: 'var(--space-3) var(--space-4)', fontWeight: 600, color: 'var(--color-warning)' }} className="is-numeric is-strong">
-                        {tx.debit || tx.totalAmount ? formatMoney(tx.debit || tx.totalAmount) : '—'}
+                        {tx.debit > 0 ? formatMoney(tx.debit) : '—'}
                       </td>
 
                       <td style={{ ...numericCellStyle, padding: 'var(--space-3) var(--space-4)', fontWeight: 600, color: 'var(--color-success)' }} className="is-numeric is-strong">
-                        {tx.credit || tx.paymentReceived
-                          ? formatMoney(tx.credit || tx.paymentReceived)
-                          : '—'}
+                        {tx.credit > 0 ? formatMoney(tx.credit) : '—'}
                       </td>
 
                       <td

@@ -25,4 +25,8 @@ router.get('/export/yearly',
   [query('year').isInt({ min: 2000 }), query('customerId').optional().isMongoId().withMessage('Invalid customerId')],
   validate, ctrl.exportYearly);
 
+router.get('/export/admin-statement-excel',
+  [query('customerId').isMongoId().withMessage('Customer ID required'), query('startDate').optional().isISO8601().withMessage('Valid start date required'), query('endDate').optional().isISO8601().withMessage('Valid end date required')],
+  validate, ctrl.exportAdminStatementExcel);
+
 module.exports = router;

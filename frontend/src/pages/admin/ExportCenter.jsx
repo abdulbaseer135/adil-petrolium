@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { exportDaily, exportMonthly, exportYearly } from '../../api/reportApi';
 import { SectionHeader, Section } from '../../components/ui/Section';
 import { Button } from '../../components/ui/Button';
@@ -163,14 +163,40 @@ const ExportCard = ({
 
 export default function ExportCenter() {
   const currentDate = new Date();
+  const currentYear = currentDate.getFullYear();
+  const currentMonth = currentDate.getMonth() + 1;
+
   const [date, setDate] = useState(currentDate.toISOString().split('T')[0]);
-  const [month, setMonth] = useState(currentDate.getMonth() + 1);
-  const [year, setYear] = useState(currentDate.getFullYear());
-  const [yearOnly, setYearOnly] = useState(currentDate.getFullYear());
+  const [month, setMonth] = useState(currentMonth);
+  const [year, setYear] = useState(currentYear);
+  const [yearOnly, setYearOnly] = useState(currentYear);
   const [loading, setLoading] = useState({});
   const [errors, setErrors] = useState({});
 
-  const availableYears = useMemo(() => [2023, 2024, 2025, 2026], []);
+  const todayStr = useMemo(() => currentDate.toISOString().split('T')[0], []);
+  const availableYears = useMemo(() => {
+    const years = [];
+    for (let y = 2023; y <= currentYear; y++) {
+      years.push(y);
+    }
+    return years;
+  }, [currentYear]);
+
+  const availableMonths = useMemo(() => {
+    if (year < currentYear) {
+      return MONTHS.map((label, index) => ({ value: index + 1, label }));
+    }
+    return MONTHS
+      .map((label, index) => ({ value: index + 1, label }))
+      .filter((m) => m.value <= currentMonth);
+  }, [year, currentYear, currentMonth]);
+
+  // If year changes and makes current month invalid, adjust it
+  useEffect(() => {
+    if (year === currentYear && month > currentMonth) {
+      setMonth(currentMonth);
+    }
+  }, [year, currentYear, currentMonth, month]);
 
   const run = async (key, fn) => {
     setLoading((current) => ({ ...current, [key]: true }));
@@ -229,6 +255,7 @@ export default function ExportCenter() {
                 type="date"
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
+                max={todayStr}
               />
             </div>
           }
@@ -253,8 +280,8 @@ export default function ExportCenter() {
               <div className="report-filter">
                 <FieldLabel>Month</FieldLabel>
                 <select className="report-filter__control" value={month} onChange={(e) => setMonth(Number(e.target.value))}>
-                  {MONTHS.map((label, index) => (
-                    <option key={label} value={index + 1}>{label}</option>
+                  {availableMonths.map((m) => (
+                    <option key={m.value} value={m.value}>{m.label}</option>
                   ))}
                 </select>
               </div>

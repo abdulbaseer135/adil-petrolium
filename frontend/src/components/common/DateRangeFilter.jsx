@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Button } from '../ui/Button';
 
 const PRESETS = [
@@ -13,6 +13,8 @@ export const DateRangeFilter = ({ onFilter }) => {
   const [start, setStart] = useState('');
   const [end,   setEnd]   = useState('');
   const [active, setActive] = useState(null);
+
+  const todayStr = useMemo(() => new Date().toISOString().split('T')[0], []);
 
   const toISO = (d) => d.toISOString().split('T')[0];
 
@@ -59,9 +61,9 @@ export const DateRangeFilter = ({ onFilter }) => {
         </button>
       ))}
       <div className="financial-filter-row">
-        <input className="financial-filter-control" type="date" value={start} onChange={e => setStart(e.target.value)} />
+        <input className="financial-filter-control" type="date" value={start} onChange={e => setStart(e.target.value)} max={todayStr} />
         <span style={{ color: 'var(--color-text-muted)', fontSize: 'var(--text-xs)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>to</span>
-        <input className="financial-filter-control" type="date" value={end} onChange={e => setEnd(e.target.value)} />
+        <input className="financial-filter-control" type="date" value={end} onChange={e => setEnd(e.target.value)} max={todayStr} />
         <Button size="sm" onClick={applyCustom} disabled={!start || !end}>Apply</Button>
         {active && <Button size="sm" variant="ghost" onClick={clear}>Clear</Button>}
       </div>

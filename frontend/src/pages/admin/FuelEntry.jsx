@@ -3,19 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import { getCustomers } from '../../api/customerApi';
 import { createTransaction } from '../../api/transactionApi';
 import { Button } from '../../components/ui/Button';
-import { SectionHeader, Section } from '../../components/ui/Section';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { Input } from '../../components/ui/Input';
+import { Select } from '../../components/ui/Select';
 import { useToast } from '../../hooks/useToast';
 import { pkInputDateTimeToIso, toInputDateTimePK } from '../../utils/pkFormat';
-
-const CARD = {
-  background: 'var(--color-surface)',
-  border: '1px solid var(--color-border)',
-  borderRadius: 'var(--radius-xl)',
-  boxShadow: 'var(--shadow-sm)',
-  padding: 'var(--space-5)',
-};
 
 const SECTION_TITLE = {
   fontSize: 'var(--text-xs)',
@@ -53,6 +45,8 @@ export default function FuelEntry() {
   });
   const toast = useToast();
 
+  const maxDateTime = useMemo(() => toInputDateTimePK(new Date()), []);
+
   React.useEffect(() => {
     let mounted = true;
 
@@ -81,6 +75,10 @@ export default function FuelEntry() {
     return quantity * rate;
   }, [form.fuelQuantity, form.rate]);
 
+  const selectedCustomer = useMemo(() => 
+    customers.find((c) => c._id === form.customerId) || null
+  , [customers, form.customerId]);
+
   const requiredComplete = useMemo(() => (
     Boolean(form.customerId)
     && Boolean(form.fuelQuantity) && Number(form.fuelQuantity) > 0
@@ -95,7 +93,6 @@ export default function FuelEntry() {
   const submit = async (event) => {
     event.preventDefault();
     setError('');
-    
 
     if (!form.customerId) {
       setError('Please select a customer.');
@@ -125,14 +122,12 @@ export default function FuelEntry() {
         transactionDate: pkInputDateTimeToIso(form.transactionDate),
       });
 
-      try {
-        const customer = customers.find((c) => c._id === form.customerId);
-        toast.success({
-          title: 'Fuel entry saved',
-          message: `${customer?.userId?.name || 'Customer'} · ${formatMoney(amount)}`,
-          duration: 5000,
-        });
-      } catch (e) {}
+      toast.success({
+        title: 'Fuel entry saved',
+        message: `${selectedCustomer?.userId?.name || 'Customer'} · ${formatMoney(amount)}`,
+        duration: 5000,
+      });
+
       setForm((current) => ({
         ...current,
         fuelQuantity: '',
@@ -141,9 +136,7 @@ export default function FuelEntry() {
       }));
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to save fuel entry.');
-      try {
-        toast.error({ title: 'Failed', message: err.response?.data?.message || 'Failed to save fuel entry.' });
-      } catch (e) {}
+      toast.error({ title: 'Failed', message: err.response?.data?.message || 'Failed to save fuel entry.' });
     } finally {
       setLoading(false);
     }
@@ -175,106 +168,150 @@ export default function FuelEntry() {
         <div className="form-surface form-surface--padded">
           <div className="form-section__header">
             <div>
-              <div className="form-section__title">Customer</div>
+              <div className="form-section__title">Customer Selection</div>
               <div className="form-section__subtitle">Choose the account that will receive this fuel sale.</div>
             </div>
           </div>
-          <div style={{ marginTop: 'var(--space-3)' }}>
-            <select
-              value={form.customerId}
-              onChange={(e) => setField('customerId', e.target.value)}
-              className="financial-filter-control"
-              style={{ width: '100%' }}
-              required
-            >
-              <option value="">Select customer</option>
-              {loadingCustomers ? <option value="">Loading customers...</option> : null}
-              {customers.map((customer) => (
-                <option key={customer._id} value={customer._id}>
-                  {customer.userId?.name || 'Unknown'} · {customer.customerCode}
-                </option>
-              ))}
-            </select>
+          
+          <div className="form-grid-12" style={{ marginTop: 'var(--space-5)' }}>
+            <div style={{ gridColumn: 'span 12' }}>
+              <Select
+                label="Select Customer"
+                value={form.customerId}
+                onChange={(e) => setField('customerId', e.target.value)}
+                required
+                hint={loadingCustomers ? "Fetching customer list..." : "Choose a customer by name or code."}
+              >
+                <option value="">Select customer</option>
+                {customers.map((customer) => (
+                  <option key={customer._id} value={customer._id}>
+                    {customer.customerCode} · {customer.userId?.name || 'Unknown'}
+                  </option>
+                ))}
+              </Select>
+            </div>
           </div>
 
           {/* Selected customer quick details */}
-          {form.customerId ? (
-            (() => {
-              const cust = customers.find((c) => c._id === form.customerId) || {};
-              return (
-                <div style={{ marginTop: 'var(--space-3)', padding: '12px 16px', background: 'var(--color-surface-muted)', borderRadius: 8 }}>
-                  <div style={{ fontWeight: 700 }}>{cust.userId?.name || 'Unknown'}</div>
-                  <div style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-muted)' }}>{cust.customerCode || ''}</div>
-                  <div style={{ marginTop: 6, fontSize: '0.95rem' }}>Phone: {cust.phone || '—'}</div>
-                  <div style={{ fontSize: '0.95rem' }}>Balance: {cust.currentBalance != null ? `PKR ${Number(cust.currentBalance).toLocaleString()}` : '—'}</div>
+          {selectedCustomer && (
+            <div style={{ 
+              marginTop: 'var(--space-4)', 
+              padding: 'var(--space-4)', 
+              background: 'var(--color-surface-2)', 
+              borderRadius: 'var(--radius-lg)',
+              border: '1px solid var(--color-border)',
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
+              gap: 'var(--space-4)'
+            }}>
+              <div>
+                <div style={SECTION_TITLE}>Full Name</div>
+                <div style={{ fontWeight: 700, fontSize: '1rem', marginTop: 4 }}>{selectedCustomer.userId?.name || 'Unknown'}</div>
+              </div>
+              <div>
+                <div style={SECTION_TITLE}>Customer Code</div>
+                <div style={{ fontWeight: 700, fontSize: '1rem', marginTop: 4 }}>{selectedCustomer.customerCode || '—'}</div>
+              </div>
+              <div>
+                <div style={SECTION_TITLE}>Phone Number</div>
+                <div style={{ fontWeight: 700, fontSize: '1rem', marginTop: 4 }}>{selectedCustomer.phone || '—'}</div>
+              </div>
+              <div>
+                <div style={SECTION_TITLE}>Current Balance</div>
+                <div style={{ 
+                  fontWeight: 800, 
+                  fontSize: '1.1rem', 
+                  marginTop: 4,
+                  color: (selectedCustomer.currentBalance || 0) > 0 ? 'var(--color-error)' : 'var(--color-success)'
+                }}>
+                  {formatMoney(selectedCustomer.currentBalance)}
                 </div>
-              );
-            })()
-          ) : null}
+              </div>
+            </div>
+          )}
 
-          <div className="form-grid-3" style={{ marginTop: 'var(--space-5)' }}>
-            <div className="form-field">
-              <label className="form-field__label">Fuel Type</label>
-              <select
+          <div className="form-grid-12" style={{ marginTop: 'var(--space-8)' }}>
+            <div style={{ gridColumn: 'span 3' }}>
+              <Select
+                label="Fuel Type"
                 value={form.fuelType}
                 onChange={(e) => setField('fuelType', e.target.value)}
-                className="financial-filter-control"
+                required
               >
                 {fuelOptions.map((option) => (
                   <option key={option.value} value={option.value}>{option.label}</option>
                 ))}
-              </select>
+              </Select>
             </div>
-            <Input
-              label="Quantity"
-              type="number"
-              step="0.01"
-              min="0"
-              value={form.fuelQuantity}
-              onChange={(e) => setField('fuelQuantity', e.target.value)}
-              hint="Enter liters sold."
-              required
-            />
-            <Input
-              label="Rate"
-              type="number"
-              step="0.01"
-              min="0"
-              value={form.rate}
-              onChange={(e) => setField('rate', e.target.value)}
-              hint="Rate per liter."
-              required
-            />
-            <Input
-              label="Date & Time"
-              type="datetime-local"
-              value={form.transactionDate}
-              onChange={(e) => setField('transactionDate', e.target.value)}
-              required
-            />
-            <Input
-              label="Vehicle No."
-              value={form.vehicleNo}
-              onChange={(e) => setField('vehicleNo', e.target.value)}
-              hint="Enter the vehicle registration or identification number."
-            />
+            
+            <div style={{ gridColumn: 'span 3' }}>
+              <Input
+                label="Quantity (Liters)"
+                type="number"
+                step="0.01"
+                min="0"
+                value={form.fuelQuantity}
+                onChange={(e) => setField('fuelQuantity', e.target.value)}
+                hint="Liters sold."
+                required
+              />
+            </div>
+            
+            <div style={{ gridColumn: 'span 3' }}>
+              <Input
+                label="Rate (PKR)"
+                type="number"
+                step="0.01"
+                min="0"
+                value={form.rate}
+                onChange={(e) => setField('rate', e.target.value)}
+                hint="Rate per liter."
+                required
+              />
+            </div>
+
+            <div style={{ gridColumn: 'span 3' }}>
+              <Input
+                label="Vehicle No."
+                value={form.vehicleNo}
+                onChange={(e) => setField('vehicleNo', e.target.value)}
+                placeholder="ABC-1234"
+                hint="Registration No."
+              />
+            </div>
+
+            <div style={{ gridColumn: 'span 3' }}>
+              <Input
+                label="Transaction Date & Time"
+                type="datetime-local"
+                value={form.transactionDate}
+                onChange={(e) => setField('transactionDate', e.target.value)}
+                required
+                max={maxDateTime}
+                hint="Sale date."
+              />
+            </div>
           </div>
         </div>
 
         <div className="form-footer">
           <div className="form-footer__inner">
             <div>
-              <div style={{ fontSize: 'var(--text-sm)', fontWeight: 700 }}>Save Fuel Entry</div>
-              <div className="form-note" style={{ marginTop: 2 }}>Review quantity, rate, and date before saving the transaction.</div>
+              <div style={{ fontSize: 'var(--text-sm)', fontWeight: 700 }}>Confirm Transaction</div>
+              <div className="form-note" style={{ marginTop: 2 }}>Total: {formatMoney(amount)}</div>
             </div>
             <div className="form-footer__actions">
-              <Button type="button" variant="ghost" onClick={() => navigate('/admin/transactions')}>Back to Ledger</Button>
+              <Button type="button" variant="ghost" onClick={() => navigate('/admin/transactions')}>View Ledger</Button>
               <Button type="submit" loading={loading} disabled={!requiredComplete || loading}>Save Fuel Entry</Button>
             </div>
           </div>
         </div>
 
-        {error ? <EmptyState icon="⚠️" title="Could not save fuel entry" description={error} /> : null}
+        {error ? (
+          <div style={{ marginTop: 'var(--space-4)' }}>
+            <EmptyState icon="⚠️" title="Submission Failed" description={error} />
+          </div>
+        ) : null}
       </form>
     </div>
   );

@@ -15,7 +15,6 @@ const initialForm = {
   customerCode: '',
   phone: '',
   address: '',
-  vehicleInfo: '',
 };
 
 const FieldBlock = ({ label, hint, error, required, children }) => (
@@ -345,16 +344,7 @@ export default function CustomerCreate() {
               </FieldBlock>
             </div>
 
-            <div className="form-field">
-              <FieldBlock label="Vehicle Info" hint="Truck numbers, vehicle type, or fleet notes" error={validationErrors.vehicleInfo}>
-                <textarea
-                  value={form.vehicleInfo}
-                  onChange={(e) => setForm((current) => ({ ...current, vehicleInfo: e.target.value }))}
-                  rows={2}
-                  style={{ ...textareaStyle, minHeight: 84 }}
-                />
-              </FieldBlock>
-            </div>
+            {/* Vehicle info removed from create form; handled separately in profile editing */}
 
             {/* Notes removed from create form per request */}
           </div>

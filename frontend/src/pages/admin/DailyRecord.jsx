@@ -74,6 +74,8 @@ export default function DailyRecord() {
   const [dateReady,     setDateReady]    = useState(false);
   const [searchQuery,   setSearchQuery]   = useState('');
 
+  const todayStr = useMemo(() => new Date().toISOString().split('T')[0], []);
+
   const loadDailySummary = useCallback(async () => {
     setLoadingSummary(true); setSummaryError('');
     try {
@@ -266,6 +268,7 @@ export default function DailyRecord() {
                 type="date"
                 value={selectedDate}
                 onChange={(e) => setSelectedDate(e.target.value)}
+                max={todayStr}
               />
             </div>
 

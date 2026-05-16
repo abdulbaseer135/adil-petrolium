@@ -85,7 +85,7 @@ export default function AdminLayout() {
           {!collapsed && <span style={{ fontWeight: 750, fontSize: 'var(--text-sm)', color: '#fff', whiteSpace: 'nowrap', letterSpacing: '-0.01em' }}>Adil Petroleum</span>}
         </div>
 
-        <nav className="sidebar-nav" style={{ flex: 1, overflow: 'hidden', padding: 'var(--space-2) var(--space-2) var(--space-3)' }}>
+        <nav className="sidebar-nav" style={{ flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden', padding: 'var(--space-2) var(--space-2) var(--space-3)' }}>
           {NAV.map(({ to, label, icon, end }) => (
             <NavLink
               key={to}
@@ -143,34 +143,9 @@ export default function AdminLayout() {
 
         <div style={{ padding: 'var(--space-3)', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
           {(isMobile || !collapsed) && (
-            <>
-              <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-sidebar-text)', marginBottom: 'var(--space-2)', opacity: 0.82, lineHeight: 1.4 }}>
-                {user?.name}<br />
-                <span style={{ opacity: 0.7 }}>Admin</span>
-              </div>
-              <div
-                onClick={() => nav('/admin/profile')}
-                style={{
-                  fontSize: 'var(--text-xs)',
-                  color: 'rgba(255,255,255,0.84)',
-                  marginBottom: 'var(--space-2)',
-                  cursor: 'pointer',
-                  userSelect: 'none',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  padding: '6px 10px',
-                  borderRadius: 'var(--radius-md)',
-                  background: 'rgba(255,255,255,0.05)',
-                }}
-                role="button"
-                tabIndex={0}
-                onKeyDown={(e) => e.key === 'Enter' && nav('/admin/profile')}
-              >
-                <span aria-hidden="true">👤</span>
-                <span>Profile</span>
-              </div>
-            </>
+            <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-sidebar-text)', marginBottom: 'var(--space-2)', opacity: 0.82, lineHeight: 1.4 }}>
+              <span style={{ opacity: 0.7 }}>Admin</span>
+            </div>
           )}
           <button onClick={handleLogout} style={{
             width: '100%',
@@ -243,12 +218,24 @@ export default function AdminLayout() {
           </div>
           <span style={{ flex: 1 }} />
           <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', marginLeft: 'auto' }}>
-            <span style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-muted)', whiteSpace: 'nowrap' }}>
-              {user?.name}
-            </span>
-            <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'color-mix(in oklch, var(--color-primary) 12%, var(--color-surface))', color: 'var(--color-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 'var(--text-xs)', fontWeight: 700, flexShrink: 0 }}>
-              {(user?.name || 'A').slice(0, 1).toUpperCase()}
-            </div>
+            <button
+              onClick={() => nav('/admin/profile')}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: 40,
+                height: 40,
+                padding: 0,
+                borderRadius: 'var(--radius-md)',
+                background: 'rgba(255,255,255,0.06)',
+                cursor: 'pointer',
+                border: 'none',
+              }}
+              aria-label="Open profile"
+            >
+              <span aria-hidden="true" style={{ color: 'var(--color-text-muted)', fontSize: '1.2rem', lineHeight: 1 }}>👤</span>
+            </button>
           </div>
         </header>
         <div className="admin-shell__content" style={{ flex: 1, padding: isMobile ? 'var(--space-4)' : 'var(--space-4) var(--space-5)', overflow: 'auto' }}>

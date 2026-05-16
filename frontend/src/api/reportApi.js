@@ -116,3 +116,10 @@ export const exportYearly = (year) =>
 export const exportDailyExcel = exportDaily;
 export const exportMonthlyExcel = exportMonthly;
 export const exportYearlyCSV = exportYearly;
+
+/** Admin: download customer account statement (Excel) */
+export const downloadAdminStatementExcel = (params) =>
+  client.get('/reports/export/admin-statement-excel', {
+    params,
+    responseType: 'blob',
+  });

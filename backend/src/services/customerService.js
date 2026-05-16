@@ -5,7 +5,7 @@ const { createAuditLog } = require('./auditService');
 const AppError = require('../utils/AppError');
 const config   = require('../config');
 
-const createCustomer = async ({ name, email, password, customerCode, phone, address, vehicleInfo, creditLimit, notes, createdBy, requestId }) => {
+const createCustomer = async ({ name, email, password, customerCode, phone, address, creditLimit, notes, createdBy, requestId }) => {
   const existing = await User.findOne({ email });
   if (existing) throw new AppError('Email already registered', 409);
 
@@ -26,7 +26,6 @@ const createCustomer = async ({ name, email, password, customerCode, phone, addr
     customerCode: customerCode.toUpperCase(),
     phone, 
     address, 
-    vehicleInfo,
     creditLimit: creditLimit || 0,
     notes, 
     createdBy,

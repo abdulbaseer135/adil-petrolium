@@ -1,10 +1,10 @@
 import React, { useId, useState } from 'react';
 
-export const Input = React.forwardRef(({
-  label, error, hint, id, required, type = 'text', ...rest
+export const Select = React.forwardRef(({
+  label, error, hint, id, required, children, ...rest
 }, ref) => {
   const autoId = useId();
-  const inputId = id || autoId;
+  const selectId = id || autoId;
   const [focused, setFocused] = useState(false);
 
   const borderColor = error
@@ -22,7 +22,7 @@ export const Input = React.forwardRef(({
   return (
     <div className="form-row">
       {label && (
-        <label htmlFor={inputId} style={{
+        <label htmlFor={selectId} style={{
           fontSize: 'var(--text-xs)',
           fontWeight: 700,
           color: 'var(--color-text-muted)',
@@ -34,13 +34,12 @@ export const Input = React.forwardRef(({
         </label>
       )}
 
-      <input
+      <select
         ref={ref}
-        id={inputId}
-        type={type}
+        id={selectId}
         className="ui-input"
         aria-invalid={!!error}
-        aria-describedby={error ? `${inputId}-err` : hint ? `${inputId}-hint` : undefined}
+        aria-describedby={error ? `${selectId}-err` : hint ? `${selectId}-hint` : undefined}
         style={{
           padding: '0 var(--space-3)',
           height: 'var(--control-height-lg)',
@@ -53,7 +52,7 @@ export const Input = React.forwardRef(({
           width: '100%',
           boxShadow,
           transition: 'border-color 150ms ease, box-shadow 150ms ease, background 150ms ease',
-          fontVariantNumeric: type === 'number' ? 'tabular-nums' : undefined,
+          cursor: 'pointer',
         }}
         onFocus={(e) => {
           setFocused(true);
@@ -64,10 +63,12 @@ export const Input = React.forwardRef(({
           rest.onBlur?.(e);
         }}
         {...rest}
-      />
+      >
+        {children}
+      </select>
 
       {error && (
-        <span id={`${inputId}-err`} role="alert" style={{
+        <span id={`${selectId}-err`} role="alert" style={{
           fontSize: 'var(--text-xs)',
           color: 'var(--color-error)',
           display: 'flex',
@@ -84,7 +85,7 @@ export const Input = React.forwardRef(({
       )}
 
       {hint && !error && (
-        <span id={`${inputId}-hint`} style={{
+        <span id={`${selectId}-hint`} style={{
           fontSize: 'var(--text-xs)',
           color: 'var(--color-text-faint)',
         }}>{hint}</span>
@@ -93,4 +94,4 @@ export const Input = React.forwardRef(({
   );
 });
 
-Input.displayName = 'Input';
+Select.displayName = 'Select';

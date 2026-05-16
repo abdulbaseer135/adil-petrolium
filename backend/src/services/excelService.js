@@ -48,6 +48,31 @@ const parsePkDateEnd = (dateStr) => {
   return new Date(Date.UTC(year, month - 1, day, 18, 59, 59, 999));
 };
 
+/** Accept YYYY-MM-DD string or Date (already parsed by caller). */
+const coercePkRangeStart = (value) => {
+  if (!value) return null;
+  if (value instanceof Date && !Number.isNaN(value.getTime())) return value;
+  return parsePkDateStart(value);
+};
+
+const coercePkRangeEnd = (value) => {
+  if (!value) return null;
+  if (value instanceof Date && !Number.isNaN(value.getTime())) return value;
+  return parsePkDateEnd(value);
+};
+
+/** Debit/credit columns for ledger (credit notes use negative totalAmount). */
+const ledgerDebitCredit = (tx) => {
+  const total = Number(tx.totalAmount || 0);
+  const payment = Number(tx.paymentReceived || 0);
+  let debit = '';
+  let credit = '';
+  if (total > 0) debit = money(total);
+  const creditAmount = payment + (total < 0 ? Math.abs(total) : 0);
+  if (creditAmount > 0) credit = money(creditAmount);
+  return { debit, credit };
+};
+
 const parsePkMonthStart = (year, month) =>
   new Date(Date.UTC(year, month - 1, 1, -5, 0, 0, 0));
 
@@ -168,20 +193,24 @@ const summarizeTransactions = (transactions) => {
   let closingBalance = 0;
 
   transactions.forEach((tx) => {
-    const debit = Number(tx.totalAmount || 0);
-    const credit = Number(tx.paymentReceived || 0);
+    const total = Number(tx.totalAmount || 0);
+    const payment = Number(tx.paymentReceived || 0);
     const balance = Number(tx.updatedBalance || 0);
     const fuelQty = Number(tx.fuelQuantity || 0);
+    const creditAmount = payment + (total < 0 ? Math.abs(total) : 0);
 
     if (tx.fuelType && productTotals[tx.fuelType] !== undefined) {
       productTotals[tx.fuelType] += fuelQty;
     }
 
-    if (debit > 0) debitCount += 1;
-    if (credit > 0) creditCount += 1;
-
-    totalDebit += debit;
-    totalCredit += credit;
+    if (total > 0) {
+      debitCount += 1;
+      totalDebit += total;
+    }
+    if (creditAmount > 0) {
+      creditCount += 1;
+      totalCredit += creditAmount;
+    }
     closingBalance = balance;
   });
 
@@ -229,10 +258,9 @@ const writeLedgerHeader = ({ worksheet, title, customerName, customerCode, addre
 
 const writeLedgerRows = (worksheet, transactions) => {
   transactions.forEach((tx) => {
-    const debit = Number(tx.totalAmount || 0);
-    const credit = Number(tx.paymentReceived || 0);
     const balance = Number(tx.updatedBalance || 0);
     const fuelQty = Number(tx.fuelQuantity || 0);
+    const { debit, credit } = ledgerDebitCredit(tx);
 
     const row = worksheet.addRow([
       fmtDate(tx.transactionDate),
@@ -241,8 +269,8 @@ const writeLedgerRows = (worksheet, transactions) => {
       buildDetailText(tx),
       fuelQty ? qty(fuelQty) : '',
       tx.rate ? money(tx.rate) : '',
-      debit > 0 ? money(debit) : '',
-      credit > 0 ? money(credit) : '',
+      debit,
+      credit,
       money(balance),
     ]);
 
@@ -483,8 +511,8 @@ const generateYearlyExcel = async (year, customerId = null) => {
 const generateCustomerStatement = async ({ customerId, startDate, endDate }) => {
   const today = new Date();
   const todayKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-  const from = startDate ? parsePkDateStart(startDate) : parsePkYearStart(today.getFullYear());
-  const to = endDate ? parsePkDateEnd(endDate) : parsePkDateEnd(todayKey);
+  const from = coercePkRangeStart(startDate) || parsePkYearStart(today.getFullYear());
+  const to = coercePkRangeEnd(endDate) || parsePkDateEnd(todayKey);
 
   return buildStatementWorkbook({
     title: 'CUSTOMER STATEMENT',
@@ -495,9 +523,634 @@ const generateCustomerStatement = async ({ customerId, startDate, endDate }) => 
   });
 };
 
+// ─── Enhanced Daily Report with 3 sheets ─────────────────────────────────
+
+const writeDailySummarySheet = (workbook, sheetName, title, groups, periodLabel) => {
+  const worksheet = workbook.addWorksheet(safeSheetName(sheetName));
+  worksheet.columns = [
+    { key: 'customer', width: 24 },
+    { key: 'code', width: 16 },
+    { key: 'entries', width: 12 },
+    { key: 'pmg', width: 14 },
+    { key: 'hsd', width: 14 },
+    { key: 'nr', width: 14 },
+    { key: 'sales', width: 16 },
+    { key: 'payments', width: 16 },
+    { key: 'remaining', width: 18 },
+  ];
+
+  worksheet.mergeCells('A1:I1');
+  worksheet.getCell('A1').value = title;
+  worksheet.getCell('A1').font = { size: 16, bold: true };
+  worksheet.getCell('A1').alignment = { horizontal: 'center' };
+  worksheet.getCell('A3').value = `Period: ${periodLabel.from} to ${periodLabel.to}`;
+  worksheet.getCell('A3').font = { bold: true };
+
+  const headerRow = worksheet.getRow(5);
+  headerRow.values = ['Customer', 'Code', 'Entries', 'PMG (L)', 'HSD (L)', 'NR (L)', 'Sales (PKR)', 'Payments (PKR)', 'Remaining (PKR)'];
+  headerRow.font = { bold: true };
+  headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFEDEDED' } };
+  applyBorder(headerRow, 1, 9);
+
+  let rowIndex = 6;
+  const grandTotals = { entries: 0, pmg: 0, hsd: 0, nr: 0, sales: 0, payments: 0, remaining: 0 };
+
+  groups.forEach((group) => {
+    const customer = group.customer || {};
+    const summary = summarizeTransactions(group.transactions);
+    const lastBalance = summary.closingBalance;
+    const row = worksheet.getRow(rowIndex);
+    row.values = [
+      customer.userId?.name || '—',
+      customer.customerCode || '—',
+      group.transactions.length,
+      qty(summary.productTotals.pmg),
+      qty(summary.productTotals.hsd),
+      qty(summary.productTotals.nr),
+      money(summary.totalDebit),
+      money(summary.totalCredit),
+      money(lastBalance),
+    ];
+    applyBorder(row, 1, 9);
+
+    grandTotals.entries += group.transactions.length;
+    grandTotals.pmg += summary.productTotals.pmg;
+    grandTotals.hsd += summary.productTotals.hsd;
+    grandTotals.nr += summary.productTotals.nr;
+    grandTotals.sales += summary.totalDebit;
+    grandTotals.payments += summary.totalCredit;
+    grandTotals.remaining += lastBalance;
+
+    rowIndex += 1;
+  });
+
+  const totalRow = worksheet.getRow(rowIndex + 1);
+  totalRow.values = [
+    'Grand Total',
+    '-',
+    grandTotals.entries,
+    qty(grandTotals.pmg),
+    qty(grandTotals.hsd),
+    qty(grandTotals.nr),
+    money(grandTotals.sales),
+    money(grandTotals.payments),
+    money(grandTotals.remaining),
+  ];
+  totalRow.font = { bold: true };
+  applyBorder(totalRow, 1, 9);
+};
+
+const writeDetailedLedgerSheet = (workbook, sheetName, title, transactions, periodLabel) => {
+  const worksheet = workbook.addWorksheet(safeSheetName(sheetName));
+  worksheet.columns = [
+    { key: 'time', width: 16 },
+    { key: 'billNo', width: 14 },
+    { key: 'customer', width: 22 },
+    { key: 'particulars', width: 16 },
+    { key: 'fuelType', width: 12 },
+    { key: 'qty', width: 12 },
+    { key: 'rate', width: 14 },
+    { key: 'debit', width: 16 },
+    { key: 'credit', width: 16 },
+    { key: 'balance', width: 16 },
+  ];
+
+  worksheet.mergeCells('A1:J1');
+  worksheet.getCell('A1').value = title;
+  worksheet.getCell('A1').font = { size: 16, bold: true };
+  worksheet.getCell('A1').alignment = { horizontal: 'center' };
+  worksheet.getCell('A3').value = `Period: ${periodLabel.from} to ${periodLabel.to}`;
+  worksheet.getCell('A3').font = { bold: true };
+
+  const headerRow = worksheet.getRow(5);
+  headerRow.values = ['Time', 'Bill No', 'Customer', 'Particulars', 'Fuel Type', 'Qty', 'Rate', 'Debit', 'Credit', 'Balance'];
+  headerRow.font = { bold: true };
+  headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFEDEDED' } };
+  applyBorder(headerRow, 1, 10);
+
+  let rowIndex = 6;
+  transactions.forEach((tx) => {
+    const debit = Number(tx.totalAmount || 0);
+    const credit = Number(tx.paymentReceived || 0);
+    const balance = Number(tx.updatedBalance || 0);
+    const fuelQty = Number(tx.fuelQuantity || 0);
+
+    const row = worksheet.getRow(rowIndex);
+    row.values = [
+      fmtDateTime(tx.transactionDate),
+      tx.referenceNo || '-',
+      tx.customerId?.userId?.name || '—',
+      TYPE_LABELS[tx.transactionType] || tx.transactionType,
+      tx.fuelType ? FUEL_LABELS[tx.fuelType] : '-',
+      fuelQty ? qty(fuelQty) : '-',
+      tx.rate ? money(tx.rate) : '-',
+      debit > 0 ? money(debit) : '-',
+      credit > 0 ? money(credit) : '-',
+      money(balance),
+    ];
+    row.alignment = { vertical: 'middle' };
+    applyBorder(row, 1, 10);
+    rowIndex += 1;
+  });
+
+  if (!transactions.length) {
+    worksheet.getCell('A7').value = 'No transactions found for this date range.';
+  }
+};
+
+const writePaymentBreakdownSheet = (workbook, sheetName, title, transactions, periodLabel) => {
+  const worksheet = workbook.addWorksheet(safeSheetName(sheetName));
+  worksheet.columns = [
+    { key: 'customer', width: 24 },
+    { key: 'code', width: 16 },
+    { key: 'cash', width: 16 },
+    { key: 'bank', width: 16 },
+    { key: 'creditNote', width: 16 },
+    { key: 'total', width: 16 },
+  ];
+
+  worksheet.mergeCells('A1:F1');
+  worksheet.getCell('A1').value = title;
+  worksheet.getCell('A1').font = { size: 16, bold: true };
+  worksheet.getCell('A1').alignment = { horizontal: 'center' };
+  worksheet.getCell('A3').value = `Period: ${periodLabel.from} to ${periodLabel.to}`;
+  worksheet.getCell('A3').font = { bold: true };
+
+  const headerRow = worksheet.getRow(5);
+  headerRow.values = ['Customer', 'Code', 'Cash (PKR)', 'Bank Transfer (PKR)', 'Credit Note (PKR)', 'Total (PKR)'];
+  headerRow.font = { bold: true };
+  headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFEDEDED' } };
+  applyBorder(headerRow, 1, 6);
+
+  // Group transactions by customer and payment method
+  const paymentMap = new Map();
+  transactions.forEach((tx) => {
+    if (tx.transactionType !== 'payment') return;
+
+    const customerId = tx.customerId?._id || 'unknown';
+    const customerName = tx.customerId?.userId?.name || '—';
+    const customerCode = tx.customerId?.customerCode || '—';
+
+    if (!paymentMap.has(customerId)) {
+      paymentMap.set(customerId, {
+        customerName,
+        customerCode,
+        cash: 0,
+        bank: 0,
+        creditNote: 0,
+        total: 0,
+      });
+    }
+
+    const entry = paymentMap.get(customerId);
+    const amount = Number(tx.paymentReceived || 0);
+    entry.total += amount;
+
+    // Determine payment method from notes or reference
+    const notes = (tx.notes || '').toLowerCase();
+    const reference = (tx.referenceNo || '').toLowerCase();
+
+    if (notes.includes('bank') || reference.includes('bank')) {
+      entry.bank += amount;
+    } else if (notes.includes('credit note') || reference.includes('credit')) {
+      entry.creditNote += amount;
+    } else {
+      entry.cash += amount;
+    }
+  });
+
+  let rowIndex = 6;
+  const totals = { cash: 0, bank: 0, creditNote: 0, total: 0 };
+
+  [...paymentMap.entries()].sort((a, b) => {
+    const nameA = a[1].customerName;
+    const nameB = b[1].customerName;
+    return nameA.localeCompare(nameB);
+  }).forEach(([_, payment]) => {
+    const row = worksheet.getRow(rowIndex);
+    row.values = [
+      payment.customerName,
+      payment.customerCode,
+      money(payment.cash),
+      money(payment.bank),
+      money(payment.creditNote),
+      money(payment.total),
+    ];
+    row.font = { bold: payment.total > 0 ? true : false };
+    applyBorder(row, 1, 6);
+
+    totals.cash += payment.cash;
+    totals.bank += payment.bank;
+    totals.creditNote += payment.creditNote;
+    totals.total += payment.total;
+
+    rowIndex += 1;
+  });
+
+  const totalRow = worksheet.getRow(rowIndex + 1);
+  totalRow.values = [
+    'Grand Total',
+    '-',
+    money(totals.cash),
+    money(totals.bank),
+    money(totals.creditNote),
+    money(totals.total),
+  ];
+  totalRow.font = { bold: true };
+  applyBorder(totalRow, 1, 6);
+
+  if (!transactions.some(t => t.transactionType === 'payment')) {
+    worksheet.getCell('A7').value = 'No payment transactions found for this date range.';
+  }
+};
+
+const generateEnhancedDailyExcel = async (date, customerId = null) => {
+  const startDate = parsePkDateStart(date);
+  const endDate = parsePkDateEnd(date);
+  const workbook = createWorkbook();
+  const transactions = await loadTransactions({ startDate, endDate, customerId });
+  const periodLabel = { from: fmtDate(startDate), to: fmtDate(endDate) };
+
+  try {
+    logger.info({ count: Array.isArray(transactions) ? transactions.length : 0, customerId, startDate, endDate }, 'Excel export - transactions loaded');
+  } catch (err) {
+    // swallow logging errors
+  }
+
+  if (customerId) {
+    // For a specific customer, show all 3 sheets filtered to that customer
+    const customerTransactions = transactions;
+
+    writeDailySummarySheet(
+      workbook,
+      'Daily Summary',
+      'DAILY ACCOUNT STATEMENT - Summary',
+      groupTransactions(customerTransactions),
+      periodLabel
+    );
+
+    writeDetailedLedgerSheet(
+      workbook,
+      'Detailed Ledger',
+      'DAILY ACCOUNT STATEMENT - Detailed Ledger',
+      customerTransactions,
+      periodLabel
+    );
+
+    writePaymentBreakdownSheet(
+      workbook,
+      'Payment Breakdown',
+      'DAILY ACCOUNT STATEMENT - Payment Breakdown',
+      customerTransactions,
+      periodLabel
+    );
+  } else {
+    // For all customers, show 3 sheets
+    const groups = groupTransactions(transactions);
+
+    writeDailySummarySheet(
+      workbook,
+      'Daily Summary',
+      'DAILY ACCOUNT STATEMENT - Summary',
+      groups,
+      periodLabel
+    );
+
+    writeDetailedLedgerSheet(
+      workbook,
+      'Detailed Ledger',
+      'DAILY ACCOUNT STATEMENT - Detailed Ledger',
+      transactions,
+      periodLabel
+    );
+
+    writePaymentBreakdownSheet(
+      workbook,
+      'Payment Breakdown',
+      'DAILY ACCOUNT STATEMENT - Payment Breakdown',
+      transactions,
+      periodLabel
+    );
+  }
+
+  return workbook;
+};
+
+// ─── Enhanced Monthly Report with 4 sheets ──────────────────────────────────
+
+const writeMonthlyCustomerAnalysisSheet = (workbook, sheetName, title, groups, periodLabel) => {
+  const worksheet = workbook.addWorksheet(safeSheetName(sheetName));
+  worksheet.columns = [
+    { key: 'customer', width: 24 },
+    { key: 'code', width: 16 },
+    { key: 'transactions', width: 14 },
+    { key: 'totalQty', width: 14 },
+    { key: 'totalSales', width: 16 },
+    { key: 'totalReceived', width: 16 },
+    { key: 'outstanding', width: 16 },
+  ];
+
+  worksheet.mergeCells('A1:G1');
+  worksheet.getCell('A1').value = title;
+  worksheet.getCell('A1').font = { size: 16, bold: true };
+  worksheet.getCell('A1').alignment = { horizontal: 'center' };
+  worksheet.getCell('A3').value = `Period: ${periodLabel.from} to ${periodLabel.to}`;
+  worksheet.getCell('A3').font = { bold: true };
+
+  const headerRow = worksheet.getRow(5);
+  headerRow.values = ['Customer', 'Code', 'Transactions', 'Total Qty (L)', 'Total Sales (PKR)', 'Total Received (PKR)', 'Outstanding (PKR)'];
+  headerRow.font = { bold: true };
+  headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFEDEDED' } };
+  applyBorder(headerRow, 1, 7);
+
+  let rowIndex = 6;
+  const grandTotals = { transactions: 0, totalQty: 0, totalSales: 0, totalReceived: 0, outstanding: 0 };
+
+  groups.forEach((group) => {
+    const customer = group.customer || {};
+    const summary = summarizeTransactions(group.transactions);
+    const outstanding = summary.totalDebit - summary.totalCredit;
+
+    const row = worksheet.getRow(rowIndex);
+    row.values = [
+      customer.userId?.name || '—',
+      customer.customerCode || '—',
+      group.transactions.length,
+      qty(summary.productTotals.pmg + summary.productTotals.hsd + summary.productTotals.nr),
+      money(summary.totalDebit),
+      money(summary.totalCredit),
+      money(outstanding),
+    ];
+    applyBorder(row, 1, 7);
+
+    grandTotals.transactions += group.transactions.length;
+    grandTotals.totalQty += summary.productTotals.pmg + summary.productTotals.hsd + summary.productTotals.nr;
+    grandTotals.totalSales += summary.totalDebit;
+    grandTotals.totalReceived += summary.totalCredit;
+    grandTotals.outstanding += outstanding;
+
+    rowIndex += 1;
+  });
+
+  const totalRow = worksheet.getRow(rowIndex + 1);
+  totalRow.values = [
+    'Grand Total',
+    '-',
+    grandTotals.transactions,
+    qty(grandTotals.totalQty),
+    money(grandTotals.totalSales),
+    money(grandTotals.totalReceived),
+    money(grandTotals.outstanding),
+  ];
+  totalRow.font = { bold: true };
+  applyBorder(totalRow, 1, 7);
+};
+
+const writeMonthlyProductPerformanceSheet = (workbook, sheetName, title, transactions, periodLabel) => {
+  const worksheet = workbook.addWorksheet(safeSheetName(sheetName));
+  worksheet.columns = [
+    { key: 'product', width: 16 },
+    { key: 'totalQty', width: 16 },
+    { key: 'totalRevenue', width: 16 },
+    { key: 'avgRate', width: 16 },
+    { key: 'transactionCount', width: 16 },
+  ];
+
+  worksheet.mergeCells('A1:E1');
+  worksheet.getCell('A1').value = title;
+  worksheet.getCell('A1').font = { size: 16, bold: true };
+  worksheet.getCell('A1').alignment = { horizontal: 'center' };
+  worksheet.getCell('A3').value = `Period: ${periodLabel.from} to ${periodLabel.to}`;
+  worksheet.getCell('A3').font = { bold: true };
+
+  const headerRow = worksheet.getRow(5);
+  headerRow.values = ['Product', 'Total Qty (L)', 'Total Revenue (PKR)', 'Avg Rate (PKR/L)', 'Transaction Count'];
+  headerRow.font = { bold: true };
+  headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFEDEDED' } };
+  applyBorder(headerRow, 1, 5);
+
+  // Aggregate by fuel type
+  const productMap = { pmg: { name: 'PMG', qty: 0, revenue: 0, count: 0 }, hsd: { name: 'HSD', qty: 0, revenue: 0, count: 0 }, nr: { name: 'NR', qty: 0, revenue: 0, count: 0 } };
+
+  transactions.forEach((tx) => {
+    if (tx.transactionType === 'fuel_sale' && tx.fuelType && productMap[tx.fuelType]) {
+      const fuelQty = Number(tx.fuelQuantity || 0);
+      const revenue = Number(tx.totalAmount || 0);
+      productMap[tx.fuelType].qty += fuelQty;
+      productMap[tx.fuelType].revenue += revenue;
+      productMap[tx.fuelType].count += 1;
+    }
+  });
+
+  let rowIndex = 6;
+  let grandQty = 0;
+  let grandRevenue = 0;
+  let grandCount = 0;
+
+  Object.values(productMap).forEach((product) => {
+    const avgRate = product.qty > 0 ? product.revenue / product.qty : 0;
+    const row = worksheet.getRow(rowIndex);
+    row.values = [
+      product.name,
+      qty(product.qty),
+      money(product.revenue),
+      money(avgRate),
+      product.count,
+    ];
+    applyBorder(row, 1, 5);
+
+    grandQty += product.qty;
+    grandRevenue += product.revenue;
+    grandCount += product.count;
+    rowIndex += 1;
+  });
+
+  const avgRateGrand = grandQty > 0 ? grandRevenue / grandQty : 0;
+  const totalRow = worksheet.getRow(rowIndex + 1);
+  totalRow.values = [
+    'Total',
+    qty(grandQty),
+    money(grandRevenue),
+    money(avgRateGrand),
+    grandCount,
+  ];
+  totalRow.font = { bold: true };
+  applyBorder(totalRow, 1, 5);
+};
+
+const writeMonthlyDailyBreakdownSheet = (workbook, sheetName, title, transactions, periodLabel) => {
+  const worksheet = workbook.addWorksheet(safeSheetName(sheetName));
+  worksheet.columns = [
+    { key: 'date', width: 14 },
+    { key: 'transactions', width: 14 },
+    { key: 'totalQty', width: 14 },
+    { key: 'totalSales', width: 16 },
+    { key: 'totalReceived', width: 16 },
+    { key: 'netChange', width: 16 },
+    { key: 'closingBalance', width: 16 },
+  ];
+
+  worksheet.mergeCells('A1:G1');
+  worksheet.getCell('A1').value = title;
+  worksheet.getCell('A1').font = { size: 16, bold: true };
+  worksheet.getCell('A1').alignment = { horizontal: 'center' };
+  worksheet.getCell('A3').value = `Period: ${periodLabel.from} to ${periodLabel.to}`;
+  worksheet.getCell('A3').font = { bold: true };
+
+  const headerRow = worksheet.getRow(5);
+  headerRow.values = ['Date', 'Transactions', 'Total Qty (L)', 'Total Sales (PKR)', 'Total Received (PKR)', 'Net Change (PKR)', 'Closing Balance (PKR)'];
+  headerRow.font = { bold: true };
+  headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFEDEDED' } };
+  applyBorder(headerRow, 1, 7);
+
+  // Group by date
+  const dateMap = new Map();
+  transactions.forEach((tx) => {
+    const dateKey = fmtDate(tx.transactionDate);
+    if (!dateMap.has(dateKey)) {
+      dateMap.set(dateKey, {
+        transactions: 0,
+        totalQty: 0,
+        totalSales: 0,
+        totalReceived: 0,
+        netChange: 0,
+        closingBalance: 0,
+      });
+    }
+
+    const entry = dateMap.get(dateKey);
+    entry.transactions += 1;
+    entry.totalQty += Number(tx.fuelQuantity || 0);
+    entry.totalSales += tx.transactionType === 'fuel_sale' ? Number(tx.totalAmount || 0) : 0;
+    entry.totalReceived += tx.transactionType === 'payment' ? Number(tx.paymentReceived || 0) : 0;
+    entry.netChange = (Number(tx.paymentReceived || 0)) - (Number(tx.totalAmount || 0));
+    entry.closingBalance = Number(tx.updatedBalance || 0);
+  });
+
+  let rowIndex = 6;
+  const grandTotals = { transactions: 0, totalQty: 0, totalSales: 0, totalReceived: 0 };
+
+  [...dateMap.entries()].sort((a, b) => a[0].localeCompare(b[0])).forEach(([date, data]) => {
+    const row = worksheet.getRow(rowIndex);
+    row.values = [
+      date,
+      data.transactions,
+      qty(data.totalQty),
+      money(data.totalSales),
+      money(data.totalReceived),
+      money(data.netChange),
+      money(data.closingBalance),
+    ];
+    applyBorder(row, 1, 7);
+
+    grandTotals.transactions += data.transactions;
+    grandTotals.totalQty += data.totalQty;
+    grandTotals.totalSales += data.totalSales;
+    grandTotals.totalReceived += data.totalReceived;
+
+    rowIndex += 1;
+  });
+
+  const totalRow = worksheet.getRow(rowIndex + 1);
+  totalRow.values = [
+    'Total',
+    grandTotals.transactions,
+    qty(grandTotals.totalQty),
+    money(grandTotals.totalSales),
+    money(grandTotals.totalReceived),
+    '-',
+    '-',
+  ];
+  totalRow.font = { bold: true };
+  applyBorder(totalRow, 1, 7);
+};
+
+const generateEnhancedMonthlyExcel = async (year, month, customerId = null) => {
+  const startDate = parsePkMonthStart(year, month);
+  const endDate = parsePkMonthEnd(year, month);
+  const workbook = createWorkbook();
+  const transactions = await loadTransactions({ startDate, endDate, customerId });
+  const periodLabel = { from: fmtDate(startDate), to: fmtDate(endDate) };
+
+  try {
+    logger.info({ count: Array.isArray(transactions) ? transactions.length : 0, customerId, startDate, endDate }, 'Excel export - transactions loaded');
+  } catch (err) {
+    // swallow logging errors
+  }
+
+  if (customerId) {
+    // For specific customer, show analytical sheets
+    const customerTransactions = transactions;
+    const groups = groupTransactions(customerTransactions);
+
+    writeMonthlyCustomerAnalysisSheet(
+      workbook,
+      'Customer Analysis',
+      'MONTHLY ACCOUNT STATEMENT - Customer Analysis',
+      groups,
+      periodLabel
+    );
+
+    writeMonthlyProductPerformanceSheet(
+      workbook,
+      'Product Performance',
+      'MONTHLY ACCOUNT STATEMENT - Product Performance',
+      customerTransactions,
+      periodLabel
+    );
+
+    writeMonthlyDailyBreakdownSheet(
+      workbook,
+      'Daily Breakdown',
+      'MONTHLY ACCOUNT STATEMENT - Daily Breakdown',
+      customerTransactions,
+      periodLabel
+    );
+  } else {
+    // For all customers, show all 4 sheets
+    const groups = groupTransactions(transactions);
+
+    writeDailySummarySheet(
+      workbook,
+      'Monthly Summary',
+      'MONTHLY ACCOUNT STATEMENT - Summary',
+      groups,
+      periodLabel
+    );
+
+    writeMonthlyCustomerAnalysisSheet(
+      workbook,
+      'Customer Analysis',
+      'MONTHLY ACCOUNT STATEMENT - Customer Analysis',
+      groups,
+      periodLabel
+    );
+
+    writeMonthlyProductPerformanceSheet(
+      workbook,
+      'Product Performance',
+      'MONTHLY ACCOUNT STATEMENT - Product Performance',
+      transactions,
+      periodLabel
+    );
+
+    writeMonthlyDailyBreakdownSheet(
+      workbook,
+      'Daily Breakdown',
+      'MONTHLY ACCOUNT STATEMENT - Daily Breakdown',
+      transactions,
+      periodLabel
+    );
+  }
+
+  return workbook;
+};
+
 module.exports = {
   generateDailyExcel,
+  generateEnhancedDailyExcel,
   generateMonthlyExcel,
+  generateEnhancedMonthlyExcel,
   generateYearlyExcel,
   generateCustomerStatement,
   // Internal helpers exported for testing

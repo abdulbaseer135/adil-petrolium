@@ -169,6 +169,8 @@ export default function AuditLogs() {
   const [draftFilters, setDraftFilters] = useState({ action: '', startDate: '', endDate: '', actor: '' });
   const [filters, setFilters] = useState({ action: '', startDate: '', endDate: '', actor: '' });
 
+  const todayStr = useMemo(() => new Date().toISOString().split('T')[0], []);
+
   const loadLogs = useCallback(async () => {
     setLoading(true);
     setError('');
@@ -267,6 +269,7 @@ export default function AuditLogs() {
               type="date"
               value={draftFilters.startDate}
               onChange={(e) => setDraftFilters((current) => ({ ...current, startDate: e.target.value }))}
+              max={todayStr}
             />
           </div>
 
@@ -276,6 +279,7 @@ export default function AuditLogs() {
               type="date"
               value={draftFilters.endDate}
               onChange={(e) => setDraftFilters((current) => ({ ...current, endDate: e.target.value }))}
+              max={todayStr}
             />
           </div>
 
