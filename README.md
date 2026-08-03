@@ -1,63 +1,138 @@
 # Tail Website — Fuel Management System
 
-![CI](https://github.com/yourorg/tail-website/actions/workflows/ci.yml/badge.svg)
+This repository contains a fuel management and customer statements platform with a secure backend API, a React frontend, and support tooling for deployment and maintenance.
 
-Enterprise-grade fuel management and customer account statement system with comprehensive security, authentication, and reporting capabilities.
+## Repository Overview
 
-## Quick Start
+- `backend/` — Express API, MongoDB integration, authentication, authorization, audits, exports, and backend tests.
+- `frontend/` — React 19 app with Redux Toolkit, routing, API integration, UI state management, and frontend tests.
+- `scripts/` — repository scripts for maintenance tasks such as secret rotation and history purge.
+- `package.json` — root metadata and shared dependency references.
 
-- **User Guide**: [USER_GUIDE_STATEMENT.md](USER_GUIDE_STATEMENT.md)
-- **Developer Setup**: See [CONTRIBUTING.md](CONTRIBUTING.md)
-- **Full Documentation**: [DOCUMENTATION_INDEX.md](DOCUMENTATION_INDEX.md)
+## Summary
 
-## Features
+A secure fuel management application for petroleum dealers with customer account statement exports, role-based access control, and audit logging. The backend serves protected APIs, while the frontend provides a responsive user interface for admins and customers.
 
-- 🔐 Secure authentication (JWT + refresh tokens, HttpOnly cookies, CSRF protection)
-- 📊 Professional customer account statements (Word export)
-- 📈 Daily, monthly, and yearly reports
-- 🛡️ Role-based access control (admin / customer)
-- 🔄 Real-time transaction updates (Server-Sent Events)
-- 📝 Comprehensive audit logging
-- ✅ Full test coverage (frontend + backend)
+## Quick Links
+
+- `backend/` — backend application source and API logic
+- `frontend/` — React application source and UI code
+- `scripts/` — helper scripts for repo maintenance
+- `README.md` — this consolidated documentation
+
+## Project Description
+
+This system is designed for managing petroleum dealer accounts, customer transactions, and statement generation. It supports role-based access control for administrators and customers, secure session management, exportable account statements, and monitoring of activity through audit logs.
+
+### Core Capabilities
+
+- Secure login and refresh-token authentication
+- Role-based access control for admin and customer users
+- Customer account statements export in Word format
+- Transaction reporting by day, month, and year
+- Audit logging for sensitive actions and changes
+- Real-time updates via Server-Sent Events (SSE)
+- Rate limiting and request sanitization for hardened API security
 
 ## Tech Stack
 
 ### Backend
-- Node.js + Express
-- MongoDB (Mongoose)
-- JWT authentication, bcryptjs hashing, csurf CSRF protection
+- Node.js, Express
+- MongoDB via Mongoose
+- `bcryptjs`, `jsonwebtoken`, `helmet`, `express-rate-limit`
+- `pino` logging and `express-validator` request validation
+- Test stack: Mocha, Chai, Sinon, Supertest, NYC
 
 ### Frontend
-- React 19, Redux Toolkit
-- React Router v6
-- Axios with request/response interceptors
-- Comprehensive Jest test suite
+- React 19, React Router v6
+- Redux Toolkit for state management
+- Axios for HTTP requests
+- Create React App build tooling
+- TypeScript support for developer tooling
 
-## Security Highlights
+## Setup and Usage
 
-- ✅ No token storage in localStorage — HttpOnly cookies only
-- ✅ CSRF double-submit pattern (XSRF-TOKEN)
-- ✅ Server-enforced RBAC on all endpoints
-- ✅ Input sanitization and HTML escaping for exports
-- ✅ Audit logging for sensitive actions
-- ✅ Rate limiting on auth endpoints
-- ✅ Dependency audit and override management
+### Prerequisites
 
-## Running Tests
+- Node.js installed
+- MongoDB running locally or accessible via connection string
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for full setup instructions. Quick commands:
+### Backend Setup
 
 ```bash
-# Frontend tests
-cd frontend && npm test
-
-# Backend tests (requires MongoDB on localhost:27017)
-cd backend && npm test
+cd backend
+npm install
 ```
 
-## For Security Researchers
+Create a `.env` file in `backend/` with environment variables such as:
 
-See [FRONTEND_HARDENING_RUNBOOK.md](backend/FRONTEND_HARDENING_RUNBOOK.md) for detailed backend hardening steps and [backend/SECURITY_REMEDIATION.md](backend/SECURITY_REMEDIATION.md) for secrets rotation and git history purge guidance.
+```text
+PORT=4000
+MONGO_URI=mongodb://localhost:27017/<database>
+JWT_SECRET=your_jwt_secret
+JWT_EXPIRES_IN=15m
+REFRESH_TOKEN_EXPIRES_IN=7d
+CLIENT_URL=http://localhost:3000
+```
+
+Start the backend:
+
+```bash
+npm run dev
+```
+
+### Frontend Setup
+
+```bash
+cd frontend
+npm install
+npm start
+```
+
+Open the app at `http://localhost:3000`.
+
+### Production Build
+
+```bash
+cd frontend
+npm run build
+```
+
+## Testing
+
+### Backend
+
+```bash
+cd backend
+npm test
+```
+
+### Frontend
+
+```bash
+cd frontend
+npm test
+```
+
+### Coverage
+
+- Backend coverage: `cd backend && npm run test:coverage`
+- Frontend coverage: `cd frontend && npm run test:coverage`
+
+## Security and Hardening
+
+This repository was built with a strong security focus:
+
+- HttpOnly cookies for auth tokens
+- CSRF protections and secure cookie handling
+- Input sanitization for request bodies and export generation
+- Role-based enforcement on API endpoints
+- Session and refresh token handling outside of local storage
+- Audit logging for administrative and export actions
+
+## Notes
+
+All previous repository documentation has been consolidated into this single root `readme.md` file. Other markdown files were removed to keep the repository documentation centralized and easier to maintain.
 
 ## License
 
