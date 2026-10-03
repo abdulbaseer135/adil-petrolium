@@ -106,7 +106,7 @@ describe('Auth Integration Tests', function () {
       expect(res.body.data).to.have.property('email', user.email);
     });
 
-    it('should login customer using phone number as password fallback', async () => {
+    it('should reject login customer using phone number as password fallback', async () => {
       const { user } = await createCustomer({
         email: 'cust-phone@example.com',
         password: 'CustPass@123',
@@ -124,8 +124,8 @@ describe('Auth Integration Tests', function () {
           password: user.phone,
         });
 
-      expect(res.status).to.equal(200);
-      expect(res.body).to.have.property('success', true);
+      expect(res.status).to.equal(401);
+      expect(res.body).to.have.property('success', false);
     });
   });
 

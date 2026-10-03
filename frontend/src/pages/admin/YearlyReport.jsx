@@ -86,15 +86,15 @@ export default function YearlyReport() {
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: 'var(--space-4)', marginInline: 'var(--space-4)' }}>
+      <div className="report-stat-grid">
         <SummaryCard label="Total Sale" value={loading ? 'Loading…' : fmt(summary.sales)} accent="var(--color-primary)" hint="Debit transactions in the selected year." />
         <SummaryCard label="Total Fuel Sold" value={loading ? 'Loading…' : fmtL(summary.fuel)} accent="var(--color-warning)" hint="Total litres sold across all entries." />
         <SummaryCard label="Total Payments" value={loading ? 'Loading…' : fmt(summary.payments)} accent="var(--color-success)" hint="Credit transactions received." />
         <SummaryCard label="Remaining" value={loading ? 'Loading…' : fmt(summary.sales - summary.payments)} accent="var(--color-warning)" hint="Outstanding amount after payments." />
       </div>
 
-      <div style={{ display: 'flex', gap: 'var(--space-3)', alignItems: 'flex-end', flexWrap: 'wrap', marginBottom: 'var(--space-4)', marginInline: 'var(--space-4)', marginTop: 'var(--space-6)' }}>
-        <div className="report-filter" style={{ minWidth: 240, maxWidth: 400 }}>
+      <div style={{ display: 'flex', gap: 'var(--space-3)', alignItems: 'flex-end', flexWrap: 'wrap', marginBottom: 'var(--space-4)', marginTop: 'var(--space-6)' }}>
+        <div className="report-filter" style={{ minWidth: 'min(100%, 200px)', maxWidth: 400 }}>
           <span className="report-filter__label">Search</span>
           <input
             className="report-filter__control"

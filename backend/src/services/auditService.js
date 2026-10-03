@@ -3,14 +3,29 @@ const AuditLog = require('../models/AuditLog');
 const logger   = require('../utils/logger');
 
 const createAuditLog = async ({
-  action, actor, actorEmail = '', actorRole = '',
-  targetId = null, targetModel = null,
-  details = {}, requestId = '',
+  petrolPumpId = null,
+  action,
+  actor,
+  actorEmail = '',
+  actorRole = '',
+  targetId = null,
+  targetModel = null,
+  targetType = null,
+  details = {},
+  requestId = '',
 }) => {
   try {
     await AuditLog.create({
-      action, actor, actorEmail, actorRole,
-      targetId, targetModel, details, requestId,
+      petrolPumpId,
+      action,
+      actor,
+      actorEmail,
+      actorRole,
+      targetId,
+      targetModel: targetModel || targetType,
+      targetType: targetType || targetModel,
+      details,
+      requestId,
     });
   } catch (err) {
     // Never crash the main flow due to audit failure

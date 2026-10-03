@@ -1,12 +1,14 @@
 'use strict';
 const txService = require('../services/transactionService');
-const CustomerProfile = require('../models/CustomerProfile');
+const CustomerPumpAccount = require('../models/CustomerPumpAccount');
+const PetrolPump = require('../models/PetrolPump');
+const notificationService = require('../services/notificationService');
 const { sendSuccess, sendError } = require('../utils/apiResponse');
 const logger = require('../utils/logger');
 
 const createTransaction = async (req, res, next) => {
   try {
-    logger.debug({ body: req.body, user: req.user?._id }, 'CreateTransaction request');
+    logger.debug({ body: req.body, user: req.user?._id, pumpId: req.petrolPumpId }, 'CreateTransaction request');
 
     const {
       customerId,
@@ -32,11 +34,11 @@ const createTransaction = async (req, res, next) => {
       return sendError(res, 'Customer is required', 400);
     }
 
-    // Ownership check: admin users may only act on customers they created
+    // Ownership check: customer must belong to this admin's petrol pump
     if (req.user && req.user.role === 'admin') {
-      const profile = await CustomerProfile.findById(customerId).lean();
+      const profile = await CustomerPumpAccount.findById(customerId).lean();
       if (!profile) return sendError(res, 'Customer not found', 404);
-      if (profile.createdBy && String(profile.createdBy) !== String(req.user._id)) {
+      if (String(profile.petrolPumpId) !== String(req.petrolPumpId)) {
         return sendError(res, 'You do not have permission to perform this action', 403);
       }
     }
@@ -64,6 +66,7 @@ const createTransaction = async (req, res, next) => {
     }
 
     const tx = await txService.createTransaction({
+      petrolPumpId: req.petrolPumpId,
       customerId,
       transactionType,
       fuelType,
@@ -86,6 +89,23 @@ const createTransaction = async (req, res, next) => {
       requestId: req.id,
     });
 
+    // Notify linked customer about the ledger entry
+    try {
+      const custProfile = await CustomerPumpAccount.findById(customerId).select('userId petrolPumpId').lean();
+      if (custProfile?.userId) {
+        const pump = await PetrolPump.findById(custProfile.petrolPumpId).select('name').lean();
+        notificationService.onLedgerEntry({
+          customerUserId: custProfile.userId,
+          pumpName: pump?.name || 'your petrol pump',
+          transactionType,
+          amount: tx.finalAmount || tx.totalAmount || tx.paymentReceived || 0,
+          updatedBalance: tx.updatedBalance,
+        });
+      }
+    } catch (notifErr) {
+      logger.error({ err: notifErr.message }, 'Failed to send ledger notification');
+    }
+
     return sendSuccess(res, tx, 'Transaction recorded successfully', 201);
   } catch (err) {
     next(err);
@@ -105,16 +125,17 @@ const getTransactions = async (req, res, next) => {
       sort,
     } = req.query;
 
-      // If an admin provided a customerId, ensure ownership
-      if (customerId && req.user && req.user.role === 'admin') {
-        const profile = await CustomerProfile.findById(customerId).lean();
-        if (!profile) return sendError(res, 'Customer not found', 404);
-        if (profile.createdBy && String(profile.createdBy) !== String(req.user._id)) {
-          return sendError(res, 'You do not have permission to perform this action', 403);
-        }
-      }
+    // If an admin provided a customerId, verify tenant ownership
+    if (customerId && req.user && req.user.role === 'admin') {
+      const profile = await CustomerPumpAccount.findOne({
+        _id: customerId,
+        petrolPumpId: req.petrolPumpId,
+      }).lean();
+      if (!profile) return sendError(res, 'Customer not found or does not belong to your petrol pump', 404);
+    }
 
-      const result = await txService.getTransactions({
+    const result = await txService.getTransactions({
+      petrolPumpId: req.petrolPumpId,
       customerId,
       startDate,
       endDate,
@@ -164,6 +185,7 @@ const voidTransaction = async (req, res, next) => {
     if (!reason) return sendError(res, 'Void reason is required', 400);
 
     const tx = await txService.voidTransaction({
+      petrolPumpId: req.petrolPumpId,
       transactionId: req.params.id,
       voidedBy: req.user._id,
       voidReason: reason,

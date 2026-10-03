@@ -6,6 +6,11 @@ const getLogs = async (req, res, next) => {
   try {
     const { action, actor, startDate, endDate, page = 1, limit = 50 } = req.query;
     const query = {};
+
+    if (req.user.role === 'admin' && req.petrolPumpId) {
+      query.petrolPumpId = req.petrolPumpId;
+    }
+
     if (action) query.action = action;
     if (actor)  query.actor  = actor;
     if (startDate || endDate) {
@@ -15,7 +20,7 @@ const getLogs = async (req, res, next) => {
     }
     const total = await AuditLog.countDocuments(query);
     const logs  = await AuditLog.find(query)
-      .populate('actor', 'name email')
+      .populate('actor', 'name email role')
       .sort('-createdAt')
       .skip((page - 1) * limit).limit(parseInt(limit)).lean();
     return sendSuccess(res, logs, 'Audit logs retrieved', 200,

@@ -203,14 +203,14 @@ export default function DailyRecord() {
           }
         />
 
-        <div className="report-stat-grid" style={{ marginInline: 'var(--space-4)' }}>
+        <div className="report-stat-grid">
           <SummaryCard label="Total Sale" value={loadingSummary ? 'Loading…' : fmt(dailySummary.totalSalesAmount)} accent="var(--color-primary)" hint="Debit transactions in the selected date." />
           <SummaryCard label="Total Fuel Sold" value={loadingSummary ? 'Loading…' : fmtL(dailySummary.totalFuelSold)} accent="var(--color-warning)" hint="Total litres sold across all entries." />
           <SummaryCard label="Total Payments" value={loadingSummary ? 'Loading…' : fmt(dailySummary.totalPaymentsReceived)} accent="var(--color-success)" hint="Credit transactions received." />
           <SummaryCard label="Remaining" value={loadingSummary ? 'Loading…' : fmt(dailySummary.totalSalesAmount - dailySummary.totalPaymentsReceived)} accent="var(--color-warning)" hint="Outstanding amount after payments." />
         </div>
 
-        <div className="report-filter" style={{ minWidth: 240, maxWidth: 400, marginInline: 'var(--space-4)' }}>
+        <div className="report-filter" style={{ minWidth: 'min(100%, 200px)', maxWidth: 400, marginTop: 'var(--space-2)' }}>
           <span className="report-filter__label">Search</span>
           <input
             className="report-filter__control"

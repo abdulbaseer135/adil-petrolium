@@ -33,7 +33,8 @@ export const formatAmountCeilPK = (value) =>
     maximumFractionDigits: 0,
   });
 
-export const formatCurrencyPK = (value) => formatAmountPK(value);
+export const formatCurrencyPK = (value) => `Rs ${formatAmountPK(value)}`;
+export const formatMoneyPK = (value) => `Rs ${formatAmountPK(value)}`;
 
 export const formatCurrencyShortPK = (value) => {
   const num = toNumberPK(value);
@@ -126,3 +127,6 @@ export const pkInputDateTimeToIso = (value) => {
   const [, year, month, day, hour, minute] = match.map(Number);
   return new Date(Date.UTC(year, month - 1, day, hour - 5, minute, 0, 0)).toISOString();
 };
+
+export const formatDate = formatDatePK;
+export const formatPKR = formatMoneyPK;

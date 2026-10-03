@@ -277,16 +277,16 @@ const buildCoverPage = ({ customerName, customerCode, address, phoneNo, email, c
   
   // Company Logo/Header
   new Paragraph({
-    text: 'ADIL PETROLEUM',
+    text: 'PETROL MANAGEMENT SYSTEM',
     bold: true,
-    size: 80,
+    size: 70,
     color: colors.primary,
     alignment: AlignmentType.CENTER,
   }),
   
   new Paragraph({
-    text: 'MANAGEMENT SYSTEM',
-    size: 28,
+    text: 'DEALER MANAGEMENT & LEDGER',
+    size: 26,
     color: colors.secondary,
     alignment: AlignmentType.CENTER,
     spacing: { after: 400 },

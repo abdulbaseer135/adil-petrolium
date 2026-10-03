@@ -31,6 +31,7 @@ const requestWithCsrf = async (agentOrApp, method, path, body) => {
 
 const postWithCsrf = (agentOrApp, path, body) => requestWithCsrf(agentOrApp, 'post', path, body);
 const putWithCsrf = (agentOrApp, path, body) => requestWithCsrf(agentOrApp, 'put', path, body);
+const patchWithCsrf = (agentOrApp, path, body) => requestWithCsrf(agentOrApp, 'patch', path, body);
 const deleteWithCsrf = (agentOrApp, path, body) => requestWithCsrf(agentOrApp, 'delete', path, body);
 
 module.exports = {
@@ -38,5 +39,6 @@ module.exports = {
   loginWithCsrf,
   postWithCsrf,
   putWithCsrf,
+  patchWithCsrf,
   deleteWithCsrf,
 };

@@ -3,8 +3,15 @@ const mongoose = require('mongoose');
 const config   = require('./index');
 const logger   = require('../utils/logger');
 
+const { getSafeDbDiagnostics, extractDatabaseName, isTestDatabaseName } = require('../utils/dbSafety');
+
 const connectDB = async () => {
   try {
+    const dbName = extractDatabaseName(config.mongo.uri);
+    if (config.env === 'production' && isTestDatabaseName(dbName)) {
+      throw new Error(`[CRITICAL] Refusing to start production with test database '${dbName}'`);
+    }
+
     await mongoose.connect(config.mongo.uri, {
       serverSelectionTimeoutMS: 5000,
       socketTimeoutMS: 45000,
@@ -13,19 +20,27 @@ const connectDB = async () => {
       minPoolSize: 2,
       // Faster connection establishment
       connectTimeoutMS: 10000,
-      // Keep connections alive
-      keepAlive: true,
-      keepAliveInitialDelay: 300000,
     });
-    logger.info({ uri: config.mongo.uri.replace(/:\/\/.*@/, '://***@') }, 'MongoDB connected');
+
+    const diag = getSafeDbDiagnostics(mongoose.connection);
+    logger.info(
+      {
+        environment: diag.environment,
+        database: diag.databaseName,
+        host: diag.host,
+        port: diag.port,
+        state: diag.connectionState,
+      },
+      `Database connected | Environment: ${diag.environment} | Database: ${diag.databaseName}`
+    );
 
     mongoose.connection.on('error', (err) =>
-      logger.error({ err }, 'MongoDB connection error'));
+      logger.error({ err: err.message }, 'MongoDB connection error'));
 
     mongoose.connection.on('disconnected', () =>
       logger.warn('MongoDB disconnected'));
   } catch (err) {
-    logger.fatal({ err }, 'MongoDB connection failed');
+    logger.fatal({ message: err.message }, 'MongoDB connection failed');
     process.exit(1);
   }
 };

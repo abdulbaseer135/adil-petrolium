@@ -3,6 +3,7 @@ import { getMyProfile } from '../../api/customerApi';
 import { BalanceCard } from '../../components/customer/BalanceCard';
 import { StatementDownload } from '../../components/customer/StatementDownload';
 import { SkeletonCard } from '../../components/ui/Skeleton';
+import { formatMoneyPK, formatDatePK } from '../../utils/pkFormat';
 
 export default function Statement() {
   const [profile, setProfile] = useState(null);
@@ -33,7 +34,7 @@ export default function Statement() {
             <div
               style={{
                 display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 260px), 1fr))',
                 gap: 'var(--space-4)',
               }}
             >
@@ -64,8 +65,8 @@ export default function Statement() {
               >
                 <div style={{ fontSize: '14px', fontWeight: 700, marginBottom: '12px' }}>Statement Summary</div>
                 <div style={{ display: 'grid', gap: '10px', fontSize: '13px', color: 'var(--color-text)' }}>
-                  <div><strong>Current Balance:</strong> {profile.currentBalance != null ? new Intl.NumberFormat('en-PK', { style: 'currency', currency: 'PKR' }).format(profile.currentBalance) : '-'}</div>
-                  <div><strong>Customer Since:</strong> {profile.createdAt ? new Date(profile.createdAt).toLocaleDateString('en-PK') : '-'}</div>
+                  <div><strong>Current Balance:</strong> {profile.currentBalance != null ? formatMoneyPK(profile.currentBalance) : '-'}</div>
+                  <div><strong>Customer Since:</strong> {profile.createdAt ? formatDatePK(profile.createdAt) : '-'}</div>
                   <div><strong>Download:</strong> Use the button below to export.</div>
                 </div>
               </div>

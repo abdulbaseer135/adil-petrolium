@@ -40,13 +40,21 @@ const userSchema = new mongoose.Schema({
   phone: {
     type:   String,
     trim:   true,
-    select: false,
-    comment: 'Plain string phone number set by admin; also used as fallback login credential',
   },
   role: {
     type:    String,
-    enum:    ['admin', 'customer'],
+    enum:    ['super_admin', 'admin', 'customer'],
     default: 'customer',
+  },
+  status: {
+    type:    String,
+    enum:    ['pending', 'approved', 'rejected', 'suspended', 'active'],
+    default: 'active',
+  },
+  petrolPumpId: {
+    type:    mongoose.Schema.Types.ObjectId,
+    ref:     'PetrolPump',
+    default: null,
   },
   isActive: { type: Boolean, default: true },
 
@@ -104,7 +112,6 @@ userSchema.methods.toJSON = function () {
   const obj = this.toObject();
   delete obj.password;
   delete obj.recoveryKeyHash;
-  delete obj.phone;
   delete obj.failedLoginAttempts;
   delete obj.lockUntil;
   delete obj.isLocked;
@@ -115,5 +122,17 @@ userSchema.methods.toJSON = function () {
 // ─── Indexes ─────────────────────────────────────────────────
 // ✅ Only defined here — not duplicated in field definition above
 userSchema.index({ email: 1 }, { unique: true });
+userSchema.index({ role: 1 });
+// Enforce single Super Admin singleton at database level with explicit index name
+userSchema.index(
+  { role: 1 },
+  {
+    name: 'uniq_super_admin_singleton',
+    unique: true,
+    partialFilterExpression: { role: 'super_admin' },
+  }
+);
+userSchema.index({ status: 1 });
+userSchema.index({ petrolPumpId: 1 });
 
 module.exports = mongoose.model('User', userSchema);

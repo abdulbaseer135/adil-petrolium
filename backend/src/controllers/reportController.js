@@ -10,10 +10,11 @@ const {
 } = require('../services/excelService');
 const { generateProfessionalStatement } = require('../services/professionalStatementService');
 const { createAuditLog } = require('../services/auditService');
-const { sendSuccess } = require('../utils/apiResponse');
+const { sendSuccess, sendError } = require('../utils/apiResponse');
 const Transaction = require('../models/Transaction');
+const CustomerPumpAccount = require('../models/CustomerPumpAccount');
 
-// ─── JSON report handler ───────────────────────────────────────────────────
+// ─── JSON monthly report handler ───────────────────────────────────────────
 
 const getMonthlyReport = async (req, res, next) => {
   try {
@@ -23,14 +24,19 @@ const getMonthlyReport = async (req, res, next) => {
     const startDate = new Date(Date.UTC(year, month - 1, 1));
     const endDate   = new Date(Date.UTC(year, month, 0, 23, 59, 59, 999));
 
-    const transactions = await Transaction.find({
+    const query = {
       transactionDate: { $gte: startDate, $lte: endDate },
       isVoided: { $ne: true },
-    }).sort({ transactionDate: 1 }).lean();
+    };
+
+    if (req.petrolPumpId) {
+      query.petrolPumpId = req.petrolPumpId;
+    }
+
+    const transactions = await Transaction.find(query).sort({ transactionDate: 1 }).lean();
 
     const MONTH_LABELS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
-    // Build per-month buckets (for monthly page the breakdown is day-by-day)
     const dayMap = {};
 
     transactions.forEach((tx) => {
@@ -84,21 +90,30 @@ const getMonthlyReport = async (req, res, next) => {
   }
 };
 
-// ─── Excel export handlers (unchanged) ────────────────────────────────────
+// ─── Excel export handlers ────────────────────────────────────────────────
 
 const exportMonthly = async (req, res, next) => {
   try {
     const { year, month } = req.query;
-    const workbook = await generateEnhancedMonthlyExcel(parseInt(year, 10), parseInt(month, 10), req.query.customerId || null);
-    const filename = `petro_monthly_${year}_${String(month).padStart(2,'0')}.xlsx`;
+    const workbook = await generateEnhancedMonthlyExcel(
+      parseInt(year, 10),
+      parseInt(month, 10),
+      req.query.customerId || null,
+      req.petrolPumpId || null
+    );
+    const filename = `monthly_report_${year}_${String(month).padStart(2,'0')}.xlsx`;
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     await workbook.xlsx.write(res);
     res.end();
     await createAuditLog({
-      action: 'REPORT_EXPORTED', actor: req.user._id,
-      actorEmail: req.user.email, actorRole: req.user.role,
-      details: { reportType: 'monthly', year, month }, requestId: req.id,
+      petrolPumpId: req.petrolPumpId || null,
+      action: 'REPORT_EXPORTED',
+      actor: req.user._id,
+      actorEmail: req.user.email,
+      actorRole: req.user.role,
+      details: { reportType: 'monthly', year, month },
+      requestId: req.id,
     });
   } catch (err) { next(err); }
 };
@@ -106,15 +121,23 @@ const exportMonthly = async (req, res, next) => {
 const exportDaily = async (req, res, next) => {
   try {
     const { date } = req.query;
-    const workbook = await generateEnhancedDailyExcel(date, req.query.customerId || null);
-    const filename = `petro_daily_${date}.xlsx`;
+    const workbook = await generateEnhancedDailyExcel(
+      date,
+      req.query.customerId || null,
+      req.petrolPumpId || null
+    );
+    const filename = `daily_report_${date}.xlsx`;
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     await workbook.xlsx.write(res);
     res.end();
     await createAuditLog({
-      action: 'REPORT_EXPORTED', actor: req.user._id,
-      actorRole: req.user.role, details: { reportType: 'daily', date }, requestId: req.id,
+      petrolPumpId: req.petrolPumpId || null,
+      action: 'REPORT_EXPORTED',
+      actor: req.user._id,
+      actorRole: req.user.role,
+      details: { reportType: 'daily', date },
+      requestId: req.id,
     });
   } catch (err) { next(err); }
 };
@@ -122,15 +145,23 @@ const exportDaily = async (req, res, next) => {
 const exportYearly = async (req, res, next) => {
   try {
     const { year } = req.query;
-    const workbook = await generateYearlyExcel(parseInt(year, 10), req.query.customerId || null);
-    const filename = `petro_yearly_${year}.xlsx`;
+    const workbook = await generateYearlyExcel(
+      parseInt(year, 10),
+      req.query.customerId || null,
+      req.petrolPumpId || null
+    );
+    const filename = `yearly_report_${year}.xlsx`;
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     await workbook.xlsx.write(res);
     res.end();
     await createAuditLog({
-      action: 'REPORT_EXPORTED', actor: req.user._id,
-      actorRole: req.user.role, details: { reportType: 'yearly', year }, requestId: req.id,
+      petrolPumpId: req.petrolPumpId || null,
+      action: 'REPORT_EXPORTED',
+      actor: req.user._id,
+      actorRole: req.user.role,
+      details: { reportType: 'yearly', year },
+      requestId: req.id,
     });
   } catch (err) {
     next(err);
@@ -141,7 +172,10 @@ const exportMyStatement = async (req, res, next) => {
   try {
     const { startDate, endDate } = req.query;
     const workbook = await generateCustomerStatement({
-      customerId: req.customerId, startDate, endDate,
+      customerId: req.customerId,
+      startDate,
+      endDate,
+      petrolPumpId: req.petrolPumpId || null,
     });
     const filename = `statement_${req.customerId}_${Date.now()}.xlsx`;
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
@@ -149,7 +183,9 @@ const exportMyStatement = async (req, res, next) => {
     await workbook.xlsx.write(res);
     res.end();
     await createAuditLog({
-      action: 'REPORT_EXPORTED', actor: req.user._id,
+      petrolPumpId: req.petrolPumpId || null,
+      action: 'REPORT_EXPORTED',
+      actor: req.user._id,
       actorRole: req.user.role,
       details: { reportType: 'customer_statement', customerId: req.customerId },
     });
@@ -173,10 +209,19 @@ const exportAdminStatementExcel = async (req, res, next) => {
   try {
     const { customerId, startDate, endDate } = req.query;
 
+    if (req.user.role === 'admin') {
+      const globalCust = await CustomerPumpAccount.findById(customerId);
+      if (!globalCust) return sendError(res, 'Customer not found', 404);
+      if (String(globalCust.petrolPumpId) !== String(req.petrolPumpId)) {
+        return sendError(res, 'You do not have permission to perform this action', 403);
+      }
+    }
+
     const workbook = await generateCustomerStatement({
       customerId,
       startDate,
       endDate,
+      petrolPumpId: req.petrolPumpId || null,
     });
 
     const filename = `statement_${customerId}_${Date.now()}.xlsx`;
@@ -186,8 +231,11 @@ const exportAdminStatementExcel = async (req, res, next) => {
     res.end();
 
     await createAuditLog({
-      action: 'REPORT_EXPORTED', actor: req.user._id,
-      actorEmail: req.user.email, actorRole: req.user.role,
+      petrolPumpId: req.petrolPumpId || null,
+      action: 'REPORT_EXPORTED',
+      actor: req.user._id,
+      actorEmail: req.user.email,
+      actorRole: req.user.role,
       details: { reportType: 'admin_statement_excel', customerId },
       requestId: req.id,
     });
@@ -197,6 +245,14 @@ const exportAdminStatementExcel = async (req, res, next) => {
 const exportAdminStatementWord = async (req, res, next) => {
   try {
     const { customerId, startDate, endDate } = req.query;
+
+    if (req.user.role === 'admin') {
+      const globalCust = await CustomerPumpAccount.findById(customerId);
+      if (!globalCust) return sendError(res, 'Customer not found', 404);
+      if (String(globalCust.petrolPumpId) !== String(req.petrolPumpId)) {
+        return sendError(res, 'You do not have permission to perform this action', 403);
+      }
+    }
 
     const today = new Date();
     const todayKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
@@ -216,12 +272,23 @@ const exportAdminStatementWord = async (req, res, next) => {
     await Packer.toStream(doc, res);
 
     await createAuditLog({
-      action: 'REPORT_EXPORTED', actor: req.user._id,
-      actorEmail: req.user.email, actorRole: req.user.role,
+      petrolPumpId: req.petrolPumpId || null,
+      action: 'REPORT_EXPORTED',
+      actor: req.user._id,
+      actorEmail: req.user.email,
+      actorRole: req.user.role,
       details: { reportType: 'admin_statement_word', customerId },
       requestId: req.id,
     });
   } catch (err) { next(err); }
 };
 
-module.exports = { getMonthlyReport, exportMonthly, exportDaily, exportYearly, exportMyStatement, exportAdminStatementExcel, exportAdminStatementWord };
+module.exports = {
+  getMonthlyReport,
+  exportMonthly,
+  exportDaily,
+  exportYearly,
+  exportMyStatement,
+  exportAdminStatementExcel,
+  exportAdminStatementWord,
+};

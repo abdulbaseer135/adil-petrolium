@@ -1,275 +1,390 @@
-import React, { useState } from 'react';
-import { Outlet, NavLink, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useRef } from 'react';
+import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
+import NotificationBell from '../../components/common/NotificationBell';
+import '../../styles/adminDashboard.css';
 
 const NAV = [
-  { to: '/admin',               label: 'Overview',     icon: '📊', end: true },
-  { to: '/admin/customers',     label: 'Customers',    icon: '👥' },
-  { to: '/admin/fuel-entry',    label: 'Fuel Entry',   icon: '⛽' },
-  { to: '/admin/transactions',  label: 'Transactions', icon: '💳' },
-  { to: '/admin/daily-record',  label: 'Daily Record', icon: '📅' },
-  { to: '/admin/monthly-report',label: 'Monthly',      icon: '📆' },
-  { to: '/admin/yearly-report', label: 'Yearly',       icon: '📈' },
-  { to: '/admin/exports',       label: 'Export Center',icon: '⬇'  },
-  { to: '/admin/audit-logs',    label: 'Audit Logs',   icon: '🔍' },
-  { to: '/admin/recovery-key',  label: 'Recovery Key', icon: '🔑' },
+  { to: '/admin',                   label: 'Overview',      icon: '🏠', end: true },
+  { to: '/admin/customers',         label: 'Customers',     icon: '👥' },
+  { to: '/admin/customer-requests', label: 'Link Requests', icon: '🔗' },
+  { to: '/admin/fuel-entry',        label: 'Fuel Entry',    icon: '⛽' },
+  { to: '/admin/transactions',      label: 'Transactions', icon: '💳' },
+  { to: '/admin/daily-record',      label: 'Daily Record', icon: '📅' },
+  { to: '/admin/monthly-report',    label: 'Monthly',      icon: '📆' },
+  { to: '/admin/yearly-report',     label: 'Yearly',       icon: '📈' },
+  { to: '/admin/exports',           label: 'Export Center',icon: '⬇'  },
+  { to: '/admin/audit-logs',        label: 'Audit Logs',   icon: '🔍' },
 ];
 
 export default function AdminLayout() {
-  const { logout } = useAuth();
+  const { user, logout } = useAuth();
   const nav = useNavigate();
+  const location = useLocation();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1024);
+  const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [helpModalOpen, setHelpModalOpen] = useState(false);
+  const searchInputRef = useRef(null);
+  const profileRef = useRef(null);
 
-  React.useEffect(() => {
-    const handleResize = () => setWindowWidth(window.innerWidth);
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+  // Close mobile drawer on route navigation
+  useEffect(() => {
+    setMobileMenuOpen(false);
+    setProfileDropdownOpen(false);
+  }, [location.pathname]);
+
+  // Lock body scroll when mobile menu is open
+  useEffect(() => {
+    if (mobileMenuOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [mobileMenuOpen]);
+
+  // Ctrl+K keyboard shortcut for search focus & Escape key handlers
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+      }
+      if (e.key === 'Escape') {
+        if (mobileMenuOpen) setMobileMenuOpen(false);
+        if (profileDropdownOpen) setProfileDropdownOpen(false);
+        if (helpModalOpen) setHelpModalOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [mobileMenuOpen, profileDropdownOpen, helpModalOpen]);
+
+  // Close profile dropdown on outside click
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (profileRef.current && !profileRef.current.contains(e.target)) {
+        setProfileDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
-
-  const isMobile = windowWidth < 768;
 
   const handleLogout = async () => {
     await logout();
     nav('/login', { replace: true });
   };
 
-  const shellStyle = {
-    display: 'flex',
-    minHeight: '100dvh',
-    height: isMobile ? 'auto' : '100vh',
-    overflow: isMobile ? 'visible' : 'hidden',
-  };
-
-  const contentStyle = {
-    flex: 1,
-    padding: isMobile ? 'var(--space-4)' : 'var(--space-4) var(--space-5)',
-    overflow: isMobile ? 'visible' : 'auto',
-    WebkitOverflowScrolling: 'touch',
+  const handleSearchSubmit = (e) => {
+    e.preventDefault();
+    if (!searchQuery.trim()) return;
+    nav(`/admin/transactions?search=${encodeURIComponent(searchQuery.trim())}`);
   };
 
   return (
-    <div className="admin-shell" style={shellStyle}>
-      {isMobile && mobileMenuOpen && (
+    <div className="admin-shell-modern">
+      {/* Mobile Backdrop */}
+      {mobileMenuOpen && (
         <div
           onClick={() => setMobileMenuOpen(false)}
-          style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(0,0,0,0.5)',
-            zIndex: 39,
-          }}
+          className="admin-backdrop"
+          aria-hidden="true"
         />
       )}
 
+      {/* Dark Premium Sidebar */}
       <aside
-        className="admin-shell__sidebar"
-        style={{
-          position: isMobile ? 'fixed' : 'relative',
-          left: isMobile && !mobileMenuOpen ? '-100%' : 0,
-          width: isMobile ? '250px' : (collapsed ? 56 : 'var(--sidebar-width)'),
-          minWidth: isMobile ? '250px' : (collapsed ? 56 : 'var(--sidebar-width)'),
-          height: '100vh',
-          color: 'var(--color-sidebar-text)',
-          display: 'flex',
-          flexDirection: 'column',
-          overflow: 'hidden',
-          transition: isMobile ? 'left 200ms ease' : 'width 200ms ease',
-          flexShrink: 0,
-          zIndex: 40,
-        }}
+        className={`admin-sidebar-modern ${collapsed ? 'collapsed' : ''} ${
+          mobileMenuOpen ? 'mobile-open' : ''
+        }`}
       >
-        <div
-          className="admin-shell__brand"
-          style={{
-            padding: 'var(--space-3) var(--space-3)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 'var(--space-2)',
-            minHeight: 'var(--topbar-height)',
-          }}
-        >
-          <svg width="26" height="26" viewBox="0 0 40 40" fill="none" style={{ flexShrink: 0 }}>
-            <rect width="40" height="40" rx="10" fill="var(--color-primary)" />
-            <rect x="8" y="22" width="8" height="12" rx="2" fill="white" />
-            <rect x="20" y="16" width="8" height="18" rx="2" fill="white" opacity="0.8" />
-            <path d="M8 14 L20 8 L32 14" stroke="white" strokeWidth="2.5" strokeLinecap="round"/>
-          </svg>
-          {!collapsed && <span style={{ fontWeight: 750, fontSize: 'var(--text-sm)', color: '#fff', whiteSpace: 'nowrap', letterSpacing: '-0.01em' }}>Adil Petroleum</span>}
+        {/* Brand Header */}
+        <div className="admin-brand-header">
+          <div className="admin-brand-logo-badge" title="Petrol Management System">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M3 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18"/>
+              <path d="M14 13h2a2 2 0 0 1 2 2v2a2 2 0 0 0 2 2h0a2 2 0 0 0 2-2V9.83a2 2 0 0 0-.59-1.42L18 5"/>
+              <path d="M3 22h12"/>
+              <circle cx="9" cy="9" r="2"/>
+            </svg>
+          </div>
+          <div className="admin-brand-text">
+            <span className="admin-brand-title">Petrol Management</span>
+            <span className="admin-brand-subtitle">Station Admin Portal</span>
+          </div>
+          <button
+            onClick={() => setMobileMenuOpen(false)}
+            className="admin-sidebar-close mobile-only"
+            aria-label="Close menu"
+            style={{ marginLeft: 'auto', background: 'none', border: 'none', color: '#94a3b8', fontSize: 20, cursor: 'pointer' }}
+          >
+            ✕
+          </button>
         </div>
 
-        <nav className="sidebar-nav" style={{ flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden', padding: 'var(--space-2) var(--space-2) var(--space-3)' }}>
+        {/* Sidebar Nav Items */}
+        <nav className="admin-nav-list-modern">
           {NAV.map(({ to, label, icon, end }) => (
             <NavLink
               key={to}
               to={to}
               end={end}
-              onClick={() => isMobile && setMobileMenuOpen(false)}
-              style={({ isActive }) => ({
-                display: 'flex',
-                alignItems: 'center',
-                gap: '10px',
-                padding: '10px 12px',
-                borderRadius: 'var(--radius-md)',
-                fontSize: 'var(--text-sm)',
-                fontWeight: 600,
-                textDecoration: 'none',
-                marginBottom: 4,
-                background: isActive
-                  ? 'color-mix(in oklch, var(--color-primary) 18%, var(--color-sidebar-active))'
-                  : 'transparent',
-                color: isActive ? '#fff' : 'var(--color-sidebar-text)',
-                transition: 'background var(--transition), color var(--transition), transform var(--transition)',
-                boxShadow: isActive ? 'inset 0 0 0 1px color-mix(in oklch, var(--color-primary) 24%, transparent)' : 'none',
-                position: 'relative',
-              })}
-              onMouseEnter={e => !isMobile && (e.currentTarget.style.background = 'var(--color-sidebar-hover)')}
-              onMouseLeave={e => {
-                if (!isMobile) {
-                  const active = e.currentTarget.getAttribute('aria-current') === 'page';
-                  e.currentTarget.style.background = active
-                    ? 'color-mix(in oklch, var(--color-primary) 18%, var(--color-sidebar-active))'
-                    : 'transparent';
-                }
-              }}
+              onClick={() => setMobileMenuOpen(false)}
+              className={({ isActive }) =>
+                `admin-nav-item-modern ${isActive ? 'active' : ''}`
+              }
             >
-              <span
-                aria-hidden="true"
-                style={{
-                  width: 20,
-                  minWidth: 20,
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: 15,
-                  lineHeight: 1,
-                  flexShrink: 0,
-                  transform: 'translateY(-0.5px)',
-                }}
-              >
-                {icon}
-              </span>
-              {(isMobile || !collapsed) && <span style={{ whiteSpace: 'nowrap' }}>{label}</span>}
+              <span className="admin-nav-item-icon">{icon}</span>
+              <span className="admin-nav-item-text">{label}</span>
             </NavLink>
           ))}
         </nav>
 
-        <div style={{ padding: 'var(--space-3)', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
-          {(isMobile || !collapsed) && (
-            <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-sidebar-text)', marginBottom: 'var(--space-2)', opacity: 0.82, lineHeight: 1.4 }}>
-              <span style={{ opacity: 0.7 }}>Admin</span>
-            </div>
-          )}
-          <button 
-            onClick={handleLogout} 
-            style={{
-              width: '100%',
-              padding: '10px 12px',
-              borderRadius: 'var(--radius-md)',
-              background: 'rgba(255,255,255,0.06)',
-              color: 'var(--color-sidebar-text)',
-              fontSize: 'var(--text-sm)',
-              fontWeight: 600,
-              cursor: 'pointer',
-              border: 'none',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: isMobile ? 'flex-start' : (collapsed ? 'center' : 'flex-start'),
-              gap: '8px',
-              transition: 'background 0.2s ease',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = 'rgba(255,255,255,0.12)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = 'rgba(255,255,255,0.06)';
-            }}
+        {/* Sidebar Bottom Box */}
+        <div className="admin-sidebar-footer-modern">
+          <div
+            onClick={() => setHelpModalOpen(true)}
+            className="admin-help-box"
+            role="button"
+            tabIndex={0}
+            title="Get station support and documentation"
           >
-            <span style={{ fontSize: '16px', lineHeight: 1 }}>↩</span>
-            {(isMobile || !collapsed) && <span>Sign out</span>}
+            <div className="admin-help-box-content">
+              <div className="admin-help-icon">🎧</div>
+              <div>
+                <div className="admin-help-title">Need Help?</div>
+                <div className="admin-help-desc">Support & Documentation</div>
+              </div>
+            </div>
+            <span className="admin-help-arrow">›</span>
+          </div>
+
+          <button
+            onClick={handleLogout}
+            className="admin-signout-btn"
+            title="Sign out of Admin Portal"
+            style={{ marginTop: 4 }}
+          >
+            <span style={{ fontSize: '15px' }}>↩</span>
+            <span className="admin-nav-item-text">Sign Out</span>
           </button>
         </div>
       </aside>
 
-      <main className="admin-shell__main" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-        <header style={{
-          minHeight: 'var(--topbar-height)',
-          background: 'color-mix(in oklch, var(--color-surface) 92%, var(--color-bg))',
-          borderBottom: '1px solid var(--color-divider)',
-          display: 'flex',
-          alignItems: 'center',
-          padding: '0 var(--space-5)',
-          gap: 'var(--space-3)',
-          position: 'sticky',
-          top: 0,
-          zIndex: 100,
-          boxShadow: 'var(--shadow-sm)',
-        }}>
-          {isMobile ? (
+      {/* Main Content Area */}
+      <main className="admin-shell__main" style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
+        {/* Modern Top Header Area */}
+        <header className="admin-topbar-modern">
+          <div className="admin-topbar-left">
             <button
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              aria-label="Toggle menu"
-              style={{
-                fontSize: 20,
-                color: 'var(--color-text-muted)',
-                cursor: 'pointer',
-                background: 'none',
-                border: 'none',
-                padding: 'var(--space-1)',
-                display: 'flex',
-                alignItems: 'center',
+              onClick={() => {
+                if (window.innerWidth <= 768) {
+                  setMobileMenuOpen(!mobileMenuOpen);
+                } else {
+                  setCollapsed(!collapsed);
+                }
               }}
+              className="admin-hamburger-btn"
+              aria-label="Toggle navigation menu"
+              title="Toggle sidebar"
             >
-              {mobileMenuOpen ? '✕' : '☰'}
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="3" y1="12" x2="21" y2="12"></line>
+                <line x1="3" y1="6" x2="21" y2="6"></line>
+                <line x1="3" y1="18" x2="21" y2="18"></line>
+              </svg>
             </button>
-          ) : (
-            <button
-              onClick={() => setCollapsed(c => !c)}
-              aria-label="Toggle sidebar"
-              style={{
-                fontSize: 18,
-                color: 'var(--color-text-muted)',
-                cursor: 'pointer',
-                background: 'none',
-                border: 'none',
-                padding: 'var(--space-1)',
-              }}
-            >
-              ☰
-            </button>
-          )}
-          <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
-            <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
-              Admin dashboard
-            </span>
+
+            {/* Global Search Bar */}
+            <form onSubmit={handleSearchSubmit} className="admin-search-wrapper">
+              <span className="admin-search-icon">🔍</span>
+              <input
+                ref={searchInputRef}
+                type="search"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search customers, transactions, or pages..."
+                className="admin-search-input"
+                aria-label="Search station portal"
+              />
+              <span className="admin-search-kbd">Ctrl + K</span>
+            </form>
           </div>
-          <span style={{ flex: 1 }} />
-          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', marginLeft: 'auto' }}>
-            <button
-              onClick={() => nav('/admin/profile')}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                width: 40,
-                height: 40,
-                padding: 0,
-                borderRadius: 'var(--radius-md)',
-                background: 'rgba(255,255,255,0.06)',
-                cursor: 'pointer',
-                border: 'none',
-              }}
-              aria-label="Open profile"
-            >
-              <span aria-hidden="true" style={{ color: 'var(--color-text-muted)', fontSize: '1.2rem', lineHeight: 1 }}>👤</span>
-            </button>
+
+          {/* Right Header Controls */}
+          <div className="admin-topbar-right">
+            {/* Notification Bell */}
+            <NotificationBell title="Pending link requests and station alerts" />
+
+
+            {/* Profile Avatar Pill */}
+            <div ref={profileRef} style={{ position: 'relative' }}>
+              <button
+                onClick={() => setProfileDropdownOpen(o => !o)}
+                className="admin-profile-pill"
+                aria-expanded={profileDropdownOpen}
+                aria-haspopup="true"
+              >
+                <div className="admin-avatar">
+                  {user?.name ? user.name.charAt(0).toUpperCase() : 'A'}
+                </div>
+                <div className="admin-user-info-text">
+                  <span className="admin-user-name">{user?.name || 'Admin'}</span>
+                  <span className="admin-user-role">Station Admin</span>
+                </div>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
+              </button>
+
+              {/* Profile Dropdown Menu */}
+              {profileDropdownOpen && (
+                <div
+                  style={{
+                    position: 'absolute',
+                    top: 'calc(100% + 8px)',
+                    right: 0,
+                    width: 200,
+                    background: '#ffffff',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: 12,
+                    boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',
+                    padding: '6px',
+                    zIndex: 200,
+                  }}
+                >
+                  <button
+                    onClick={() => { setProfileDropdownOpen(false); nav('/admin/profile'); }}
+                    style={{
+                      width: '100%',
+                      padding: '8px 12px',
+                      background: 'none',
+                      border: 'none',
+                      borderRadius: 8,
+                      textAlign: 'left',
+                      fontSize: 13,
+                      fontWeight: 600,
+                      color: '#334155',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 8,
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.background = '#f8fafc'}
+                    onMouseLeave={(e) => e.currentTarget.style.background = 'none'}
+                  >
+                    <span>👤</span>
+                    <span>Admin Profile</span>
+                  </button>
+
+                  <button
+                    onClick={() => { setProfileDropdownOpen(false); nav('/admin/recovery-key'); }}
+                    style={{
+                      width: '100%',
+                      padding: '8px 12px',
+                      background: 'none',
+                      border: 'none',
+                      borderRadius: 8,
+                      textAlign: 'left',
+                      fontSize: 13,
+                      fontWeight: 600,
+                      color: '#334155',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 8,
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.background = '#f8fafc'}
+                    onMouseLeave={(e) => e.currentTarget.style.background = 'none'}
+                  >
+                    <span>🔑</span>
+                    <span>Recovery Key</span>
+                  </button>
+
+                  <div style={{ height: 1, background: '#f1f5f9', margin: '4px 0' }} />
+
+                  <button
+                    onClick={handleLogout}
+                    style={{
+                      width: '100%',
+                      padding: '8px 12px',
+                      background: 'none',
+                      border: 'none',
+                      borderRadius: 8,
+                      textAlign: 'left',
+                      fontSize: 13,
+                      fontWeight: 600,
+                      color: '#dc2626',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 8,
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.background = '#fee2e2'}
+                    onMouseLeave={(e) => e.currentTarget.style.background = 'none'}
+                  >
+                    <span>↩</span>
+                    <span>Sign Out</span>
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </header>
-        <div className="admin-shell__content" style={contentStyle}>
+
+        {/* Child Views */}
+        <div className="admin-shell__content" style={{ flex: 1, minWidth: 0 }}>
           <Outlet />
         </div>
       </main>
+
+      {/* Support & Documentation Modal */}
+      {helpModalOpen && (
+        <div className="modal-overlay" onClick={() => setHelpModalOpen(false)}>
+          <div className="modal-container" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 480, padding: 24 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <span style={{ fontSize: 24 }}>🎧</span>
+                <h3 style={{ margin: 0, fontSize: 18, fontWeight: 750, color: '#0f172a' }}>Petrol Station Help & Docs</h3>
+              </div>
+              <button
+                onClick={() => setHelpModalOpen(false)}
+                style={{ background: 'none', border: 'none', fontSize: 18, cursor: 'pointer', color: '#64748b' }}
+              >
+                ✕
+              </button>
+            </div>
+            <p style={{ fontSize: 13, color: '#64748b', lineHeight: 1.5, margin: '0 0 16px' }}>
+              Welcome to the <strong>Petrol Management System</strong> Station Admin Portal. You can manage fuel transactions, track customer credit limits, view live ledgers, and download financial statements.
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 20 }}>
+              <div style={{ padding: 12, background: '#f8fafc', borderRadius: 8, border: '1px solid #e2e8f0', fontSize: 12.5 }}>
+                <strong>⛽ Recording Fuel Sales:</strong> Navigate to <em>Fuel Entry</em>, select customer, enter quantity in litres, rate, and save.
+              </div>
+              <div style={{ padding: 12, background: '#f8fafc', borderRadius: 8, border: '1px solid #e2e8f0', fontSize: 12.5 }}>
+                <strong>💳 Receiving Customer Payments:</strong> Open <em>Transactions</em>, click <em>Receive Payment</em>, specify payment amount and receipt notes.
+              </div>
+              <div style={{ padding: 12, background: '#f8fafc', borderRadius: 8, border: '1px solid #e2e8f0', fontSize: 12.5 }}>
+                <strong>📊 Reports & Excel Exports:</strong> Visit <em>Export Center</em> to generate formatted daily, monthly, or yearly workbooks.
+              </div>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+              <button
+                onClick={() => setHelpModalOpen(false)}
+                className="admin-primary-btn"
+                style={{ minHeight: 38 }}
+              >
+                Got It, Thanks
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

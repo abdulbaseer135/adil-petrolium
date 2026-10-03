@@ -61,7 +61,8 @@ const isAuthUrl = (url = '') =>
     url.includes('/auth/admin/recover') ||
     url.includes('/auth/me')            ||
     url.includes('/auth/refresh')       ||
-    url.includes('/auth/logout')
+    url.includes('/auth/logout')        ||
+    url.includes('/auth/super-admin')
   );
 
 // ─── Request Interceptor (add Authorization header if tokens in localStorage) ───
@@ -143,8 +144,15 @@ client.interceptors.response.use(
       processQueue(refreshErr);
       resetInterceptorState();
       clearStoredTokens();
-      if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
-        window.location.replace('/login');
+      if (typeof window !== 'undefined') {
+        const path = window.location.pathname;
+        if (path.startsWith('/super-admin')) {
+          if (path !== '/super-admin/login' && path !== '/super-admin/setup' && path !== '/super-admin') {
+            window.location.replace('/super-admin');
+          }
+        } else if (path !== '/login' && path !== '/admin/login') {
+          window.location.replace('/login');
+        }
       }
       return Promise.reject(refreshErr);
     } finally {

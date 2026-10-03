@@ -10,7 +10,7 @@
  * 
  * Request body:
  * - email: Valid email address (required)
- * - password: String 4-128 chars (accepts both password and phone number as fallback)
+ * - password: String 8-128 chars (strict password authentication, phone fallback removed)
  * 
  * Response on success (200):
  * - accessToken, refreshToken (httpOnly secure cookie)

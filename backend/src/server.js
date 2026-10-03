@@ -47,14 +47,16 @@ app.use(helmet({
 }));
 
 // ─── CORS ────────────────────────────────────────────────────
-app.use(cors({
+const corsOptions = {
   origin:         config.cors.allowedOrigins,
   credentials:    true,
-  methods:        ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-}));
+  methods:        ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'X-Request-Id'],
+};
+app.use(cors(corsOptions));
 
 // Handle OPTIONS preflight explicitly
-app.options('*', cors());
+app.options('*', cors(corsOptions));
 
 // ─── Body Parsing ────────────────────────────────────────────
 // Never compress SSE: gzip buffers small writes, so pings never flush and clients/tests time out.
@@ -89,7 +91,16 @@ app.use(globalLimiter);
 
 // ─── Health Check (public) ───────────────────────────────────
 app.get('/health', (req, res) => {
-  res.json({ status: 'ok', ts: new Date().toISOString() });
+  const mongoose = require('mongoose');
+  const { getSafeDbDiagnostics } = require('./utils/dbSafety');
+  const diag = getSafeDbDiagnostics(mongoose.connection);
+  res.json({
+    status: 'ok',
+    ts: new Date().toISOString(),
+    environment: config.env,
+    database: diag.databaseName,
+    dbStatus: diag.connectionState,
+  });
 });
 
 // ─── API Routes ──────────────────────────────────────────────
@@ -124,7 +135,13 @@ const start = async () => {
   });
 
   server.listen(config.port, () => {
-    logger.info({ port: config.port, env: config.env }, 'Server started');
+    const mongoose = require('mongoose');
+    const { getSafeDbDiagnostics } = require('./utils/dbSafety');
+    const diag = getSafeDbDiagnostics(mongoose.connection);
+    logger.info(
+      { port: config.port, env: config.env, database: diag.databaseName },
+      `Server started on port ${config.port} | Environment: ${config.env} | Database: ${diag.databaseName}`
+    );
   });
 
   // Graceful shutdown — Docker / PM2

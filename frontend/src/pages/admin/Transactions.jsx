@@ -408,7 +408,7 @@ export default function Transactions() {
         summary: {},
         filters,
         totals,
-        company: { name: 'Adil Petroleum' },
+        company: { name: 'Petrol Management System' },
       });
     } catch (err) {
       console.error('PDF generation error:', err);
@@ -881,30 +881,11 @@ export default function Transactions() {
           role="dialog"
           aria-modal="true"
           onClick={() => setShowCreate(false)}
-          style={{
-            position: 'fixed',
-            inset: 0,
-            zIndex: 1000,
-            background: 'rgba(0,0,0,0.45)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: 'var(--space-4)',
-          }}
+          className="modal-overlay"
         >
           <div
             onClick={(event) => event.stopPropagation()}
-            style={{
-              width: '100%',
-              maxWidth: 820,
-              maxHeight: '90vh',
-              overflowY: 'auto',
-              background: 'var(--color-surface)',
-              borderRadius: 'var(--radius-xl)',
-              border: '1px solid var(--color-border)',
-              boxShadow: 'var(--shadow-lg)',
-              padding: 'var(--space-6)',
-            }}
+            className="modal-container modal-container--wide"
           >
             <div
               style={{
@@ -912,7 +893,7 @@ export default function Transactions() {
                 justifyContent: 'space-between',
                 alignItems: 'center',
                 gap: 'var(--space-4)',
-                marginBottom: 'var(--space-5)',
+                marginBottom: 'var(--space-3)',
               }}
             >
               <div>
@@ -979,29 +960,15 @@ export default function Transactions() {
 
       {voidTarget ? (
         <div
-          style={{
-            position: 'fixed',
-            inset: 0,
-            zIndex: 10001,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: 'var(--space-4)',
-            background: 'rgba(0,0,0,0.35)',
-          }}
+          className="modal-overlay"
           onClick={() => !voidLoading && setVoidTarget(null)}
+          role="dialog"
+          aria-modal="true"
         >
           <div
             onClick={(event) => event.stopPropagation()}
-            style={{
-              width: '100%',
-              maxWidth: 460,
-              background: 'var(--color-surface)',
-              borderRadius: 'var(--radius-xl)',
-              border: '1px solid var(--color-border)',
-              boxShadow: 'var(--shadow-lg)',
-              padding: 'var(--space-6)',
-            }}
+            className="modal-container"
+            style={{ maxWidth: 460 }}
           >
             <h3
               style={{

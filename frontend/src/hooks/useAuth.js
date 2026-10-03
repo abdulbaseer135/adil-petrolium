@@ -6,7 +6,16 @@ export const useAuth = () => {
   const dispatch = useDispatch();
   const { user, loading, error } = useSelector((s) => s.auth);
 
-  const login = useCallback((credentials) => dispatch(loginUser(credentials)), [dispatch]);
+  const login = useCallback(
+    async (credentials) => {
+      const action = await dispatch(loginUser(credentials));
+      if (loginUser.fulfilled.match(action)) {
+        return action.payload;
+      }
+      throw new Error(action.payload || 'Login failed');
+    },
+    [dispatch]
+  );
   const logout = useCallback(() => dispatch(logoutUser()), [dispatch]);
   const clearAuthError = useCallback(() => dispatch(clearError()), [dispatch]);
 

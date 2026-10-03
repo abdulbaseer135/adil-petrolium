@@ -127,7 +127,7 @@ const buildDetailText = (tx) => {
 
 const createWorkbook = () => {
   const workbook = new ExcelJS.Workbook();
-  workbook.creator = 'Adil Petroleum';
+  workbook.creator = 'Petrol Management System';
   workbook.created = new Date();
   return workbook;
 };
@@ -136,15 +136,20 @@ const getCustomerProfile = async (customerId) => {
   if (!customerId) return null;
 
   return CustomerProfile.findById(customerId)
+    .populate('customerUserId', 'name email')
     .populate('userId', 'name email')
     .lean();
 };
 
-const loadTransactions = async ({ startDate, endDate, customerId = null }) => {
+const loadTransactions = async ({ startDate, endDate, customerId = null, petrolPumpId = null }) => {
   const query = {
     transactionDate: { $gte: startDate, $lte: endDate },
     isVoided: { $ne: true },
   };
+
+  if (petrolPumpId) {
+    query.petrolPumpId = petrolPumpId;
+  }
 
   if (customerId) {
     query.customerId = customerId;
@@ -153,8 +158,8 @@ const loadTransactions = async ({ startDate, endDate, customerId = null }) => {
   return Transaction.find(query)
     .populate({
       path: 'customerId',
-      select: 'customerCode address phone currentBalance',
-      populate: { path: 'userId', select: 'name email' },
+      select: 'customerCode customerName address phone currentBalance',
+      populate: { path: 'customerUserId', select: 'name email' },
     })
     .sort({ transactionDate: 1 })
     .lean();
@@ -441,13 +446,13 @@ const writeSummarySheet = (workbook, sheetName, title, groups, periodLabel) => {
   applyBorder(totalRow, 1, 7);
 };
 
-const buildStatementWorkbook = async ({ title, periodLabel, startDate, endDate, customerId = null }) => {
+const buildStatementWorkbook = async ({ title, periodLabel, startDate, endDate, customerId = null, petrolPumpId = null }) => {
   const workbook = createWorkbook();
-  const transactions = await loadTransactions({ startDate, endDate, customerId });
+  const transactions = await loadTransactions({ startDate, endDate, customerId, petrolPumpId });
 
   // Debug: log how many transactions were loaded for this export
   try {
-    logger.info({ count: Array.isArray(transactions) ? transactions.length : 0, customerId, startDate, endDate }, 'Excel export - transactions loaded');
+    logger.info({ count: Array.isArray(transactions) ? transactions.length : 0, customerId, startDate, endDate, petrolPumpId }, 'Excel export - transactions loaded');
   } catch (err) {
     // swallow logging errors — do not break export
   }
@@ -469,10 +474,10 @@ const buildStatementWorkbook = async ({ title, periodLabel, startDate, endDate, 
 
   for (const group of groups) {
     const customer = group.customer || {};
-    const customerTitle = `${title} - ${customer.userId?.name || customer.customerCode || 'Customer'}`;
+    const customerTitle = `${title} - ${customer.customerName || customer.userId?.name || customer.customerCode || 'Customer'}`;
     await writeLedgerSheet({
       workbook,
-      sheetName: customer.customerCode || customer.userId?.name || 'Customer',
+      sheetName: customer.customerCode || customer.customerName || customer.userId?.name || 'Customer',
       title: customerTitle,
       periodLabel,
       customerId: customer._id,
@@ -483,7 +488,7 @@ const buildStatementWorkbook = async ({ title, periodLabel, startDate, endDate, 
   return workbook;
 };
 
-const generateDailyExcel = async (date, customerId = null) => {
+const generateDailyExcel = async (date, customerId = null, petrolPumpId = null) => {
   const startDate = parsePkDateStart(date);
   const endDate = parsePkDateEnd(date);
 
@@ -493,10 +498,11 @@ const generateDailyExcel = async (date, customerId = null) => {
     startDate,
     endDate,
     customerId,
+    petrolPumpId,
   });
 };
 
-const generateMonthlyExcel = async (year, month, customerId = null) => {
+const generateMonthlyExcel = async (year, month, customerId = null, petrolPumpId = null) => {
   const startDate = parsePkMonthStart(year, month);
   const endDate = parsePkMonthEnd(year, month);
 
@@ -506,10 +512,11 @@ const generateMonthlyExcel = async (year, month, customerId = null) => {
     startDate,
     endDate,
     customerId,
+    petrolPumpId,
   });
 };
 
-const generateYearlyExcel = async (year, customerId = null) => {
+const generateYearlyExcel = async (year, customerId = null, petrolPumpId = null) => {
   const startDate = parsePkYearStart(year);
   const endDate = parsePkYearEnd(year);
 
@@ -519,10 +526,11 @@ const generateYearlyExcel = async (year, customerId = null) => {
     startDate,
     endDate,
     customerId,
+    petrolPumpId,
   });
 };
 
-const generateCustomerStatement = async ({ customerId, startDate, endDate }) => {
+const generateCustomerStatement = async ({ customerId, startDate, endDate, petrolPumpId = null }) => {
   const today = new Date();
   const todayKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
   const from = coercePkRangeStart(startDate) || parsePkDateStart(todayKey);
@@ -534,6 +542,7 @@ const generateCustomerStatement = async ({ customerId, startDate, endDate }) => 
     startDate: from,
     endDate: to,
     customerId,
+    petrolPumpId,
   });
 };
 
@@ -778,11 +787,11 @@ const writePaymentBreakdownSheet = (workbook, sheetName, title, transactions, pe
   }
 };
 
-const generateEnhancedDailyExcel = async (date, customerId = null) => {
+const generateEnhancedDailyExcel = async (date, customerId = null, petrolPumpId = null) => {
   const startDate = parsePkDateStart(date);
   const endDate = parsePkDateEnd(date);
   const workbook = createWorkbook();
-  const transactions = await loadTransactions({ startDate, endDate, customerId });
+  const transactions = await loadTransactions({ startDate, endDate, customerId, petrolPumpId });
   const periodLabel = { from: fmtDate(startDate), to: fmtDate(endDate) };
 
   try {
@@ -1079,11 +1088,11 @@ const writeMonthlyDailyBreakdownSheet = (workbook, sheetName, title, transaction
   applyBorder(totalRow, 1, 7);
 };
 
-const generateEnhancedMonthlyExcel = async (year, month, customerId = null) => {
+const generateEnhancedMonthlyExcel = async (year, month, customerId = null, petrolPumpId = null) => {
   const startDate = parsePkMonthStart(year, month);
   const endDate = parsePkMonthEnd(year, month);
   const workbook = createWorkbook();
-  const transactions = await loadTransactions({ startDate, endDate, customerId });
+  const transactions = await loadTransactions({ startDate, endDate, customerId, petrolPumpId });
   const periodLabel = { from: fmtDate(startDate), to: fmtDate(endDate) };
 
   try {

@@ -1,117 +1,201 @@
 'use strict';
 const User = require('../models/User');
-const CustomerProfile = require('../models/CustomerProfile');
+const CustomerPumpAccount = require('../models/CustomerPumpAccount');
 const { createAuditLog } = require('./auditService');
 const AppError = require('../utils/AppError');
-const config   = require('../config');
 const cache = require('../utils/cache');
 
-const createCustomer = async ({ name, email, password, customerCode, phone, address, creditLimit, notes, createdBy, requestId }) => {
-  const existing = await User.findOne({ email });
-  if (existing) throw new AppError('Email already registered', 409);
+const createCustomer = async ({
+  petrolPumpId,
+  name,
+  email,
+  password,
+  customerCode,
+  phone,
+  address,
+  vehicleInfo,
+  creditLimit,
+  openingBalance,
+  notes,
+  createdBy,
+  requestId,
+}) => {
+  if (!petrolPumpId) throw new AppError('Petrol pump ID is required', 400);
+  if (!customerCode) throw new AppError('Customer code is required', 400);
 
-  // Use provided password OR default to phone number if not provided
-  const finalPassword = password || phone;
-  if (!finalPassword) throw new AppError('Either password or phone is required', 400);
+  const formattedCode = customerCode.trim().toUpperCase();
 
-  const user = await User.create({ 
-    name, 
-    email, 
-    password: finalPassword, 
-    phone,
-    role: 'customer' 
+  // Check unique customerCode within this petrol pump
+  const duplicate = await CustomerPumpAccount.findOne({
+    petrolPumpId,
+    customerCode: formattedCode,
   });
+  if (duplicate) {
+    throw new AppError(`Customer code "${formattedCode}" already exists at this petrol pump`, 409);
+  }
 
-  const profile = await CustomerProfile.create({
-    userId: user._id,
-    customerCode: customerCode.toUpperCase(),
-    phone, 
-    address, 
-    creditLimit: creditLimit || 0,
-    notes, 
+  const profile = await CustomerPumpAccount.create({
+    petrolPumpId,
+    customerUserId: null,
+    userId: null,
+    customerName: name.trim(),
+    customerCode: formattedCode,
+    phone: phone ? phone.trim() : '',
+    email: email ? email.trim().toLowerCase() : '',
+    address: address ? address.trim() : '',
+    vehicleInfo: vehicleInfo ? vehicleInfo.trim() : '',
+    creditLimit: creditLimit ? Number(creditLimit) : 0,
+    currentBalance: openingBalance ? Number(openingBalance) : 0,
+    status: 'unclaimed',
+    isActive: true,
+    notes: notes || '',
     createdBy,
   });
 
+  // If opening balance was provided and > 0, create an opening balance transaction
+  if (openingBalance && Number(openingBalance) > 0) {
+    const Transaction = require('../models/Transaction');
+    await Transaction.create({
+      petrolPumpId,
+      customerId: profile._id,
+      customerAccountId: profile._id,
+      userId: profile.customerUserId || null,
+      transactionType: 'opening_balance',
+      totalAmount: Number(openingBalance),
+      previousBalance: 0,
+      updatedBalance: Number(openingBalance),
+      paymentReceived: 0,
+      notes: 'Opening balance recorded at account creation',
+      createdBy,
+    });
+  }
+
   await createAuditLog({
-    action: 'CUSTOMER_CREATED', actor: createdBy,
-    target: profile._id, targetModel: 'CustomerProfile',
-    details: { customerCode: profile.customerCode, email },
+    petrolPumpId,
+    action: 'CUSTOMER_CREATED',
+    actor: createdBy,
+    targetId: profile._id,
+    targetModel: 'CustomerPumpAccount',
+    targetType: 'CustomerPumpAccount',
+    details: {
+      customerCode: profile.customerCode,
+      customerName: profile.customerName,
+      creditLimit: profile.creditLimit,
+    },
     requestId,
   });
 
-  // Invalidate customer list cache
   cache.clear();
 
-  return { user, profile };
+  // Populate user if present
+  if (profile.customerUserId) {
+    await profile.populate('customerUserId', 'name email phone');
+  }
+
+  return {
+    user: profile.customerUserId || null,
+    profile,
+  };
 };
 
-const getCustomers = async ({ page = 1, limit = 20, search, isActive, sort = '-createdAt', requestingUser = null }) => {
-  // Create cache key based on query parameters
-  const cacheKey = `customers:${requestingUser?._id || 'all'}:${page}:${limit}:${search || ''}:${isActive}:${sort}`;
-  
-  // Try to get from cache (30 second TTL for customer list)
+const getCustomers = async ({
+  petrolPumpId,
+  page = 1,
+  limit = 20,
+  search,
+  isActive,
+  sort = '-createdAt',
+  requestingUser = null,
+}) => {
+  const cacheKey = `customers:${petrolPumpId || 'all'}:${page}:${limit}:${search || ''}:${isActive}:${sort}`;
+
   return cache.wrap(cacheKey, async () => {
     const query = {};
-    if (isActive !== undefined) query.isActive = isActive === 'true' || isActive === true;
 
-    // If an admin is requesting, restrict to customers created by that admin
-    if (requestingUser && requestingUser.role === 'admin') {
-      query.createdBy = requestingUser._id;
+    if (petrolPumpId) {
+      query.petrolPumpId = petrolPumpId;
     }
 
-    // Optimize search: if searching, do it more efficiently
+    if (isActive !== undefined) {
+      query.isActive = isActive === 'true' || isActive === true;
+    }
+
     if (search) {
-      // First, find matching users by name/email
-      const users = await User.find({
-        $or: [
-          { name:  { $regex: search, $options: 'i' } },
-          { email: { $regex: search, $options: 'i' } },
-        ],
-      }).select('_id').lean();
-      
-      const userIds = users.map(u => u._id);
-      
-      // Combine with customerCode search
       query.$or = [
-        { userId: { $in: userIds } },
+        { customerName: { $regex: search, $options: 'i' } },
         { customerCode: { $regex: search, $options: 'i' } },
+        { phone: { $regex: search, $options: 'i' } },
       ];
     }
 
-    // Use lean() for better performance and select only needed fields initially
-    const profileQuery = CustomerProfile.find(query)
-      .populate({ path: 'userId', select: 'name email', options: { lean: true } })
-      .sort(sort)
-      .skip((parseInt(page) - 1) * parseInt(limit))
-      .limit(parseInt(limit))
-      .lean();
+    const parsedPage = Math.max(1, parseInt(page, 10));
+    const parsedLimit = parseInt(limit, 10);
+    const skip = (parsedPage - 1) * parsedLimit;
 
-    // Run queries in parallel for better performance
     const [customers, total] = await Promise.all([
-      profileQuery,
-      CustomerProfile.countDocuments(query),
+      CustomerPumpAccount.find(query)
+        .populate('customerUserId', 'name email phone')
+        .populate('userId', 'name email phone')
+        .sort(sort)
+        .skip(skip)
+        .limit(parsedLimit)
+        .lean(),
+      CustomerPumpAccount.countDocuments(query),
     ]);
 
+    // Ensure customerName is populated from linked user if empty
+    const normalized = customers.map((c) => ({
+      ...c,
+      name: c.customerName || c.customerUserId?.name || c.userId?.name || c.customerCode,
+      email: c.customerUserId?.email || c.userId?.email || '',
+    }));
+
     return {
-      customers,
-      meta: { 
-        total, 
-        page: parseInt(page), 
-        limit: parseInt(limit),
-        totalPages: Math.ceil(total / parseInt(limit)) 
+      customers: normalized,
+      meta: {
+        total,
+        page: parsedPage,
+        limit: parsedLimit,
+        totalPages: Math.ceil(total / parsedLimit),
       },
     };
-  }, 30000); // 30 second cache
+  }, 30000);
 };
 
-const updateCustomer = async ({ profileId, updates, updatedBy, requestId }) => {
-  const allowedFields = ['phone', 'address', 'vehicleInfo', 'creditLimit', 'notes', 'isActive'];
+const updateCustomer = async ({
+  petrolPumpId,
+  profileId,
+  updates,
+  updatedBy,
+  requestId,
+}) => {
+  const allowedFields = [
+    'customerName',
+    'phone',
+    'address',
+    'vehicleInfo',
+    'creditLimit',
+    'notes',
+    'isActive',
+    'status',
+  ];
+
   const sanitized = {};
-  allowedFields.forEach(f => { if (updates[f] !== undefined) sanitized[f] = updates[f]; });
+  allowedFields.forEach((f) => {
+    if (updates[f] !== undefined) sanitized[f] = updates[f];
+  });
+  if (updates.name && !sanitized.customerName) {
+    sanitized.customerName = updates.name.trim();
+  }
+
+  const query = { _id: profileId };
+  if (petrolPumpId) {
+    query.petrolPumpId = petrolPumpId;
+  }
 
   // Block deactivation when customer has an outstanding balance
-  if (sanitized.isActive === false) {
-    const current = await CustomerProfile.findById(profileId).select('currentBalance').lean();
+  if (sanitized.isActive === false || sanitized.status === 'inactive') {
+    const current = await CustomerPumpAccount.findOne(query).select('currentBalance').lean();
     if (current && Number(current.currentBalance) > 0) {
       throw new AppError(
         `Cannot deactivate customer with an outstanding balance of PKR ${Number(current.currentBalance).toLocaleString('en-PK', { minimumFractionDigits: 2 })}. Clear the balance first.`,
@@ -120,19 +204,27 @@ const updateCustomer = async ({ profileId, updates, updatedBy, requestId }) => {
     }
   }
 
-  const profile = await CustomerProfile.findByIdAndUpdate(
-    profileId, sanitized, { new: true, runValidators: true }
-  ).populate('userId', 'name email');
+  const profile = await CustomerPumpAccount.findOneAndUpdate(
+    query,
+    sanitized,
+    { new: true, runValidators: true }
+  )
+    .populate('customerUserId', 'name email phone')
+    .populate('userId', 'name email phone');
 
-  if (!profile) throw new AppError('Customer not found', 404);
+  if (!profile) throw new AppError('Customer not found or access denied', 404);
 
   await createAuditLog({
-    action: 'CUSTOMER_UPDATED', actor: updatedBy,
-    target: profileId, targetModel: 'CustomerProfile',
-    details: sanitized, requestId,
+    petrolPumpId: profile.petrolPumpId,
+    action: 'CUSTOMER_UPDATED',
+    actor: updatedBy,
+    targetId: profileId,
+    targetModel: 'CustomerPumpAccount',
+    targetType: 'CustomerPumpAccount',
+    details: sanitized,
+    requestId,
   });
 
-  // Invalidate customer list cache
   cache.clear();
 
   return profile;

@@ -2,17 +2,17 @@
 const router = require('express').Router();
 const { query } = require('express-validator');
 const ctrl = require('../controllers/reportController');
-const { authenticate, authorize } = require('../middleware/auth');
+const { authenticate, authorize, requireApprovedAccount, resolveTenant } = require('../middleware/auth');
 const validate = require('../middleware/validate');
 
-router.use(authenticate, authorize('admin'));
+router.use(authenticate, authorize('admin'), requireApprovedAccount, resolveTenant);
 
-// ── JSON report (new) ──────────────────────────────────────────────────────
+// ── JSON report ─────────────────────────────────────────────────────────────
 router.get('/monthly',
   [query('year').isInt({ min: 2000 }), query('month').isInt({ min: 1, max: 12 })],
   validate, ctrl.getMonthlyReport);
 
-// ── Excel exports (unchanged) ──────────────────────────────────────────────
+// ── Excel exports ───────────────────────────────────────────────────────────
 router.get('/export/daily',
   [query('date').isISO8601().withMessage('Valid date required (YYYY-MM-DD)'), query('customerId').optional().isMongoId().withMessage('Invalid customerId')],
   validate, ctrl.exportDaily);
@@ -28,5 +28,9 @@ router.get('/export/yearly',
 router.get('/export/admin-statement-excel',
   [query('customerId').isMongoId().withMessage('Customer ID required'), query('startDate').optional().isISO8601().withMessage('Valid start date required'), query('endDate').optional().isISO8601().withMessage('Valid end date required')],
   validate, ctrl.exportAdminStatementExcel);
+
+router.get('/export/admin-statement-word',
+  [query('customerId').isMongoId().withMessage('Customer ID required'), query('startDate').optional().isISO8601().withMessage('Valid start date required'), query('endDate').optional().isISO8601().withMessage('Valid end date required')],
+  validate, ctrl.exportAdminStatementWord);
 
 module.exports = router;

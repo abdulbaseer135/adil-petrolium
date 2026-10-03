@@ -10,7 +10,7 @@ const PRESETS = [
   { label: 'This year',  days: null, type: 'year'  },
 ];
 
-export const DateRangeFilter = ({ onFilter }) => {
+export const DateRangeFilter = ({ onFilter = () => {} }) => {
   const [start, setStart] = useState('');
   const [end,   setEnd]   = useState('');
   const [active, setActive] = useState(null);

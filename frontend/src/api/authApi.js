@@ -4,6 +4,10 @@ export const loginApi            = (data) => client.post('/auth/login', data);
 export const logoutApi           = ()     => client.post('/auth/logout');
 export const getMeApi            = ()     => client.get('/auth/me');
 export const refreshApi          = ()     => client.post('/auth/refresh');
+export const registerAdminApi    = (data) => client.post('/auth/register/admin', data);
+export const registerCustomerApi = (data) => client.post('/auth/register/customer', data);
+export const getSuperAdminSetupStatusApi = ()     => client.get('/auth/super-admin/setup-status');
+export const setupSuperAdminApi          = (data) => client.post('/auth/super-admin/setup', data);
 export const adminChangePassword = (data) => client.put('/auth/admin/profile/password', data);
 
 // ─── Recovery feature removed ─────────────────────────────────

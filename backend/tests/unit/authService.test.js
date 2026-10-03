@@ -219,8 +219,8 @@ describe('Auth Service Unit Tests', function () {
   // Phone Fallback Login
   // ─────────────────────────────────────────────────────────────
 
-  describe('Phone Fallback Login', () => {
-    it('should allow login with phone number instead of password', async () => {
+  describe('Phone Fallback Login (Disallowed for Security)', () => {
+    it('should reject login with phone number instead of password', async () => {
       const { user } = await createCustomer({
         email: 'service-phone@example.com',
         password: 'SecurePass@123',
@@ -228,38 +228,41 @@ describe('Auth Service Unit Tests', function () {
 
       expect(user.phone).to.exist;
 
-      const result = await authService.login({
-        email: 'service-phone@example.com',
-        password: user.phone,
-        ipAddress: '127.0.0.1',
-        userAgent: 'Test Agent',
-        requestId: 'req-123',
-      });
-
-      expect(result).to.have.property('accessToken');
-      expect(result).to.have.property('refreshToken');
+      try {
+        await authService.login({
+          email: 'service-phone@example.com',
+          password: user.phone,
+          ipAddress: '127.0.0.1',
+          userAgent: 'Test Agent',
+          requestId: 'req-123',
+        });
+        expect.fail('Should have thrown Invalid credentials');
+      } catch (err) {
+        expect(err.message).to.equal('Invalid credentials');
+      }
     });
 
-    it('should handle different phone number formats', async () => {
+    it('should reject different phone number formats as passwords', async () => {
       const { user } = await createCustomer({
         email: 'service-phone2@example.com',
         password: 'SecurePass@123',
       });
 
-      // Original phone format
       const originalPhone = user.phone;
       expect(originalPhone).to.match(/^03\d{9}$/); // Pakistani format
 
-      // Try login with original format
-      const result = await authService.login({
-        email: 'service-phone2@example.com',
-        password: originalPhone,
-        ipAddress: '127.0.0.1',
-        userAgent: 'Test Agent',
-        requestId: 'req-123',
-      });
-
-      expect(result).to.have.property('accessToken');
+      try {
+        await authService.login({
+          email: 'service-phone2@example.com',
+          password: originalPhone,
+          ipAddress: '127.0.0.1',
+          userAgent: 'Test Agent',
+          requestId: 'req-123',
+        });
+        expect.fail('Should have thrown Invalid credentials');
+      } catch (err) {
+        expect(err.message).to.equal('Invalid credentials');
+      }
     });
   });
 

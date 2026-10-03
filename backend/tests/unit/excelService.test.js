@@ -125,7 +125,7 @@ describe('Excel Service Unit', function () {
     it('should create workbook with correct metadata', () => {
       const workbook = excelService.createWorkbook();
       expect(workbook).to.exist;
-      expect(workbook.creator).to.equal('Adil Petroleum');
+      expect(workbook.creator).to.equal('Petrol Management System');
       expect(workbook.created).to.be.a('date');
     });
   });

@@ -2,8 +2,15 @@
 const mongoose = require('mongoose');
 
 const dailyRecordSchema = new mongoose.Schema({
+  petrolPumpId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'PetrolPump',
+    required: [true, 'Petrol pump is required'],
+    index: true,
+  },
   date: {
-    type: Date, required: true, unique: true,
+    type: Date,
+    required: true,
     comment: 'Stored as midnight UTC for the given date',
   },
   totalFuelSold:      { type: Number, default: 0 },
@@ -18,9 +25,12 @@ const dailyRecordSchema = new mongoose.Schema({
   lockedAt: { type: Date },
   createdBy:{ type: mongoose.Schema.Types.ObjectId, ref: 'User' },
 }, {
-  timestamps: true, strict: true,
+  timestamps: true,
+  strict: true,
 });
 
-dailyRecordSchema.index({ date: -1 });
+// Tenant-scoped uniqueness: one daily record per petrol pump per date
+dailyRecordSchema.index({ petrolPumpId: 1, date: 1 }, { unique: true });
+dailyRecordSchema.index({ petrolPumpId: 1, isLocked: 1 });
 
 module.exports = mongoose.model('DailyRecord', dailyRecordSchema);

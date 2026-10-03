@@ -1,7 +1,9 @@
 'use strict';
 const bcrypt = require('bcryptjs');
 const User = require('../models/User');
+const PetrolPump = require('../models/PetrolPump');
 const authService = require('../services/authService');
+const notificationService = require('../services/notificationService');
 const { sendSuccess } = require('../utils/apiResponse');
 const config = require('../config');
 const logger = require('../utils/logger');
@@ -12,8 +14,97 @@ const isProd = config.env === 'production';
 const COOKIE_OPTS = {
   httpOnly: true,
   secure: isProd,
-  sameSite: isProd ? 'none' : 'lax', // Changed from 'strict' to 'none' for cross-origin
+  sameSite: isProd ? 'none' : 'lax',
   path: '/',
+};
+
+const registerAdmin = async (req, res, next) => {
+  try {
+    const {
+      name,
+      email,
+      password,
+      phone,
+      pumpName,
+      registrationNumber,
+      businessEmail,
+      businessPhone,
+      address,
+      city,
+      province,
+    } = req.body;
+
+    const result = await authService.registerAdmin({
+      name,
+      email,
+      password,
+      phone,
+      pumpName,
+      registrationNumber,
+      businessEmail,
+      businessPhone,
+      address,
+      city,
+      province,
+      ipAddress: req.ip,
+      requestId: req.id,
+    });
+
+    // Notify all Super Admins about new pump registration
+    notificationService.onPumpRegistered({
+      pumpName: pumpName,
+      adminName: name,
+      city: city || '',
+    });
+
+    return sendSuccess(
+      res,
+      { user: result.user, pump: result.pump },
+      'Your petrol pump registration has been submitted for approval.',
+      201
+    );
+  } catch (err) {
+    next(err);
+  }
+};
+
+const registerCustomer = async (req, res, next) => {
+  try {
+    const { name, email, password, phone } = req.body;
+
+    const result = await authService.registerCustomer({
+      name,
+      email,
+      password,
+      phone,
+      ipAddress: req.ip,
+      userAgent: req.headers['user-agent'],
+      requestId: req.id,
+    });
+
+    res.cookie('accessToken', result.accessToken, {
+      ...COOKIE_OPTS,
+      maxAge: 15 * 60 * 1000,
+    });
+
+    res.cookie('refreshToken', result.refreshToken, {
+      ...COOKIE_OPTS,
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+      path: '/api/v1/auth/',
+    });
+
+    const responseData = {
+      ...result.user,
+      _tokens: {
+        accessToken: result.accessToken,
+        refreshToken: result.refreshToken,
+      },
+    };
+
+    return sendSuccess(res, responseData, 'Customer registration successful', 201);
+  } catch (err) {
+    next(err);
+  }
 };
 
 const login = async (req, res, next) => {
@@ -26,21 +117,17 @@ const login = async (req, res, next) => {
       requestId: req.id,
     });
 
-    // ✅ Set access token with path '/' so it's sent with all requests
     res.cookie('accessToken', result.accessToken, {
       ...COOKIE_OPTS,
       maxAge: 15 * 60 * 1000,
     });
 
-    // ✅ FIXED: Set refresh token with path '/api/v1/auth/' instead of '/api/v1/auth/refresh'
-    // This allows the cookie to be sent to the refresh endpoint correctly
     res.cookie('refreshToken', result.refreshToken, {
       ...COOKIE_OPTS,
       maxAge: 7 * 24 * 60 * 60 * 1000,
       path: '/api/v1/auth/',
     });
 
-    // ✅ Return user in data field (backward compatible) and tokens in separate field for mobile
     const responseData = {
       ...result.user,
       _tokens: {
@@ -57,16 +144,15 @@ const login = async (req, res, next) => {
 
 const refresh = async (req, res, next) => {
   try {
-    // Try to get refresh token from cookie first, then from Authorization header (for mobile fallback)
     let rawRefreshToken = req.cookies?.refreshToken;
-    
+
     if (!rawRefreshToken) {
       const authHeader = req.headers.authorization;
       if (authHeader && authHeader.startsWith('Bearer ')) {
         rawRefreshToken = authHeader.substring(7);
       }
     }
-    
+
     if (!rawRefreshToken) {
       return res.status(401).json({ success: false, message: 'No refresh token provided' });
     }
@@ -82,14 +168,12 @@ const refresh = async (req, res, next) => {
       maxAge: 15 * 60 * 1000,
     });
 
-    // ✅ FIXED: Set refresh token with path '/api/v1/auth/' for consistency
     res.cookie('refreshToken', result.refreshToken, {
       ...COOKIE_OPTS,
       maxAge: 7 * 24 * 60 * 60 * 1000,
       path: '/api/v1/auth/',
     });
 
-    // ✅ Return tokens in _tokens field for mobile browsers
     return sendSuccess(res, {
       _tokens: {
         accessToken: result.accessToken,
@@ -110,7 +194,6 @@ const logout = async (req, res, next) => {
     });
 
     res.clearCookie('accessToken', COOKIE_OPTS);
-    // ✅ FIXED: Clear refresh token with matching path '/api/v1/auth/'
     res.clearCookie('refreshToken', { ...COOKIE_OPTS, path: '/api/v1/auth/' });
 
     return sendSuccess(res, null, 'Logged out successfully');
@@ -119,13 +202,32 @@ const logout = async (req, res, next) => {
   }
 };
 
-const me = (req, res) => {
-  return sendSuccess(res, {
-    id: req.user._id,
-    name: req.user.name,
-    email: req.user.email,
-    role: req.user.role,
-  });
+const me = async (req, res, next) => {
+  try {
+    let petrolPump = null;
+    if (req.user.role === 'admin') {
+      if (req.user.petrolPumpId) {
+        petrolPump = await PetrolPump.findById(req.user.petrolPumpId).lean();
+      }
+      if (!petrolPump) {
+        petrolPump = await PetrolPump.findOne({ admins: req.user._id }).lean();
+      }
+    }
+
+    return sendSuccess(res, {
+      id: req.user._id,
+      name: req.user.name,
+      email: req.user.email,
+      phone: req.user.phone || '',
+      role: req.user.role,
+      status: req.user.status || 'active',
+      petrolPumpId: petrolPump?._id || req.user.petrolPumpId || null,
+      petrolPumpName: petrolPump?.name || null,
+      petrolPumpStatus: petrolPump?.status || null,
+    });
+  } catch (err) {
+    next(err);
+  }
 };
 
 const recoverAdminPassword = async (req, res, next) => {
@@ -166,7 +268,6 @@ const recoverAdminPassword = async (req, res, next) => {
 
     logger.info({ adminId: user._id, event: 'admin_password_recovered' }, 'Admin password recovered');
 
-    // Do NOT return recovery keys in API responses. The new key is stored hashed in DB.
     return res.status(200).json({
       success: true,
       message: 'Password reset successful. The new recovery key has been issued to the owner via secure channels.',
@@ -178,9 +279,8 @@ const recoverAdminPassword = async (req, res, next) => {
 
 const regenerateRecoveryKey = async (req, res, next) => {
   try {
-    // req.user is set by auth middleware
     const user = req.user;
-    if (user.role !== 'admin') {
+    if (user.role !== 'admin' && user.role !== 'super_admin') {
       return res.status(403).json({ success: false, message: 'Access denied' });
     }
 
@@ -189,28 +289,22 @@ const regenerateRecoveryKey = async (req, res, next) => {
 
     await User.updateOne(
       { _id: user._id },
-      {
-        $set: {
-          recoveryKeyHash: newRecoveryKeyHash,
-        },
-      }
+      { $set: { recoveryKeyHash: newRecoveryKeyHash } }
     );
 
     logger.info({ adminId: user._id, event: 'recovery_key_regenerated' }, 'Admin recovery key regenerated');
 
-    // Audit log for recovery key regeneration
     await require('../services/auditService').createAuditLog({
       action: 'ADMIN_RECOVERY_KEY_REGENERATED',
       actor: user._id,
       actorEmail: user.email,
-      actorRole: 'admin',
+      actorRole: user.role,
       targetId: user._id,
       targetModel: 'User',
       details: { email: user.email, action: 'recovery_key_regenerated' },
       requestId: req.id,
     });
 
-    // Do NOT return recovery keys in API responses
     return res.status(200).json({
       success: true,
       message: 'Recovery key regenerated. Deliver the new key via a secure channel.',
@@ -223,12 +317,7 @@ const regenerateRecoveryKey = async (req, res, next) => {
 const adminChangePassword = async (req, res, next) => {
   try {
     const { oldPassword, newPassword, confirmPassword } = req.body;
-
-    // req.user is set by auth middleware
     const user = req.user;
-    if (user.role !== 'admin') {
-      return res.status(403).json({ success: false, message: 'Access denied' });
-    }
 
     const userDoc = await User.findById(user._id).select('+password');
     if (!userDoc) {
@@ -256,14 +345,13 @@ const adminChangePassword = async (req, res, next) => {
       }
     );
 
-    logger.info({ adminId: user._id, event: 'admin_password_changed' }, 'Admin password changed');
+    logger.info({ userId: user._id, event: 'password_changed' }, 'Password changed');
 
-    // Audit log for password change
     await require('../services/auditService').createAuditLog({
-      action: 'ADMIN_PASSWORD_CHANGED',
+      action: 'PASSWORD_CHANGED',
       actor: user._id,
       actorEmail: user.email,
-      actorRole: 'admin',
+      actorRole: user.role,
       targetId: user._id,
       targetModel: 'User',
       details: { email: user.email, action: 'password_change' },
@@ -279,4 +367,49 @@ const adminChangePassword = async (req, res, next) => {
   }
 };
 
-module.exports = { login, refresh, logout, me, recoverAdminPassword, regenerateRecoveryKey, adminChangePassword };
+const getSuperAdminSetupStatus = async (req, res, next) => {
+  try {
+    const data = await authService.getSuperAdminSetupStatus();
+    return sendSuccess(res, data, 'Super Admin setup status retrieved');
+  } catch (err) {
+    next(err);
+  }
+};
+
+const setupSuperAdmin = async (req, res, next) => {
+  try {
+    const { name, email, password, phone } = req.body;
+    const user = await authService.setupSuperAdmin({
+      name,
+      email,
+      password,
+      phone,
+      ipAddress: req.ip,
+      userAgent: req.headers['user-agent'],
+      requestId: req.id,
+    });
+
+    return sendSuccess(
+      res,
+      user,
+      'Super Admin account created successfully. Please sign in.',
+      201
+    );
+  } catch (err) {
+    next(err);
+  }
+};
+
+module.exports = {
+  registerAdmin,
+  registerCustomer,
+  login,
+  refresh,
+  logout,
+  me,
+  recoverAdminPassword,
+  regenerateRecoveryKey,
+  adminChangePassword,
+  getSuperAdminSetupStatus,
+  setupSuperAdmin,
+};

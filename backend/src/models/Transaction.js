@@ -12,16 +12,28 @@ const TRANSACTION_TYPES = [
 const FUEL_TYPES = ['pmg', 'hsd', 'nr'];
 
 const transactionSchema = new mongoose.Schema({
+  petrolPumpId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'PetrolPump',
+    required: [true, 'Petrol pump is required'],
+    index: true,
+  },
   customerId: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'CustomerProfile',
-    required: true,
+    ref: 'CustomerPumpAccount',
+    required: [true, 'Customer account is required'],
+    index: true,
+  },
+  customerAccountId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'CustomerPumpAccount',
   },
   userId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
-    required: true,
-    comment: 'The User account of the customer (for quick lookup)',
+    required: false,
+    default: null,
+    comment: 'The global User account of the customer if linked (for quick lookup)',
   },
   transactionType: {
     type: String,
@@ -85,7 +97,6 @@ const transactionSchema = new mongoose.Schema({
     trim: true,
     maxlength: 500,
   },
-
   createdBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
@@ -110,6 +121,29 @@ const transactionSchema = new mongoose.Schema({
   strict: true,
 });
 
+transactionSchema.pre('validate', async function () {
+  if (!this.petrolPumpId && this.customerId) {
+    const CustomerPumpAccount = require('./CustomerPumpAccount');
+    const cust = await CustomerPumpAccount.findById(this.customerId);
+    if (cust && cust.petrolPumpId) {
+      this.petrolPumpId = cust.petrolPumpId;
+    }
+  }
+});
+
+transactionSchema.pre('save', function (next) {
+  if (this.customerId && !this.customerAccountId) {
+    this.customerAccountId = this.customerId;
+  } else if (this.customerAccountId && !this.customerId) {
+    this.customerId = this.customerAccountId;
+  }
+  next();
+});
+
+// Multi-tenant indexes
+transactionSchema.index({ petrolPumpId: 1, transactionDate: -1 });
+transactionSchema.index({ petrolPumpId: 1, customerId: 1, transactionDate: -1 });
+transactionSchema.index({ petrolPumpId: 1, isVoided: 1, transactionDate: -1 });
 transactionSchema.index({ customerId: 1, transactionDate: -1 });
 transactionSchema.index({ customerId: 1, createdAt: -1 });
 transactionSchema.index({ customerId: 1, fuelType: 1, transactionDate: -1 });

@@ -10,11 +10,14 @@ import { useToast } from '../../hooks/useToast';
 
 const initialForm = {
   name: '',
-  email: '',
-  password: '',
   customerCode: '',
   phone: '',
+  email: '',
+  creditLimit: '',
+  openingBalance: '',
   address: '',
+  vehicleInfo: '',
+  notes: '',
 };
 
 const FieldBlock = ({ label, hint, error, required, children }) => (
@@ -86,11 +89,8 @@ export default function CustomerCreate() {
   const [created, setCreated] = useState(null);
 
   const requiredComplete = useMemo(() => (
-    Boolean(form.name.trim())
-    && Boolean(form.email.trim())
-    && Boolean(form.password.trim())
-    && Boolean(form.phone.trim())
-    && Boolean(form.customerCode.trim())
+    Boolean(form.name.trim()) &&
+    Boolean(form.customerCode.trim())
   ), [form]);
 
   const handleSubmit = async (e) => {
@@ -101,30 +101,23 @@ export default function CustomerCreate() {
     try {
       const payload = {
         ...form,
-        customerCode: form.customerCode.trim(),
+        customerCode: form.customerCode.trim().toUpperCase(),
+        creditLimit: form.creditLimit ? Number(form.creditLimit) : 0,
+        openingBalance: form.openingBalance ? Number(form.openingBalance) : 0,
       };
-      // Ensure creditLimit is not sent from the create form (removed from UI)
-      if (Object.prototype.hasOwnProperty.call(payload, 'creditLimit')) delete payload.creditLimit;
 
       const res = await createCustomer(payload);
       const data = res.data.data || res.data;
       setCreated(data);
       try {
         toast.success({
-          title: 'Customer created',
+          title: 'Customer account created',
           message: `Account ${data.profile?.customerCode || data.customerCode || ''} created successfully`,
           duration: 6000,
-          action: {
-            label: 'Open',
-            onClick: () => nav(`/admin/customers/${data.profile?._id || data._id}`),
-          },
         });
       } catch (e) {}
       setForm(initialForm);
-      // Redirect to customers section after creation
-      try {
-        nav('/admin/customers');
-      } catch (e) {}
+      nav('/admin/customers');
     } catch (err) {
       const errData = err.response?.data;
 
@@ -139,7 +132,7 @@ export default function CustomerCreate() {
           toast.error({ title: 'Submission Error', message: msg, duration: 7000 });
         } catch (e) {}
       } else {
-        const msg = errData?.message || 'Failed to create customer';
+        const msg = errData?.message || 'Failed to create customer account';
         try {
           toast.error({ title: 'Submission Error', message: msg, duration: 7000 });
         } catch (e) {}
@@ -156,24 +149,24 @@ export default function CustomerCreate() {
           <Button variant="ghost" onClick={() => nav('/admin/customers')} style={{ alignSelf: 'flex-start' }}>
             ← Back
           </Button>
-          <h1 className="form-hero__title">Add Customer</h1>
-          <p className="form-hero__subtitle">Create a customer account, profile, and credit setup in one step.</p>
+          <h1 className="form-hero__title">Add Petrol Pump Customer Account</h1>
+          <p className="form-hero__subtitle">
+            Create a station ledger account. Customers manage their own logins online and link to this account to view statements.
+          </p>
         </div>
 
         <div className="form-badges">
-          <InfoChip color="var(--color-primary)">Form Ready</InfoChip>
+          <InfoChip color="var(--color-primary)">Ledger Account</InfoChip>
           <InfoChip color={requiredComplete ? 'var(--color-success)' : 'var(--color-warning)'}>
             {requiredComplete ? 'Required Complete' : 'Required Pending'}
           </InfoChip>
         </div>
       </div>
 
-        {/* Stats removed: Completed Fields / Required Fields / Credit Setup */}
-
       {created ? (
         <EmptyState
           icon="✅"
-          title="Customer created successfully"
+          title="Customer account created successfully"
           description={`Account ${created.profile?.customerCode || created.customerCode || ''} is ready.`}
           action={() => nav(`/admin/customers/${created.profile?._id || created._id}`)}
           actionLabel="Open Customer"
@@ -182,14 +175,15 @@ export default function CustomerCreate() {
 
       <form onSubmit={handleSubmit} className="form-section">
         <SectionCard
-          title="Account Details"
-          description="Login credentials using password or phone fallback. Keep the required identifiers together so the form is easier to scan."
-          right={<Badge variant="primary">New Customer</Badge>}
+          title="Station Account Details"
+          description="Customer code and station-specific business information. No login credentials are required here."
+          right={<Badge variant="primary">Pump Account</Badge>}
         >
           <div className="form-grid-12">
-            <div style={{ gridColumn: 'span 4' }}>
+            <div style={{ gridColumn: 'span 6' }}>
               <Input
-                label="Name"
+                label="Customer / Business Name"
+                placeholder="e.g. Ahmed Traders"
                 value={form.name}
                 onChange={(e) => setForm((current) => ({ ...current, name: e.target.value }))}
                 error={validationErrors.name}
@@ -197,58 +191,68 @@ export default function CustomerCreate() {
               />
             </div>
 
-            <div style={{ gridColumn: 'span 4' }}>
+            <div style={{ gridColumn: 'span 6' }}>
               <Input
-                label="Email"
-                type="email"
-                autoComplete="off"
-                value={form.email}
-                onChange={(e) => setForm((current) => ({ ...current, email: e.target.value }))}
-                error={validationErrors.email}
-                required
-              />
-            </div>
-
-            <div style={{ gridColumn: 'span 4' }}>
-              <Input
-                label="Password"
-                type="password"
-                autoComplete="new-password"
-                value={form.password}
-                onChange={(e) => setForm((current) => ({ ...current, password: e.target.value }))}
-                error={validationErrors.password}
-                required
-                hint="Set a password for customer login"
-              />
-            </div>
-
-            <div style={{ gridColumn: 'span 4' }}>
-              <Input
-                label="CNIC"
+                label="Customer Code"
+                placeholder="e.g. AP-100 or CNIC"
                 value={form.customerCode}
                 onChange={(e) => setForm((current) => ({ ...current, customerCode: e.target.value }))}
                 error={validationErrors.customerCode}
                 required
-                hint="National Identity Card Number"
+                hint="Unique station customer code used for connection matching"
               />
             </div>
 
-            <div style={{ gridColumn: 'span 4' }}>
+            <div style={{ gridColumn: 'span 6' }}>
               <Input
-                label="Phone"
+                label="Phone Number"
                 type="tel"
+                placeholder="03001234567"
                 value={form.phone}
                 onChange={(e) => {
                   const value = e.target.value.replace(/[^\d]/g, '');
                   setForm((current) => ({ ...current, phone: value }));
                 }}
                 error={validationErrors.phone}
-                required
-                hint="Used for customer login fallback"
+                hint="Contact phone number on record for this customer"
               />
             </div>
 
-            {/* Credit Limit removed per request */}
+            <div style={{ gridColumn: 'span 6' }}>
+              <Input
+                label="Email (Optional)"
+                type="email"
+                placeholder="customer@example.com"
+                value={form.email}
+                onChange={(e) => setForm((current) => ({ ...current, email: e.target.value }))}
+                error={validationErrors.email}
+                hint="Optional business email"
+              />
+            </div>
+
+            <div style={{ gridColumn: 'span 6' }}>
+              <Input
+                label="Credit Limit (PKR)"
+                type="number"
+                placeholder="0"
+                value={form.creditLimit}
+                onChange={(e) => setForm((current) => ({ ...current, creditLimit: e.target.value }))}
+                error={validationErrors.creditLimit}
+                hint="Maximum credit allowed for this customer"
+              />
+            </div>
+
+            <div style={{ gridColumn: 'span 6' }}>
+              <Input
+                label="Opening Balance (PKR)"
+                type="number"
+                placeholder="0"
+                value={form.openingBalance}
+                onChange={(e) => setForm((current) => ({ ...current, openingBalance: e.target.value }))}
+                error={validationErrors.openingBalance}
+                hint="Existing balance owed (leave 0 if none)"
+              />
+            </div>
           </div>
         </SectionCard>
 

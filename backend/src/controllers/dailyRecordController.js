@@ -9,7 +9,7 @@ const getPkDate = () => new Date().toLocaleDateString('en-CA');
 const getOrCreate = async (req, res, next) => {
   try {
     const date = req.query.date || getPkDate();
-    const record = await dailyService.getOrCreateDailyRecord(date, req.user._id);
+    const record = await dailyService.getOrCreateDailyRecord(date, req.user._id, req.petrolPumpId);
     return sendSuccess(res, record);
   } catch (err) {
     next(err);
@@ -19,7 +19,7 @@ const getOrCreate = async (req, res, next) => {
 const getToday = async (req, res, next) => {
   try {
     const today = getPkDate();
-    const record = await dailyService.getOrCreateDailyRecord(today, req.user._id);
+    const record = await dailyService.getOrCreateDailyRecord(today, req.user._id, req.petrolPumpId);
     return sendSuccess(res, record);
   } catch (err) {
     next(err);
@@ -31,6 +31,7 @@ const lockRecord = async (req, res, next) => {
     const record = await dailyService.lockDailyRecord({
       recordId: req.params.id,
       lockedBy: req.user._id,
+      petrolPumpId: req.petrolPumpId,
       requestId: req.id,
     });
     return sendSuccess(res, record, 'Daily record locked');
@@ -44,8 +45,10 @@ const listRecords = async (req, res, next) => {
     const pageNum = Math.max(parseInt(req.query.page, 10) || 1, 1);
     const limitNum = Math.min(Math.max(parseInt(req.query.limit, 10) || 30, 1), 100);
 
-    const total = await DailyRecord.countDocuments();
-    const records = await DailyRecord.find()
+    const query = { petrolPumpId: req.petrolPumpId };
+
+    const total = await DailyRecord.countDocuments(query);
+    const records = await DailyRecord.find(query)
       .sort({ date: -1, createdAt: -1 })
       .skip((pageNum - 1) * limitNum)
       .limit(limitNum)

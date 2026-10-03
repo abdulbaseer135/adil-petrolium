@@ -12,7 +12,20 @@ const parsePkDate = (dateStr) => {
   return new Date(Date.UTC(year, month - 1, day, -PK_UTC_OFFSET_HOURS, 0, 0, 0));
 };
 
-const getOrCreateDailyRecord = async (dateStr, createdBy) => {
+const getOrCreateDailyRecord = async (dateStr, createdBy, petrolPumpId) => {
+  let targetPumpId = petrolPumpId;
+  if (!targetPumpId && createdBy) {
+    const User = require('../models/User');
+    const u = await User.findById(createdBy);
+    targetPumpId = u?.petrolPumpId;
+  }
+  if (!targetPumpId) {
+    const PetrolPump = require('../models/PetrolPump');
+    const p = await PetrolPump.findOne();
+    targetPumpId = p?._id;
+  }
+  if (!targetPumpId) throw new AppError('Petrol pump ID is required', 400);
+
   const date = parsePkDate(dateStr);
   const end = new Date(date);
   end.setUTCHours(end.getUTCHours() + 24);
@@ -20,6 +33,7 @@ const getOrCreateDailyRecord = async (dateStr, createdBy) => {
   const [agg] = await Transaction.aggregate([
     {
       $match: {
+        petrolPumpId: new (require('mongoose').Types.ObjectId)(targetPumpId),
         transactionDate: { $gte: date, $lt: end },
         isVoided: { $ne: true },
       },
@@ -35,7 +49,6 @@ const getOrCreateDailyRecord = async (dateStr, createdBy) => {
     },
   ]);
 
-  // $set only has aggregated fields — createdBy is NOT here
   const updatePayload = {
     totalFuelSold: agg?.totalFuelSold || 0,
     totalSalesAmount: agg?.totalSalesAmount || 0,
@@ -43,12 +56,11 @@ const getOrCreateDailyRecord = async (dateStr, createdBy) => {
     totalTransactions: agg?.totalTransactions || 0,
   };
 
-  // $setOnInsert only runs on first creation — safe for createdBy and date
   const record = await DailyRecord.findOneAndUpdate(
-    { date },
+    { petrolPumpId: targetPumpId, date },
     {
       $set: updatePayload,
-      $setOnInsert: { date, createdBy },
+      $setOnInsert: { petrolPumpId: targetPumpId, date, createdBy },
     },
     { new: true, upsert: true, runValidators: true }
   )
@@ -60,9 +72,12 @@ const getOrCreateDailyRecord = async (dateStr, createdBy) => {
   return record;
 };
 
-const lockDailyRecord = async ({ recordId, lockedBy, requestId }) => {
-  const record = await DailyRecord.findById(recordId);
-  if (!record) throw new AppError('Daily record not found', 404);
+const lockDailyRecord = async ({ recordId, lockedBy, petrolPumpId, requestId }) => {
+  const query = { _id: recordId };
+  if (petrolPumpId) query.petrolPumpId = petrolPumpId;
+
+  const record = await DailyRecord.findOne(query);
+  if (!record) throw new AppError('Daily record not found or access denied', 404);
   if (record.isLocked) throw new AppError('Daily record already locked', 400);
 
   record.isLocked = true;
@@ -71,10 +86,12 @@ const lockDailyRecord = async ({ recordId, lockedBy, requestId }) => {
   await record.save();
 
   await createAuditLog({
+    petrolPumpId: record.petrolPumpId,
     action: 'DAILY_RECORD_LOCKED',
     actor: lockedBy,
-    target: recordId,
+    targetId: recordId,
     targetModel: 'DailyRecord',
+    targetType: 'DailyRecord',
     details: { date: record.date },
     requestId,
   });

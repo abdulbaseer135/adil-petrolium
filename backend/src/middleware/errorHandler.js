@@ -46,6 +46,7 @@ module.exports = (err, req, res, next) => {
   const payload = {
     success:    false,
     message:    error.isOperational ? error.message : 'An unexpected error occurred',
+    ...(error.code && typeof error.code === 'string' ? { code: error.code } : {}),
     ...(error.errors?.length ? { errors: error.errors } : {}),
     ...(config.env !== 'production' && !error.isOperational ? { stack: err.stack } : {}),
   };

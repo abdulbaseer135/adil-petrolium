@@ -1,115 +1,157 @@
+/* ==========================================================================
+   Petrol / Oil Management System — Unified Design Tokens
+   Single Enterprise Theme (Light Professional Petroleum / Energy SaaS)
+   ========================================================================== */
+
 :root {
-  --text-xs:   clamp(0.72rem, 0.68rem + 0.16vw, 0.8rem);
-  --text-sm:   clamp(0.82rem, 0.78rem + 0.22vw, 0.95rem);
-  --text-base: clamp(0.95rem, 0.92rem + 0.2vw, 1.05rem);
-  --text-lg:   clamp(1.06rem, 1rem + 0.5vw, 1.25rem);
-  --text-xl:   clamp(1.35rem, 1.15rem + 0.9vw, 1.8rem);
-  --text-2xl:  clamp(1.85rem, 1.45rem + 1.9vw, 2.8rem);
+  /* Typography Scale */
+  --font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  
+  --text-xs:   0.75rem;    /* 12px */
+  --text-sm:   0.8125rem;  /* 13px */
+  --text-base: 0.875rem;   /* 14px */
+  --text-md:   1rem;       /* 16px */
+  --text-lg:   1.125rem;   /* 18px */
+  --text-xl:   1.25rem;    /* 20px */
+  --text-2xl:  1.5rem;     /* 24px */
+  --text-3xl:  1.75rem;    /* 28px */
+  --text-4xl:  2rem;       /* 32px */
 
-  --space-1: 0.25rem;
-  --space-2: 0.45rem;
-  --space-3: 0.7rem;
-  --space-4: 0.95rem;
-  --space-5: 1.15rem;
-  --space-6: 1.25rem;
-  --space-8: 1.75rem;
-  --space-10: 2.25rem;
-  --space-12: 2.75rem;
-  --space-16: 3.5rem;
-  --space-20: 4.5rem;
-  --space-24: 5.5rem;
+  /* Spacing Scale (Standard 4px, 8px, 12px, 16px, 20px, 24px, 32px, 40px, 48px) */
+  --space-1:  4px;
+  --space-2:  8px;
+  --space-3:  12px;
+  --space-4:  16px;
+  --space-5:  20px;
+  --space-6:  24px;
+  --space-8:  32px;
+  --space-10: 40px;
+  --space-12: 48px;
 
-  --color-bg:               #eef3f5;
-  --color-surface:          #ffffff;
-  --color-surface-2:        #f7fafc;
-  --color-surface-offset:   #edf3f6;
-  --color-surface-offset-2: #e6edf1;
-  --color-surface-dynamic:  #dfe8ed;
-  --color-divider:          #d6e0e6;
-  --color-border:           #c8d3da;
+  /* Core Brand Colors (Pakistan Energy / Petroleum Theme) */
+  --color-primary:        #0B5D4B;
+  --color-primary-hover:  #084A3C;
+  --color-primary-active: #063D32;
+  --color-primary-soft:   #EAF5F1;
+  --color-primary-light:  #EAF5F1;
 
-  --color-text:         #10212b;
-  --color-text-muted:   #5f6e78;
-  --color-text-faint:   #8d9aa3;
-  --color-text-inverse: #f7fbfc;
+  --color-secondary:      #1F3A4D;
+  --color-secondary-hover:#162C3B;
+  
+  --color-accent:         #D89B2B;
+  --color-accent-hover:   #B88220;
+  --color-accent-soft:    #FDF6E9;
 
-  --color-primary:           #0c7380;
-  --color-primary-hover:     #095c67;
-  --color-primary-active:    #073f46;
-  --color-primary-light:     #d7ecef;
-  --color-primary-highlight: #d7ecef;
+  /* Semantic Colors */
+  --color-success:        #18864B;
+  --color-success-bg:     #EAF7EF;
+  --color-success-border: #C8EBD5;
 
-  --color-success:           #2f6e40;
-  --color-success-hover:     #245631;
-  --color-success-light:     #dbe9dc;
-  --color-success-highlight: #dbe9dc;
+  --color-warning:        #C47B12;
+  --color-warning-bg:     #FFF6E5;
+  --color-warning-border: #FCE6BD;
 
-  --color-error:           #9e3430;
-  --color-error-hover:     #7f2926;
-  --color-error-light:     #f2dddd;
-  --color-error-highlight: #f2dddd;
+  --color-danger:         #C64040;
+  --color-danger-bg:      #FDEEEE;
+  --color-danger-border:  #F7CACA;
+  --color-error:          #C64040;
+  --color-error-bg:       #FDEEEE;
+  --color-error-border:   #F7CACA;
 
-  --color-warning:         #99611f;
-  --color-warning-hover:   #7d4d17;
-  --color-warning-light:   #efe0c8;
+  --color-info:           #2878B5;
+  --color-info-bg:        #EBF5FC;
+  --color-info-border:    #C8E4F7;
 
-  --color-gold:           #bb8716;
-  --color-gold-hover:     #94690f;
-  --color-gold-light:     #f1e5c2;
-  --color-gold-highlight: #f1e5c2;
+  /* Neutral Scale */
+  --bg-page:              #F5F7F8;
+  --color-bg:             #F5F7F8;
+  
+  --bg-surface:           #FFFFFF;
+  --color-surface:        #FFFFFF;
+  
+  --bg-surface-secondary: #F9FAFB;
+  --color-surface-2:      #F9FAFB;
+  --color-surface-offset: #F1F4F6;
+  
+  --border-default:       #E2E8EC;
+  --color-border:         #E2E8EC;
+  
+  --border-divider:       #E8ECEF;
+  --color-divider:        #E8ECEF;
 
-  --sidebar-width:   224px;
-  --topbar-height:   52px;
-  --content-narrow:  640px;
-  --content-default: 1040px;
-  --content-wide:    1280px;
+  /* Typography Colors */
+  --text-primary:         #17242D;
+  --color-text:           #17242D;
+  
+  --text-secondary:       #5B6870;
+  --color-text-muted:     #5B6870;
+  
+  --text-muted:           #7A878E;
+  --color-text-faint:     #7A878E;
+  
+  --text-disabled:        #A4ADB2;
+  --color-text-inverse:   #FFFFFF;
 
-  --radius-sm:   0.35rem;
-  --radius-md:   0.5rem;
-  --radius-lg:   0.7rem;
-  --radius-xl:   0.95rem;
-  --radius-2xl:  1.15rem;
-  --radius-full: 9999px;
+  /* Standardized Sidebar Colors */
+  --color-sidebar-bg:     #163241;
+  --color-sidebar-hover:  #1D4051;
+  --color-sidebar-active: #0B5D4B;
+  --color-sidebar-text:   #DDE6EA;
+  --color-sidebar-muted:  #9FB0B8;
+  --color-sidebar-border: rgba(255, 255, 255, 0.08);
 
-  --color-sidebar-bg:     #132634;
-  --color-sidebar-text:   rgba(241, 248, 250, 0.72);
-  --color-sidebar-active: rgba(255,255,255,0.1);
-  --color-sidebar-hover:  rgba(255,255,255,0.055);
-  --color-sidebar-border: rgba(255,255,255,0.08);
+  /* Topbar Colors */
+  --color-topbar-bg:      #FFFFFF;
+  --color-topbar-border:  #E2E8EC;
+  --topbar-height:        60px;
+  --sidebar-width:        250px;
+  --sidebar-collapsed-w:  72px;
 
-  --shadow-sm: 0 1px 2px rgba(16,33,43,0.06);
-  --shadow-md: 0 6px 16px rgba(16,33,43,0.09);
-  --shadow-lg: 0 16px 36px rgba(16,33,43,0.13);
+  /* Layout Widths */
+  --content-narrow:       680px;
+  --content-default:      1120px;
+  --content-wide:         1440px;
+  --content-max:          1600px;
 
-  --control-height-sm: 28px;
-  --control-height-md: 34px;
-  --control-height-lg: 40px;
+  /* Standardized Radius */
+  --radius-xs:            4px;
+  --radius-sm:            6px;    /* Small elements */
+  --radius-md:            8px;    /* Inputs & buttons */
+  --radius-lg:            12px;   /* Cards */
+  --radius-xl:            14px;   /* Large cards & modals */
+  --radius-full:          9999px; /* Badges & pills only */
 
-  --transition: 180ms cubic-bezier(0.16, 1, 0.3, 1);
-  --transition-interactive: 180ms cubic-bezier(0.16, 1, 0.3, 1);
-  --transition-slow: 320ms cubic-bezier(0.16, 1, 0.3, 1);
+  /* Standardized Subtle Shadows */
+  --shadow-sm:            0 1px 2px rgba(15, 23, 42, 0.04);
+  --shadow-card:          0 1px 2px rgba(15, 23, 42, 0.04), 0 4px 12px rgba(15, 23, 42, 0.05);
+  --shadow-md:            0 1px 2px rgba(15, 23, 42, 0.04), 0 4px 12px rgba(15, 23, 42, 0.05);
+  --shadow-dropdown:      0 8px 24px rgba(15, 23, 42, 0.12);
+  --shadow-lg:            0 8px 24px rgba(15, 23, 42, 0.12);
+
+  /* Focus Ring */
+  --focus-ring:           0 0 0 3px rgba(11, 93, 75, 0.18);
+
+  /* Form Control Heights */
+  --control-height-sm:    32px;
+  --control-height-md:    38px;
+  --control-height-lg:    44px;
+
+  /* Transitions */
+  --transition-fast:      150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition:           200ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow:      300ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* ─── Animations ─── */
-@keyframes shimmer {
-  0%   { background-position: -400px 0; }
-  100% { background-position:  400px 0; }
-}
-
+/* Animations */
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(6px); }
-  to   { opacity: 1; transform: none;   }
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
-@keyframes pulse {                                    /* ✅ added — live badge */
-  0%, 100% { opacity: 1;   }
-  50%       { opacity: 0.4; }
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
-@keyframes slideIn {                                  /* ✅ added — modals/drawers */
-  from { opacity: 0; transform: translateX(-8px); }
-  to   { opacity: 1; transform: none;    }
-}
-
-.animate-fadeIn  { animation: fadeIn  220ms ease-out forwards; }
-.animate-slideIn { animation: slideIn 220ms ease-out forwards; } /* ✅ added */
+.animate-fadeIn  { animation: fadeIn 200ms ease-out forwards; }
+.animate-slideDown { animation: slideDown 200ms ease-out forwards; }

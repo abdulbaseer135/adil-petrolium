@@ -30,7 +30,7 @@ export const generateCustomerStatementPdf = ({
   const customerName = String(customer.userId?.name || 'Unknown Customer').trim();
   const customerPhone = String(customer.phone || '').trim();
   const customerAddress = String(customer.address || '').trim();
-  const companyName = String(company.name || 'Adil Petroleum').trim();
+  const companyName = String(company.name || 'Petrol Management System').trim();
   const companyPhone = String(company.phone || '').trim();
 
   // Ensure statement rows is an array
@@ -114,7 +114,7 @@ export const generateCustomerStatementPdf = ({
       pdf.setTextColor(colors.secondary);
       
       // Left side: Company name and date
-      pdf.text('Adil Petroleum', margin, pageHeight - margin - 2);
+      pdf.text('Petrol Management System', margin, pageHeight - margin - 2);
 
       // Right side: Page number - will be added after all content is rendered
       // (placeholder, actual page numbers added at the end)

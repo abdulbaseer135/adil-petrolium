@@ -2,7 +2,7 @@
 const router = require('express').Router();
 const { body, param, query } = require('express-validator');
 const ctrl = require('../controllers/transactionController');
-const { authenticate, authorize } = require('../middleware/auth');
+const { authenticate, authorize, requireApprovedAccount, resolveTenant } = require('../middleware/auth');
 const validate = require('../middleware/validate');
 
 const txBody = [
@@ -15,7 +15,7 @@ const txBody = [
   body('rate').optional().isFloat({ min: 0 }).withMessage('Must be >= 0'),
 ];
 
-router.use(authenticate, authorize('admin'));
+router.use(authenticate, authorize('admin'), requireApprovedAccount, resolveTenant);
 
 router.get('/',
   [
@@ -32,21 +32,18 @@ router.get('/',
     query('search').optional().trim().isString(),
     query('customerId').optional().isMongoId().withMessage('Invalid customerId'),
     query('startDate').optional().custom((val) => {
-      // Accept both date-only (YYYY-MM-DD) and full ISO 8601 formats
       if (!/^\d{4}-\d{2}-\d{2}/.test(val)) {
         throw new Error('Invalid startDate format (use YYYY-MM-DD or ISO 8601)');
       }
       return true;
     }),
     query('endDate').optional().custom((val) => {
-      // Accept both date-only (YYYY-MM-DD) and full ISO 8601 formats
       if (!/^\d{4}-\d{2}-\d{2}/.test(val)) {
         throw new Error('Invalid endDate format (use YYYY-MM-DD or ISO 8601)');
       }
       return true;
     }),
     query('sort').optional().custom((val) => {
-      // allow comma-separated fields with optional leading '-'
       const allowed = ['transactionDate', 'totalAmount', 'createdAt', 'updatedBalance'];
       const parts = String(val).split(',');
       for (const p of parts) {
@@ -60,9 +57,13 @@ router.get('/',
   validate,
   ctrl.getTransactions
 );
+
 router.post('/', txBody, validate, ctrl.createTransaction);
+
 router.put('/:id/void',
   [param('id').isMongoId(), body('reason').notEmpty().withMessage('Void reason required')],
-  validate, ctrl.voidTransaction);
+  validate,
+  ctrl.voidTransaction
+);
 
 module.exports = router;

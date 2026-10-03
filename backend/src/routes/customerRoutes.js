@@ -2,25 +2,19 @@
 const router = require('express').Router();
 const { body, param, query } = require('express-validator');
 const ctrl = require('../controllers/customerController');
-const { authenticate, authorize } = require('../middleware/auth');
+const { authenticate, authorize, requireApprovedAccount, resolveTenant } = require('../middleware/auth');
 const validate = require('../middleware/validate');
 
 const customerBody = [
-  body('name').trim().notEmpty().withMessage('Name required'),
-  body('email').isEmail().normalizeEmail().withMessage('Valid email required'),
-  // Password is optional — if not provided, phone will be used as default
-  body('password').optional({ checkFalsy: true }).isLength({ min: 8 }).withMessage('Password must be at least 8 characters'),
+  body('name').trim().notEmpty().withMessage('Customer name required'),
   body('customerCode').trim().notEmpty().withMessage('Customer code required'),
-  // At least one of password or phone is required
-  body().custom((value, { req }) => {
-    if (!req.body.password && !req.body.phone) {
-      throw new Error('Either password or phone is required');
-    }
-    return true;
-  }),
+  body('email').optional({ checkFalsy: true }).trim().isEmail().normalizeEmail().withMessage('Valid email required if provided'),
+  body('phone').optional().trim(),
+  body('creditLimit').optional().isNumeric().withMessage('Credit limit must be a number'),
+  body('openingBalance').optional().isNumeric().withMessage('Opening balance must be a number'),
 ];
 
-router.use(authenticate, authorize('admin'));
+router.use(authenticate, authorize('admin'), requireApprovedAccount, resolveTenant);
 
 router.get('/',
   [
@@ -28,17 +22,10 @@ router.get('/',
     query('limit').optional().isInt({ min: 1, max: 100 }).toInt(),
     query('search').optional().trim().isString(),
     query('isActive').optional().isBoolean().toBoolean(),
-    query('sort').optional().custom((val) => {
-      const allowed = ['createdAt', 'customerCode', 'customerName'];
-      const parts = String(val).split(',');
-      for (const p of parts) {
-        const f = p.trim();
-        const name = f.startsWith('-') ? f.slice(1) : f;
-        if (!allowed.includes(name)) throw new Error('Invalid sort field');
-      }
-      return true;
-    }),
-  ], validate, ctrl.getCustomers);
+  ],
+  validate,
+  ctrl.getCustomers
+);
 
 router.post('/', customerBody, validate, ctrl.createCustomer);
 

@@ -1,12 +1,15 @@
 import React from 'react';
 
 const colors = {
-  success: { bg: 'var(--color-success-light)', color: 'var(--color-success)', border: 'color-mix(in oklch, var(--color-success) 16%, transparent)' },
-  error: { bg: 'var(--color-error-light)', color: 'var(--color-error)', border: 'color-mix(in oklch, var(--color-error) 16%, transparent)' },
-  warning: { bg: 'var(--color-warning-light)', color: 'var(--color-warning)', border: 'color-mix(in oklch, var(--color-warning) 16%, transparent)' },
-  primary: { bg: 'var(--color-primary-light)', color: 'var(--color-primary)', border: 'color-mix(in oklch, var(--color-primary) 16%, transparent)' },
-  gold: { bg: 'var(--color-gold-light)', color: 'var(--color-gold)', border: 'color-mix(in oklch, var(--color-gold) 16%, transparent)' },
-  neutral: { bg: 'var(--color-surface-offset)', color: 'var(--color-text-muted)', border: 'var(--color-divider)' },
+  success: { bg: 'var(--color-success-bg, #EAF7EF)', color: 'var(--color-success, #18864B)', border: 'var(--color-success-border, #C8EBD5)' },
+  error:   { bg: 'var(--color-danger-bg, #FDEEEE)', color: 'var(--color-danger, #C64040)', border: 'var(--color-danger-border, #F7CACA)' },
+  danger:  { bg: 'var(--color-danger-bg, #FDEEEE)', color: 'var(--color-danger, #C64040)', border: 'var(--color-danger-border, #F7CACA)' },
+  warning: { bg: 'var(--color-warning-bg, #FFF6E5)', color: 'var(--color-warning, #C47B12)', border: 'var(--color-warning-border, #FCE6BD)' },
+  info:    { bg: 'var(--color-info-bg, #EBF5FC)', color: 'var(--color-info, #2878B5)', border: 'var(--color-info-border, #C8E4F7)' },
+  primary: { bg: 'var(--color-primary-soft, #EAF5F1)', color: 'var(--color-primary, #0B5D4B)', border: '#C6E7DC' },
+  gold:    { bg: 'var(--color-accent-soft, #FDF6E9)', color: 'var(--color-accent, #D89B2B)', border: '#F7DFB3' },
+  accent:  { bg: 'var(--color-accent-soft, #FDF6E9)', color: 'var(--color-accent, #D89B2B)', border: '#F7DFB3' },
+  neutral: { bg: 'var(--color-surface-2, #F9FAFB)', color: 'var(--color-text-muted, #5B6870)', border: 'var(--color-border, #E2E8EC)' },
 };
 
 export const Badge = ({ children, variant = 'neutral', dot }) => {
@@ -18,19 +21,19 @@ export const Badge = ({ children, variant = 'neutral', dot }) => {
       style={{
         display: 'inline-flex',
         alignItems: 'center',
-        gap: 'var(--space-1)',
-        padding: '0.22rem var(--space-2)',
-        borderRadius: 'var(--radius-full)',
-        fontSize: 'var(--text-xs)',
-        fontWeight: 700,
-        letterSpacing: '0.05em',
+        gap: '4px',
+        padding: '3px 8px',
+        borderRadius: 'var(--radius-full, 9999px)',
+        fontSize: '11.5px',
+        fontWeight: 650,
+        letterSpacing: '0.04em',
         textTransform: 'uppercase',
         whiteSpace: 'nowrap',
         border: `1px solid ${tone.border}`,
-        boxShadow: '0 1px 1px rgba(16,33,43,0.03)',
+        boxShadow: '0 1px 2px rgba(15, 23, 42, 0.02)',
         background: tone.bg,
         color: tone.color,
-        lineHeight: 1,
+        lineHeight: 1.2,
       }}
     >
       {dot && (

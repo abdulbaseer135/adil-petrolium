@@ -84,6 +84,15 @@ describe('Input Component', () => {
     rerender(<Input type="password" />);
     input = screen.getByDisplayValue('');
     expect(input).toHaveAttribute('type', 'password');
+
+    // Show / Hide password toggle button test
+    const toggleBtn = screen.getByRole('button', { name: /show password/i });
+    expect(toggleBtn).toBeInTheDocument();
+    fireEvent.click(toggleBtn);
+    expect(input).toHaveAttribute('type', 'text');
+    expect(screen.getByRole('button', { name: /hide password/i })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /hide password/i }));
+    expect(input).toHaveAttribute('type', 'password');
   });
 
   it('handles value changes', () => {

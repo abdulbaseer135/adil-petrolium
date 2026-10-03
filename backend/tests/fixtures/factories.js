@@ -2,42 +2,95 @@
 /**
  * Test Fixtures — Factory Helpers
  * 
- * Generates consistent, unique test data for users, customers, and transactions.
+ * Generates consistent, unique test data for users, pumps, customers, and transactions.
  * All factories support overrides for customization.
  */
 
 const User = require('../../src/models/User');
-const CustomerProfile = require('../../src/models/CustomerProfile');
+const PetrolPump = require('../../src/models/PetrolPump');
+const CustomerPumpAccount = require('../../src/models/CustomerPumpAccount');
 const Transaction = require('../../src/models/Transaction');
 const RefreshToken = require('../../src/models/RefreshToken');
 
 let counter = 0;
 
 const syncCustomerBalance = async (customerId, currentBalance) => {
-  await CustomerProfile.findByIdAndUpdate(customerId, { currentBalance });
+  await CustomerPumpAccount.findByIdAndUpdate(customerId, { currentBalance });
 };
 
-/**
- * Generate unique identifier for test data
- * @returns {number} Monotonically increasing counter
- */
 const unique = () => ++counter;
 
 /**
- * Create admin user
- * @param {object} overrides - Properties to override defaults
- * @returns {Promise<User>} Saved admin user
- * 
- * Example:
- *   const admin1 = await createAdmin({ email: 'boss1@example.com' });
- *   const admin2 = await createAdmin({ email: 'boss2@example.com' });
+ * Create petrol pump directly
+ */
+const createPetrolPump = async (overrides = {}) => {
+  const num = unique();
+  const defaults = {
+    name: `Petrol Pump ${num}`,
+    registrationNumber: `REG-${num}`,
+    businessEmail: `pump${num}@example.com`,
+    city: 'Lahore',
+    province: 'Punjab',
+    status: 'approved',
+    approvedAt: new Date(),
+  };
+
+  // If no ownerAdminId provided, create a dummy ObjectId or admin
+  if (!overrides.ownerAdminId) {
+    const mongoose = require('mongoose');
+    defaults.ownerAdminId = new mongoose.Types.ObjectId();
+  }
+
+  const pump = await PetrolPump.create({ ...defaults, ...overrides });
+  return pump;
+};
+
+/**
+ * Create admin user with associated approved PetrolPump
  */
 const createAdmin = async (overrides = {}) => {
+  const num = unique();
   const defaults = {
-    name: `Test Admin ${unique()}`,
-    email: `admin${unique()}@example.com`,
+    name: `Test Admin ${num}`,
+    email: `admin${num}@example.com`,
     password: 'Admin@12345678',
     role: 'admin',
+    status: 'approved',
+    isActive: true,
+  };
+
+  const user = await User.create({ ...defaults, ...overrides });
+
+  // If admin doesn't have a petrol pump specified, create one
+  if (!user.petrolPumpId) {
+    const pump = await PetrolPump.create({
+      name: `${user.name}'s Station`,
+      ownerAdminId: user._id,
+      admins: [user._id],
+      businessEmail: user.email,
+      status: overrides.status === 'pending' ? 'pending' : (overrides.status || 'approved'),
+      approvedAt: overrides.status === 'pending' ? null : new Date(),
+    });
+
+    user.petrolPumpId = pump._id;
+    await user.save({ validateBeforeSave: false });
+    user.pump = pump;
+  }
+
+  return user;
+};
+
+/**
+ * Create super admin user
+ */
+const createSuperAdmin = async (overrides = {}) => {
+  const num = unique();
+  const defaults = {
+    name: `Super Admin ${num}`,
+    email: `superadmin${num}@example.com`,
+    password: 'SuperAdmin@12345678',
+    role: 'super_admin',
+    status: 'active',
     isActive: true,
   };
 
@@ -46,19 +99,7 @@ const createAdmin = async (overrides = {}) => {
 };
 
 /**
- * Create customer user with optional profile
- * 
- * @param {object} userOverrides - User document overrides
- * @param {object} profileOverrides - CustomerProfile document overrides
- * @param {object} options - Additional options
- * @param {boolean} options.createProfile - Whether to create profile (default: true)
- * @returns {Promise<{user, profile}>} User and optional CustomerProfile
- * 
- * Example:
- *   const { user, profile } = await createCustomer(
- *     { email: 'cust1@example.com' },
- *     { phone: '03001234567', address: 'Karachi' }
- *   );
+ * Create customer user with optional CustomerPumpAccount
  */
 const createCustomer = async (
   userOverrides = {},
@@ -74,6 +115,7 @@ const createCustomer = async (
     password: 'Cust@12345678',
     phone: `0300${String(num).padStart(7, '0')}`,
     role: 'customer',
+    status: 'active',
     isActive: true,
   };
 
@@ -81,19 +123,35 @@ const createCustomer = async (
 
   let profile = null;
   if (createProfile) {
+    let pumpId = profileOverrides.petrolPumpId;
+    if (!pumpId) {
+      const existingPump = await PetrolPump.findOne();
+      if (existingPump) {
+        pumpId = existingPump._id;
+      } else {
+        const defaultPump = await createPetrolPump();
+        pumpId = defaultPump._id;
+      }
+    }
+
     const profileDefaults = {
+      petrolPumpId: pumpId,
+      customerUserId: user._id,
       userId: user._id,
+      customerName: user.name,
       customerCode: `CUST${String(num).padStart(6, '0')}`,
       phone: user.phone,
       address: 'Test Address',
       currentBalance: 0,
       creditLimit: 50000,
       isActive: true,
+      status: 'active',
     };
 
-    profile = await CustomerProfile.create({
+    profile = await CustomerPumpAccount.create({
       ...profileDefaults,
       ...profileOverrides,
+      petrolPumpId: pumpId,
     });
   }
 
@@ -101,22 +159,23 @@ const createCustomer = async (
 };
 
 /**
- * Create customer owned by admin
- * Sets profile.createdBy to admin._id for ownership checks
- * 
- * @param {User} admin - Admin user who owns the customer
- * @param {object} userOverrides - Customer user overrides
- * @param {object} profileOverrides - CustomerProfile overrides
- * @returns {Promise<{user, profile}>} Customer with admin ownership
+ * Create customer owned by admin's petrol pump
  */
 const createOwnedCustomer = async (
   admin,
   userOverrides = {},
   profileOverrides = {}
 ) => {
+  let pumpId = admin.petrolPumpId || admin.pump?._id;
+  if (!pumpId) {
+    const pump = await PetrolPump.findOne({ admins: admin._id });
+    pumpId = pump?._id;
+  }
+
   const { user, profile } = await createCustomer(
     userOverrides,
     {
+      petrolPumpId: pumpId,
       createdBy: admin._id,
       ...profileOverrides,
     }
@@ -127,16 +186,6 @@ const createOwnedCustomer = async (
 
 /**
  * Create fuel sale transaction
- * 
- * @param {object} opts - Transaction options
- * @param {ObjectId} opts.customerId - Customer profile ID
- * @param {ObjectId} opts.userId - Customer user ID
- * @param {ObjectId} opts.createdBy - Admin user ID who created transaction
- * @param {string} opts.fuelType - 'pmg' | 'hsd' | 'nr' (default: 'pmg')
- * @param {number} opts.fuelQuantity - Liters (default: 10)
- * @param {number} opts.rate - Price per liter (default: 150)
- * @param {number} opts.previousBalance - Balance before transaction (default: 0)
- * @returns {Promise<Transaction>} Saved transaction
  */
 const createFuelSale = async (opts = {}) => {
   const {
@@ -153,11 +202,16 @@ const createFuelSale = async (opts = {}) => {
     throw new Error('createFuelSale requires customerId, userId, createdBy');
   }
 
+  const profile = await CustomerPumpAccount.findById(customerId);
+  const pumpId = opts.petrolPumpId || profile?.petrolPumpId;
+
   const totalAmount = fuelQuantity * rate;
   const updatedBalance = previousBalance + totalAmount;
 
   const tx = await Transaction.create({
+    petrolPumpId: pumpId,
     customerId,
+    customerAccountId: customerId,
     userId,
     createdBy,
     transactionType: 'fuel_sale',
@@ -176,14 +230,6 @@ const createFuelSale = async (opts = {}) => {
 
 /**
  * Create payment transaction
- * 
- * @param {object} opts - Transaction options
- * @param {ObjectId} opts.customerId - Customer profile ID
- * @param {ObjectId} opts.userId - Customer user ID
- * @param {ObjectId} opts.createdBy - Admin user ID
- * @param {number} opts.paymentReceived - Payment amount (default: 1000)
- * @param {number} opts.previousBalance - Balance before (default: 5000)
- * @returns {Promise<Transaction>} Saved transaction
  */
 const createPayment = async (opts = {}) => {
   const {
@@ -198,10 +244,15 @@ const createPayment = async (opts = {}) => {
     throw new Error('createPayment requires customerId, userId, createdBy');
   }
 
+  const profile = await CustomerPumpAccount.findById(customerId);
+  const pumpId = opts.petrolPumpId || profile?.petrolPumpId;
+
   const updatedBalance = previousBalance - paymentReceived;
 
   const tx = await Transaction.create({
+    petrolPumpId: pumpId,
     customerId,
+    customerAccountId: customerId,
     userId,
     createdBy,
     transactionType: 'payment',
@@ -217,13 +268,6 @@ const createPayment = async (opts = {}) => {
 
 /**
  * Create opening balance transaction
- * 
- * @param {object} opts - Transaction options
- * @param {ObjectId} opts.customerId - Customer profile ID
- * @param {ObjectId} opts.userId - Customer user ID
- * @param {ObjectId} opts.createdBy - Admin user ID
- * @param {number} opts.amount - Opening balance amount
- * @returns {Promise<Transaction>} Saved transaction
  */
 const createOpeningBalance = async (opts = {}) => {
   const {
@@ -237,8 +281,13 @@ const createOpeningBalance = async (opts = {}) => {
     throw new Error('createOpeningBalance requires customerId, userId, createdBy');
   }
 
+  const profile = await CustomerPumpAccount.findById(customerId);
+  const pumpId = opts.petrolPumpId || profile?.petrolPumpId;
+
   const tx = await Transaction.create({
+    petrolPumpId: pumpId,
     customerId,
+    customerAccountId: customerId,
     userId,
     createdBy,
     transactionType: 'opening_balance',
@@ -254,15 +303,6 @@ const createOpeningBalance = async (opts = {}) => {
 
 /**
  * Create credit note transaction
- * 
- * @param {object} opts - Transaction options
- * @param {ObjectId} opts.customerId - Customer profile ID
- * @param {ObjectId} opts.userId - Customer user ID
- * @param {ObjectId} opts.createdBy - Admin user ID
- * @param {number} opts.amount - Credit amount
- * @param {string} opts.referenceNo - Reference number
- * @param {number} opts.previousBalance - Balance before
- * @returns {Promise<Transaction>} Saved transaction
  */
 const createCreditNote = async (opts = {}) => {
   const {
@@ -278,11 +318,16 @@ const createCreditNote = async (opts = {}) => {
     throw new Error('createCreditNote requires customerId, userId, createdBy');
   }
 
+  const profile = await CustomerPumpAccount.findById(customerId);
+  const pumpId = opts.petrolPumpId || profile?.petrolPumpId;
+
   const signed = -Math.abs(amount);
   const updatedBalance = previousBalance + signed;
 
   const tx = await Transaction.create({
+    petrolPumpId: pumpId,
     customerId,
+    customerAccountId: customerId,
     userId,
     createdBy,
     transactionType: 'credit_note',
@@ -299,13 +344,6 @@ const createCreditNote = async (opts = {}) => {
 
 /**
  * Create refresh token
- * 
- * @param {object} opts - Options
- * @param {ObjectId} opts.userId - User ID
- * @param {string} opts.tokenHash - Hashed token (if not provided, generates random)
- * @param {string} opts.ipAddress - IP address (default: '127.0.0.1')
- * @param {string} opts.userAgent - User agent string
- * @returns {Promise<RefreshToken>} Saved refresh token
  */
 const createRefreshToken = async (opts = {}) => {
   const crypto = require('crypto');
@@ -332,7 +370,9 @@ const createRefreshToken = async (opts = {}) => {
 };
 
 module.exports = {
+  createPetrolPump,
   createAdmin,
+  createSuperAdmin,
   createCustomer,
   createOwnedCustomer,
   createFuelSale,

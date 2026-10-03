@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { Button } from '../ui/Button';
 import { downloadMyStatement } from '../../api/customerApi';
+import { downloadPumpStatement } from '../../api/customerPumpApi';
 import { toInputDatePK } from '../../utils/pkFormat';
 
-export const StatementDownload = ({ customerCode }) => {
+export const StatementDownload = ({ customerCode, pumpAccountId }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [start, setStart] = useState('');
@@ -14,12 +15,15 @@ export const StatementDownload = ({ customerCode }) => {
   const downloadExcel = async () => {
     setLoading(true); setError('');
     try {
-      const res = await downloadMyStatement({ startDate: start || undefined, endDate: end || undefined });
+      const params = { startDate: start || undefined, endDate: end || undefined };
+      const res = pumpAccountId
+        ? await downloadPumpStatement(pumpAccountId, params)
+        : await downloadMyStatement(params);
       const blob = new Blob([res.data], { type: res.headers?.['content-type'] || 'application/octet-stream' });
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.setAttribute('download', `statement_${customerCode}_${Date.now()}.xlsx`);
+      link.setAttribute('download', `statement_${customerCode || 'account'}_${Date.now()}.xlsx`);
       document.body.appendChild(link);
       link.click();
       link.remove();

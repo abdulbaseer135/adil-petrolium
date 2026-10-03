@@ -107,7 +107,7 @@ describe('Customers Integration Tests', function () {
       expect(res.body).to.have.property('success', false);
     });
 
-    it('should reject duplicate email with 409', async () => {
+    it('creates customer account without creating login credentials or password', async () => {
       const admin = await createAdmin();
       const agent = request.agent(app);
       await loginWithCsrf(agent, {
@@ -116,24 +116,18 @@ describe('Customers Integration Tests', function () {
       });
 
       const payload = {
-        name: 'Customer',
-        email: 'duplicate@example.com',
-        password: 'SecurePass@123',
-        customerCode: 'CUST-DUP1',
+        name: 'Ahmed Traders',
+        customerCode: 'CUST-LEDGER1',
         phone: '03001111111',
+        creditLimit: 500000,
+        openingBalance: 10000,
       };
 
-      const res1 = await postWithCsrf(agent, '/api/v1/customers', payload);
-      expect(res1.status).to.equal(201);
-
-      const res2 = await postWithCsrf(agent, '/api/v1/customers', {
-        ...payload,
-        customerCode: 'CUST-DUP2',
-      });
-
-      expect(res2.status).to.equal(409);
-      expect(res2.body).to.have.property('success', false);
-      expect(String(res2.body.message).toLowerCase()).to.include('email');
+      const res = await postWithCsrf(agent, '/api/v1/customers', payload);
+      expect(res.status).to.equal(201);
+      expect(res.body.data.customerCode).to.equal('CUST-LEDGER1');
+      expect(res.body.data.status).to.equal('unclaimed');
+      expect(res.body.data.customerUserId).to.be.oneOf([null, undefined]);
     });
 
     it('should reject duplicate customer code with 409', async () => {
@@ -146,8 +140,6 @@ describe('Customers Integration Tests', function () {
 
       const payload = {
         name: 'Customer',
-        email: 'email1@example.com',
-        password: 'SecurePass@123',
         customerCode: 'CUST-CODE',
         phone: '03001111111',
       };
@@ -157,7 +149,6 @@ describe('Customers Integration Tests', function () {
       const res2 = await postWithCsrf(agent, '/api/v1/customers', {
         ...payload,
         name: 'Different Customer',
-        email: 'email2@example.com',
       });
 
       expect(res2.status).to.equal(409);
@@ -172,11 +163,9 @@ describe('Customers Integration Tests', function () {
         password: 'Admin@12345678',
       });
 
+      // Missing name and customerCode
       const res = await postWithCsrf(agent, '/api/v1/customers', {
-        name: 'Customer',
-        // email: missing
-        password: 'SecurePass@123',
-        customerCode: 'CUST-001',
+        phone: '03001234567',
       });
 
       expect(res.status).to.equal(422); // validation error

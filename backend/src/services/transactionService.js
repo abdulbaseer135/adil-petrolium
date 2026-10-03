@@ -1,7 +1,7 @@
 'use strict';
 const mongoose = require('mongoose');
 const Transaction = require('../models/Transaction');
-const CustomerProfile = require('../models/CustomerProfile');
+const CustomerPumpAccount = require('../models/CustomerPumpAccount');
 const { createAuditLog } = require('./auditService');
 const AppError = require('../utils/AppError');
 const logger = require('../utils/logger');
@@ -78,6 +78,7 @@ const validatePayload = ({ transactionType, fuelType, paymentReceived, totalAmou
 };
 
 const createTransaction = async ({
+  petrolPumpId,
   customerId,
   transactionType,
   fuelType,
@@ -101,17 +102,23 @@ const createTransaction = async ({
     let updatedBalance;
     let finalAmount;
     let paymentReceivedAmount;
+    let targetPumpId;
 
     try {
       await session.withTransaction(async () => {
-        const profile = await CustomerProfile.findById(customerId)
-          .populate('userId', 'name email')
+        const profile = await CustomerPumpAccount.findById(customerId)
+          .populate('customerUserId', 'name email')
           .session(session);
 
         if (!profile) throw new AppError('Customer not found', 404);
 
+        if (petrolPumpId && String(profile.petrolPumpId) !== String(petrolPumpId)) {
+          throw new AppError('Customer does not belong to this petrol pump', 403);
+        }
+        targetPumpId = petrolPumpId || profile.petrolPumpId;
+
         // Prevent all transaction types for inactive customers
-        if (!profile.isActive) {
+        if (!profile.isActive || profile.status === 'inactive' || profile.status === 'suspended') {
           throw new AppError('Cannot create entries for inactive customers. Please activate the customer first.', 400);
         }
 
@@ -138,8 +145,6 @@ const createTransaction = async ({
         updatedBalance = normalizeMoney(previousBalance + finalAmount - paymentReceivedAmount);
 
         // Credit limit validation for fuel sales
-        // If creditLimit is 0, no limit applies
-        // If creditLimit > 0, check if the new balance would exceed it
         if (transactionType === 'fuel_sale' && profile.creditLimit > 0) {
           if (updatedBalance > profile.creditLimit) {
             throw new AppError(
@@ -149,11 +154,13 @@ const createTransaction = async ({
           }
         }
 
-        const userRef = profile.userId ? (profile.userId._id || profile.userId) : undefined;
+        const userRef = profile.customerUserId?._id || profile.userId?._id || profile.customerUserId || profile.userId;
 
         [tx] = await Transaction.create([{
+          petrolPumpId: targetPumpId,
           customerId,
-          userId: userRef,
+          customerAccountId: customerId,
+          userId: userRef || undefined,
           transactionType,
           fuelType: transactionType === 'fuel_sale' ? fuelType : undefined,
           fuelQuantity: fuelQuantity ? normalizeMoney(fuelQuantity) : undefined,
@@ -169,21 +176,23 @@ const createTransaction = async ({
           createdBy,
         }], { session });
 
-        await CustomerProfile.findByIdAndUpdate(customerId, {
+        await CustomerPumpAccount.findByIdAndUpdate(customerId, {
           currentBalance: updatedBalance,
         }, { session });
       });
     } catch (err) {
-      // If the deployment does not support transactions (single-node MongoDB),
-      // fall back to a best-effort non-transactional write to avoid 500 errors.
       if (String(err.message).toLowerCase().includes('transactions') || String(err.message).toLowerCase().includes('replica set')) {
         logger.warn({ err: err.message }, 'Transactions not supported; falling back to non-transactional write');
 
-        const profile = await CustomerProfile.findById(customerId).populate('userId', 'name email');
+        const profile = await CustomerPumpAccount.findById(customerId).populate('customerUserId', 'name email');
         if (!profile) throw new AppError('Customer not found', 404);
 
-        // Prevent all transaction types for inactive customers
-        if (!profile.isActive) {
+        if (petrolPumpId && String(profile.petrolPumpId) !== String(petrolPumpId)) {
+          throw new AppError('Customer does not belong to this petrol pump', 403);
+        }
+        targetPumpId = petrolPumpId || profile.petrolPumpId;
+
+        if (!profile.isActive || profile.status === 'inactive' || profile.status === 'suspended') {
           throw new AppError('Cannot create entries for inactive customers. Please activate the customer first.', 400);
         }
 
@@ -205,43 +214,63 @@ const createTransaction = async ({
           totalAmount: finalAmount,
         });
 
-        previousBalance = normalizeMoney(profile.currentBalance || 0);
         paymentReceivedAmount = normalizeMoney(paymentReceived || 0);
-        updatedBalance = normalizeMoney(previousBalance + finalAmount - paymentReceivedAmount);
+        const balanceDelta = normalizeMoney(finalAmount - paymentReceivedAmount);
 
-        // Credit limit validation for fuel sales
-        // If creditLimit is 0, no limit applies
-        // If creditLimit > 0, check if the new balance would exceed it
-        if (transactionType === 'fuel_sale' && profile.creditLimit > 0) {
-          if (updatedBalance > profile.creditLimit) {
+        // Atomic update with credit limit enforcement
+        let updatedAccount;
+        if (transactionType === 'fuel_sale' && profile.creditLimit > 0 && balanceDelta > 0) {
+          const maxAllowedCurrent = normalizeMoney(profile.creditLimit - balanceDelta);
+          updatedAccount = await CustomerPumpAccount.findOneAndUpdate(
+            { _id: customerId, currentBalance: { $lte: maxAllowedCurrent } },
+            { $inc: { currentBalance: balanceDelta } },
+            { new: true }
+          );
+          if (!updatedAccount) {
+            const currentAcc = await CustomerPumpAccount.findById(customerId);
+            const wouldBe = currentAcc ? normalizeMoney(currentAcc.currentBalance + balanceDelta) : profile.creditLimit + 1;
             throw new AppError(
-              `Credit limit exceeded. Current limit: PKR ${profile.creditLimit.toLocaleString('en-PK', { minimumFractionDigits: 2 })}. Would result in: PKR ${updatedBalance.toLocaleString('en-PK', { minimumFractionDigits: 2 })}`,
+              `Credit limit exceeded. Current limit: PKR ${profile.creditLimit.toLocaleString('en-PK', { minimumFractionDigits: 2 })}. Would result in: PKR ${wouldBe.toLocaleString('en-PK', { minimumFractionDigits: 2 })}`,
               400
             );
           }
+        } else {
+          updatedAccount = await CustomerPumpAccount.findByIdAndUpdate(
+            customerId,
+            { $inc: { currentBalance: balanceDelta } },
+            { new: true }
+          );
         }
 
-        const userRef = profile.userId ? (profile.userId._id || profile.userId) : undefined;
+        updatedBalance = normalizeMoney(updatedAccount.currentBalance);
+        previousBalance = normalizeMoney(updatedBalance - balanceDelta);
 
-        tx = await Transaction.create({
-          customerId,
-          userId: userRef,
-          transactionType,
-          fuelType: transactionType === 'fuel_sale' ? fuelType : undefined,
-          fuelQuantity: fuelQuantity ? normalizeMoney(fuelQuantity) : undefined,
-          rate: rate ? normalizeMoney(rate) : undefined,
-          totalAmount: finalAmount,
-          paymentReceived: paymentReceivedAmount,
-          previousBalance,
-          updatedBalance,
-          transactionDate: transactionDate ? new Date(transactionDate) : new Date(),
-          notes: notes || '',
-          referenceNo: referenceNo || '',
-          vehicleNo: vehicleNo || '',
-          createdBy,
-        });
+        const userRef = profile.customerUserId?._id || profile.userId?._id || profile.customerUserId || profile.userId;
 
-        await CustomerProfile.findByIdAndUpdate(customerId, { currentBalance: updatedBalance });
+        try {
+          tx = await Transaction.create({
+            petrolPumpId: targetPumpId,
+            customerId,
+            customerAccountId: customerId,
+            userId: userRef || undefined,
+            transactionType,
+            fuelType: transactionType === 'fuel_sale' ? fuelType : undefined,
+            fuelQuantity: fuelQuantity ? normalizeMoney(fuelQuantity) : undefined,
+            rate: rate ? normalizeMoney(rate) : undefined,
+            totalAmount: finalAmount,
+            paymentReceived: paymentReceivedAmount,
+            previousBalance,
+            updatedBalance,
+            transactionDate: transactionDate ? new Date(transactionDate) : new Date(),
+            notes: notes || '',
+            referenceNo: referenceNo || '',
+            vehicleNo: vehicleNo || '',
+            createdBy,
+          });
+        } catch (createErr) {
+          await CustomerPumpAccount.findByIdAndUpdate(customerId, { $inc: { currentBalance: -balanceDelta } });
+          throw createErr;
+        }
       } else {
         throw err;
       }
@@ -249,6 +278,7 @@ const createTransaction = async ({
 
     logger.info({
       txId: tx._id,
+      petrolPumpId: targetPumpId,
       customerId,
       transactionType,
       fuelType,
@@ -258,10 +288,11 @@ const createTransaction = async ({
       updatedBalance,
     }, 'Transaction created');
 
-    // Notify connected clients (SSE) for this customer
+    // Notify connected SSE clients for this customer
     try {
       sendEvent(customerId, 'transaction.created', {
         txId: tx._id,
+        petrolPumpId: targetPumpId,
         transactionType,
         totalAmount: finalAmount,
         paymentReceived,
@@ -274,10 +305,12 @@ const createTransaction = async ({
     }
 
     createAuditLog({
+      petrolPumpId: targetPumpId,
       action: 'TRANSACTION_CREATED',
       actor: createdBy,
       targetId: tx._id,
       targetModel: 'Transaction',
+      targetType: 'Transaction',
       details: {
         customerId,
         transactionType,
@@ -296,7 +329,7 @@ const createTransaction = async ({
   }
 };
 
-const voidTransaction = async ({ transactionId, voidedBy, voidReason, requestId }) => {
+const voidTransaction = async ({ petrolPumpId, transactionId, voidedBy, voidReason, requestId }) => {
   const session = await mongoose.startSession();
 
   try {
@@ -305,12 +338,15 @@ const voidTransaction = async ({ transactionId, voidedBy, voidReason, requestId 
 
     try {
       await session.withTransaction(async () => {
-        tx = await Transaction.findById(transactionId).session(session);
-        if (!tx) throw new AppError('Transaction not found', 404);
+        const query = { _id: transactionId };
+        if (petrolPumpId) query.petrolPumpId = petrolPumpId;
+
+        tx = await Transaction.findOne(query).session(session);
+        if (!tx) throw new AppError('Transaction not found or access denied', 404);
         if (tx.isVoided) throw new AppError('Transaction already voided', 400);
 
-        const profile = await CustomerProfile.findById(tx.customerId).session(session);
-        if (!profile) throw new AppError('Customer not found', 404);
+        const profile = await CustomerPumpAccount.findById(tx.customerId).session(session);
+        if (!profile) throw new AppError('Customer account not found', 404);
 
         reversedBalance = normalizeMoney(
           profile.currentBalance - tx.totalAmount + tx.paymentReceived
@@ -323,7 +359,7 @@ const voidTransaction = async ({ transactionId, voidedBy, voidReason, requestId 
           voidReason,
         }, { session });
 
-        await CustomerProfile.findByIdAndUpdate(tx.customerId, {
+        await CustomerPumpAccount.findByIdAndUpdate(tx.customerId, {
           currentBalance: reversedBalance,
         }, { session });
       });
@@ -331,16 +367,23 @@ const voidTransaction = async ({ transactionId, voidedBy, voidReason, requestId 
       if (String(err.message).toLowerCase().includes('transactions') || String(err.message).toLowerCase().includes('replica set')) {
         logger.warn({ err: err.message }, 'Transactions not supported; falling back to non-transactional void');
 
-        tx = await Transaction.findById(transactionId);
-        if (!tx) throw new AppError('Transaction not found', 404);
+        const query = { _id: transactionId };
+        if (petrolPumpId) query.petrolPumpId = petrolPumpId;
+
+        tx = await Transaction.findOne(query);
+        if (!tx) throw new AppError('Transaction not found or access denied', 404);
         if (tx.isVoided) throw new AppError('Transaction already voided', 400);
 
-        const profile = await CustomerProfile.findById(tx.customerId);
-        if (!profile) throw new AppError('Customer not found', 404);
+        const profile = await CustomerPumpAccount.findById(tx.customerId);
+        if (!profile) throw new AppError('Customer account not found', 404);
 
-        reversedBalance = normalizeMoney(
-          profile.currentBalance - tx.totalAmount + tx.paymentReceived
+        const reverseDelta = normalizeMoney(- tx.totalAmount + tx.paymentReceived);
+        const updatedAcc = await CustomerPumpAccount.findByIdAndUpdate(
+          tx.customerId,
+          { $inc: { currentBalance: reverseDelta } },
+          { new: true }
         );
+        reversedBalance = normalizeMoney(updatedAcc.currentBalance);
 
         await Transaction.findByIdAndUpdate(transactionId, {
           isVoided: true,
@@ -348,8 +391,6 @@ const voidTransaction = async ({ transactionId, voidedBy, voidReason, requestId 
           voidedAt: new Date(),
           voidReason,
         });
-
-        await CustomerProfile.findByIdAndUpdate(tx.customerId, { currentBalance: reversedBalance });
       } else {
         throw err;
       }
@@ -357,7 +398,6 @@ const voidTransaction = async ({ transactionId, voidedBy, voidReason, requestId 
 
     logger.info({ transactionId, voidedBy, reversedBalance }, 'Transaction voided');
 
-    // Notify clients about voided transaction
     try {
       sendEvent(tx.customerId, 'transaction.voided', {
         txId: tx._id,
@@ -369,10 +409,12 @@ const voidTransaction = async ({ transactionId, voidedBy, voidReason, requestId 
     }
 
     createAuditLog({
+      petrolPumpId: tx.petrolPumpId,
       action: 'TRANSACTION_VOIDED',
       actor: voidedBy,
       targetId: transactionId,
       targetModel: 'Transaction',
+      targetType: 'Transaction',
       details: { voidReason, reversedBalance },
       requestId,
     }).catch((err) => logger.warn({ err, transactionId }, 'Audit log failed for transaction voiding'));
@@ -384,6 +426,7 @@ const voidTransaction = async ({ transactionId, voidedBy, voidReason, requestId 
 };
 
 const getTransactions = async ({
+  petrolPumpId,
   customerId,
   startDate,
   endDate,
@@ -396,6 +439,7 @@ const getTransactions = async ({
 }) => {
   const query = { isVoided };
 
+  if (petrolPumpId) query.petrolPumpId = petrolPumpId;
   if (customerId) query.customerId = customerId;
   if (transactionType) query.transactionType = transactionType;
   if (fuelType) query.fuelType = fuelType;
@@ -425,7 +469,7 @@ const getTransactions = async ({
     .populate('createdBy', 'name')
     .populate({
       path: 'customerId',
-      select: 'customerCode currentBalance address phone',
+      select: 'customerCode customerName currentBalance address phone',
       populate: { path: 'userId', select: 'name email' },
     })
     .sort(sort)
