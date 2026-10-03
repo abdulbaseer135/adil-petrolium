@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { useLocation, useNavigate, Navigate } from 'react-router-dom';
+import { useLocation, useNavigate, Navigate, Link } from 'react-router-dom';
 import { useSelector } from 'react-redux';
+import { Fuel, ArrowLeft } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
@@ -62,7 +63,7 @@ export default function SuperAdminLogin() {
         minHeight: '100dvh',
         display: 'grid',
         placeItems: 'center',
-        background: 'var(--color-bg)',
+        background: 'var(--bg-page, #F5F7F8)',
         padding: '24px 16px',
       }}
     >
@@ -70,10 +71,10 @@ export default function SuperAdminLogin() {
         style={{
           width: '100%',
           maxWidth: 400,
-          background: 'var(--color-surface)',
-          border: '1px solid var(--color-border)',
-          borderRadius: '16px',
-          boxShadow: 'var(--shadow-md)',
+          background: 'var(--bg-surface, #FFFFFF)',
+          border: '1px solid var(--border-default, #E2E8EC)',
+          borderRadius: 'var(--radius-xl, 14px)',
+          boxShadow: 'var(--shadow-card)',
           padding: '32px 26px',
         }}
       >
@@ -82,43 +83,42 @@ export default function SuperAdminLogin() {
             style={{
               display: 'inline-flex',
               alignItems: 'center',
-              gap: '8px',
+              gap: '10px',
               marginBottom: '12px',
             }}
           >
             <div
               style={{
-                width: 36,
-                height: 36,
-                borderRadius: '8px',
+                width: 38,
+                height: 38,
+                borderRadius: 'var(--radius-md, 8px)',
                 background: 'var(--color-primary, #0B5D4B)',
-                color: '#fff',
+                color: '#ffffff',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                fontSize: '18px',
-                fontWeight: 700,
+                boxShadow: '0 4px 12px rgba(11, 93, 75, 0.35)',
               }}
             >
-              ⚡
+              <Fuel size={20} strokeWidth={2.4} />
             </div>
-            <span style={{ fontSize: '16px', fontWeight: 700, color: 'var(--color-text)' }}>
-              Petrol Management System
+            <span style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)' }}>
+              Petrol Management
             </span>
           </div>
 
           <h1
             style={{
               margin: '0 0 6px',
-              fontSize: '24px',
+              fontSize: '22px',
               fontWeight: 700,
-              color: 'var(--color-text)',
+              color: 'var(--text-primary)',
               letterSpacing: '-0.02em',
             }}
           >
-            Super Admin Login
+            Super Admin Console
           </h1>
-          <p style={{ margin: 0, fontSize: '13px', color: 'var(--color-text-muted)' }}>
+          <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-secondary)' }}>
             Sign in to access platform-wide governance and station controls
           </p>
         </div>
@@ -127,9 +127,9 @@ export default function SuperAdminLogin() {
           <div
             role="status"
             style={{
-              background: 'var(--color-success-soft, #EAF7EF)',
-              border: '1px solid rgba(24, 134, 75, 0.25)',
-              borderRadius: '10px',
+              background: 'var(--color-success-bg, #EAF7EF)',
+              border: '1px solid var(--color-success-border, #C8EBD5)',
+              borderRadius: 'var(--radius-md, 8px)',
               padding: '10px 12px',
               fontSize: '13px',
               color: 'var(--color-success, #18864B)',
@@ -146,12 +146,12 @@ export default function SuperAdminLogin() {
           <div
             role="alert"
             style={{
-              background: 'color-mix(in oklch, var(--color-error) 10%, var(--color-surface))',
-              border: '1px solid color-mix(in oklch, var(--color-error) 24%, transparent)',
-              borderRadius: '10px',
+              background: 'var(--color-danger-bg, #FDEEEE)',
+              border: '1px solid var(--color-danger-border, #F7CACA)',
+              borderRadius: 'var(--radius-md, 8px)',
               padding: '10px 12px',
               fontSize: '13px',
-              color: 'var(--color-error)',
+              color: 'var(--color-danger, #C64040)',
               marginBottom: '16px',
             }}
           >
@@ -186,22 +186,16 @@ export default function SuperAdminLogin() {
             type="submit"
             loading={submitting}
             fullWidth
-            style={{
-              marginTop: '6px',
-              justifyContent: 'center',
-              minHeight: 44,
-              fontSize: '14px',
-              fontWeight: 600,
-            }}
+            style={{ marginTop: '6px' }}
           >
-            Sign in as Super Admin
+            Sign in to Console
           </Button>
 
           <div style={{ marginTop: '16px', textAlign: 'center', fontSize: '13px' }}>
-            <a
-              href="/login"
+            <Link
+              to="/login"
               style={{
-                color: 'var(--color-text-muted)',
+                color: 'var(--text-secondary, #5B6870)',
                 textDecoration: 'none',
                 fontWeight: 500,
                 display: 'inline-flex',
@@ -209,8 +203,9 @@ export default function SuperAdminLogin() {
                 gap: '4px',
               }}
             >
-              ← Back to Regular Login
-            </a>
+              <ArrowLeft size={14} />
+              <span>Back to Regular Login</span>
+            </Link>
           </div>
         </form>
       </div>

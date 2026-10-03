@@ -1,10 +1,12 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { UserPlus, Search } from 'lucide-react';
 import { getCustomers }  from '../../api/customerApi';
 import { CustomerTable } from '../../components/admin/CustomerTable';
 import { Pagination }    from '../../components/common/Pagination';
 import { Button }        from '../../components/ui/Button';
-
+import { PageHeader }    from '../../components/layout/PageHeader';
+import { Card }          from '../../components/ui/Card';
 import { usePagination } from '../../hooks/usePagination';
 
 export default function Customers() {
@@ -28,18 +30,21 @@ export default function Customers() {
   }, [load]);
 
   return (
-    <div className="animate-fadeIn form-page">
-      <div className="form-hero">
-        <div className="form-hero__titleGroup">
-          <h1 className="form-hero__title">Customers</h1>
-          <p className="form-hero__subtitle">Search and manage customer accounts, balances, and access.</p>
-        </div>
-        <Button onClick={() => nav('/admin/customers/new')}>+ Add Customer</Button>
-      </div>
+    <div className="animate-fadeIn" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+      <PageHeader
+        title="Customers"
+        subtitle="Search and manage customer accounts, balances, and access."
+        actions={
+          <Button onClick={() => nav('/admin/customers/new')}>
+            <UserPlus size={16} />
+            <span>Add Customer</span>
+          </Button>
+        }
+      />
 
-      <div className="financial-detail-card">
-        <div className="financial-detail-card__body" style={{ display: 'flex', gap: 'var(--space-3)', flexWrap: 'wrap', alignItems: 'center' }}>
-          <div style={{ position: 'relative', flex: '1 1 320px', width: '100%', maxWidth: 420, minWidth: 240 }}>
+      <Card style={{ padding: '16px 20px' }}>
+        <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'center' }}>
+          <div style={{ position: 'relative', flex: '1 1 320px', maxWidth: 420 }}>
             <input
               value={search}
               onChange={e => setSearch(e.target.value)}
@@ -88,9 +93,12 @@ export default function Customers() {
               </button>
             )}
           </div>
-          <Button variant="secondary" onClick={() => { goTo(1); load(); }}>Search</Button>
+          <Button variant="secondary" onClick={() => { goTo(1); load(); }}>
+            <Search size={14} />
+            <span>Search</span>
+          </Button>
         </div>
-      </div>
+      </Card>
       <CustomerTable data={data} loading={loading} />
       <Pagination page={page} totalPages={meta?.totalPages} onPageChange={goTo} />
     </div>

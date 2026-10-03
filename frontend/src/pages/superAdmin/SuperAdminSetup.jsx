@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
+import { Fuel, ShieldCheck } from 'lucide-react';
 import { getSuperAdminSetupStatusApi, setupSuperAdminApi } from '../../api/authApi';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
@@ -61,10 +62,10 @@ export default function SuperAdminSetup() {
           minHeight: '100dvh',
           display: 'grid',
           placeItems: 'center',
-          background: 'var(--color-bg)',
+          background: 'var(--bg-page, #F5F7F8)',
         }}
       >
-        <div style={{ color: 'var(--color-text-muted)', fontSize: '14px' }}>
+        <div style={{ color: 'var(--text-secondary, #5B6870)', fontSize: '14px' }}>
           Verifying setup availability...
         </div>
       </div>
@@ -125,7 +126,7 @@ export default function SuperAdminSetup() {
         minHeight: '100dvh',
         display: 'grid',
         placeItems: 'center',
-        background: 'var(--color-bg)',
+        background: 'var(--bg-page, #F5F7F8)',
         padding: '24px 16px',
       }}
     >
@@ -133,10 +134,10 @@ export default function SuperAdminSetup() {
         style={{
           width: '100%',
           maxWidth: 440,
-          background: 'var(--color-surface)',
-          border: '1px solid var(--color-border)',
-          borderRadius: '16px',
-          boxShadow: 'var(--shadow-md)',
+          background: 'var(--bg-surface, #FFFFFF)',
+          border: '1px solid var(--border-default, #E2E8EC)',
+          borderRadius: 'var(--radius-xl, 14px)',
+          boxShadow: 'var(--shadow-card)',
           padding: '32px 28px',
         }}
       >
@@ -146,43 +147,42 @@ export default function SuperAdminSetup() {
             style={{
               display: 'inline-flex',
               alignItems: 'center',
-              gap: '8px',
+              gap: '10px',
               marginBottom: '12px',
             }}
           >
             <div
               style={{
-                width: 34,
-                height: 34,
-                borderRadius: '8px',
-                background: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)',
-                color: '#fff',
+                width: 38,
+                height: 38,
+                borderRadius: 'var(--radius-md, 8px)',
+                background: 'var(--color-primary, #0B5D4B)',
+                color: '#ffffff',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                fontSize: '18px',
-                fontWeight: 700,
+                boxShadow: '0 4px 12px rgba(11, 93, 75, 0.35)',
               }}
             >
-              ⚡
+              <Fuel size={20} strokeWidth={2.4} />
             </div>
-            <span style={{ fontSize: '16px', fontWeight: 700, color: 'var(--color-text)' }}>
-              Petrol Management System
+            <span style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)' }}>
+              Petrol Management
             </span>
           </div>
 
           <h1
             style={{
               margin: '0 0 6px',
-              fontSize: '24px',
+              fontSize: '22px',
               fontWeight: 700,
-              color: 'var(--color-text)',
+              color: 'var(--text-primary)',
               letterSpacing: '-0.02em',
             }}
           >
             Initialize Super Admin
           </h1>
-          <p style={{ margin: 0, fontSize: '14px', color: 'var(--color-text-muted)' }}>
+          <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-secondary)' }}>
             One-time bootstrap setup for system platform administration
           </p>
         </div>
@@ -191,12 +191,12 @@ export default function SuperAdminSetup() {
           <div
             role="alert"
             style={{
-              background: 'color-mix(in oklch, var(--color-error) 10%, var(--color-surface))',
-              border: '1px solid color-mix(in oklch, var(--color-error) 24%, transparent)',
-              borderRadius: '10px',
+              background: 'var(--color-danger-bg, #FDEEEE)',
+              border: '1px solid var(--color-danger-border, #F7CACA)',
+              borderRadius: 'var(--radius-md, 8px)',
               padding: '10px 12px',
               fontSize: '13px',
-              color: 'var(--color-error)',
+              color: 'var(--color-danger, #C64040)',
               marginBottom: '18px',
             }}
           >
@@ -247,29 +247,29 @@ export default function SuperAdminSetup() {
           <div
             style={{
               fontSize: '12px',
-              color: 'var(--color-text-muted)',
+              color: 'var(--text-secondary, #5B6870)',
               lineHeight: 1.5,
-              background: 'var(--color-bg)',
+              background: 'var(--bg-surface-secondary, #F9FAFB)',
               padding: '10px 12px',
-              borderRadius: '8px',
-              border: '1px solid var(--color-border)',
+              borderRadius: 'var(--radius-md, 8px)',
+              border: '1px solid var(--border-default, #E2E8EC)',
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: '8px',
             }}
           >
-            🔒 <strong>Security Note:</strong> Only the predefined email configured on the server
-            environment is authorized to complete this one-time initialization.
+            <ShieldCheck size={16} color="var(--color-primary, #0B5D4B)" style={{ flexShrink: 0, marginTop: 2 }} />
+            <div>
+              <strong>Security Note:</strong> Only the predefined email configured on the server
+              environment is authorized to complete this one-time initialization.
+            </div>
           </div>
 
           <Button
             type="submit"
             loading={submitting}
             fullWidth
-            style={{
-              marginTop: '4px',
-              justifyContent: 'center',
-              minHeight: 44,
-              fontSize: '14px',
-              fontWeight: 600,
-            }}
+            style={{ marginTop: '4px' }}
           >
             Create Super Admin Account
           </Button>

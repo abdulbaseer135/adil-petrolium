@@ -2,6 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { adminChangePassword } from '../../api/authApi';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
+import { PageHeader } from '../../components/layout/PageHeader';
+import { Card } from '../../components/ui/Card';
+import { Badge } from '../../components/ui/Badge';
 import { useAuth } from '../../hooks/useAuth';
 
 const AdminProfile = () => {
@@ -57,47 +60,45 @@ const AdminProfile = () => {
   const isFormValid = formData.oldPassword && formData.newPassword && formData.confirmPassword && passwordMatch;
 
   return (
-    <div className="form-page" style={{ padding: 'var(--space-6)', maxWidth: '960px', margin: '0 auto' }}>
-      <div className="form-hero">
-        <div className="form-hero__titleGroup">
-          <h1 className="form-hero__title">Admin Profile</h1>
-          <p className="form-hero__subtitle">Review your account details and update the password used for admin access.</p>
-        </div>
-      </div>
+    <div className="animate-fadeIn" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+      <PageHeader
+        title="Admin Profile"
+        subtitle="Review your account details and update credentials used for admin access."
+        actions={<Badge variant="primary">{user?.role?.toUpperCase() || 'STATION ADMIN'}</Badge>}
+      />
 
-      <div className="form-grid-2">
-        <div className="form-surface form-surface--padded">
-          <div className="form-section__header">
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '20px' }}>
+        <Card title="Profile Information" subtitle="Read-only account details for the current admin session.">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             <div>
-              <div className="form-section__title">Profile Information</div>
-              <div className="form-section__subtitle">Read-only account details for the current admin session.</div>
+              <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                Email Address
+              </label>
+              <p style={{ margin: '4px 0 0', fontSize: '15px', color: 'var(--text-primary)', fontWeight: 600 }}>
+                {user?.email || 'N/A'}
+              </p>
+            </div>
+            <div>
+              <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                Role & Permissions
+              </label>
+              <p style={{ margin: '4px 0 0', fontSize: '15px', color: 'var(--text-primary)', fontWeight: 600 }}>
+                {user?.role || 'N/A'}
+              </p>
+            </div>
+            <div>
+              <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                Last Login Session
+              </label>
+              <p style={{ margin: '4px 0 0', fontSize: '14px', color: 'var(--text-secondary)' }}>
+                {user?.lastLogin ? new Date(user.lastLogin).toLocaleString() : 'N/A'}
+              </p>
             </div>
           </div>
-          <div className="form-section" style={{ marginTop: 'var(--space-4)' }}>
-            <div>
-              <label className="form-field__label">Email</label>
-              <p style={{ margin: 0, fontSize: 'var(--text-base)', color: 'var(--color-text)' }}>{user?.email || 'N/A'}</p>
-            </div>
-            <div>
-              <label className="form-field__label">Role</label>
-              <p style={{ margin: 0, fontSize: 'var(--text-base)', color: 'var(--color-text)' }}>{user?.role || 'N/A'}</p>
-            </div>
-            <div>
-              <label className="form-field__label">Last Login</label>
-              <p style={{ margin: 0, fontSize: 'var(--text-base)', color: 'var(--color-text)' }}>{user?.lastLogin ? new Date(user.lastLogin).toLocaleString() : 'N/A'}</p>
-            </div>
-          </div>
-        </div>
+        </Card>
 
-        <div className="form-surface form-surface--padded">
-          <div className="form-section__header">
-            <div>
-              <div className="form-section__title">Change Password</div>
-              <div className="form-section__subtitle">Use a strong password and confirm it before saving.</div>
-            </div>
-          </div>
-
-          <form onSubmit={handleSubmit} className="form-section" style={{ marginTop: 'var(--space-4)' }}>
+        <Card title="Change Password" subtitle="Use a strong password and confirm it before saving.">
+          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
             <Input
               label="Current Password"
               type="password"
@@ -106,6 +107,7 @@ const AdminProfile = () => {
               value={formData.oldPassword}
               onChange={handleInputChange('oldPassword')}
               required
+              placeholder="••••••••"
             />
 
             <Input
@@ -117,6 +119,7 @@ const AdminProfile = () => {
               value={formData.newPassword}
               onChange={handleInputChange('newPassword')}
               required
+              placeholder="••••••••"
             />
 
             <Input
@@ -128,22 +131,23 @@ const AdminProfile = () => {
               value={formData.confirmPassword}
               onChange={handleInputChange('confirmPassword')}
               required
+              placeholder="••••••••"
             />
 
             {passwordMatch !== null && (
-              <div className="form-note" style={{ color: passwordMatch ? 'var(--color-success)' : 'var(--color-error)' }}>
+              <div style={{ fontSize: '13px', fontWeight: 500, color: passwordMatch ? 'var(--color-success)' : 'var(--color-danger)' }}>
                 {passwordMatch ? '✓ Passwords match' : '✗ Passwords do not match'}
               </div>
             )}
 
             {error && (
               <div style={{
-                background: 'color-mix(in oklch, var(--color-error) 8%, var(--color-surface))',
-                color: 'var(--color-error)',
-                padding: 'var(--space-3)',
-                borderRadius: 'var(--radius-md)',
-                border: '1px solid color-mix(in oklch, var(--color-error) 20%, var(--color-divider))',
-                fontSize: 'var(--text-sm)',
+                background: 'var(--color-danger-bg, #FDEEEE)',
+                color: 'var(--color-danger, #C64040)',
+                padding: '10px 12px',
+                borderRadius: 'var(--radius-md, 8px)',
+                border: '1px solid var(--color-danger-border, #F7CACA)',
+                fontSize: '13px',
               }}>
                 {error}
               </div>
@@ -151,28 +155,28 @@ const AdminProfile = () => {
 
             {success && (
               <div style={{
-                background: 'color-mix(in oklch, var(--color-success) 8%, var(--color-surface))',
-                color: 'var(--color-success)',
-                padding: 'var(--space-3)',
-                borderRadius: 'var(--radius-md)',
-                border: '1px solid color-mix(in oklch, var(--color-success) 20%, var(--color-divider))',
-                fontSize: 'var(--text-sm)',
+                background: 'var(--color-success-bg, #EAF7EF)',
+                color: 'var(--color-success, #18864B)',
+                padding: '10px 12px',
+                borderRadius: 'var(--radius-md, 8px)',
+                border: '1px solid var(--color-success-border, #C8EBD5)',
+                fontSize: '13px',
               }}>
                 {success}
               </div>
             )}
 
-            <div className="form-actions--stacked" style={{ marginTop: 'var(--space-2)' }}>
-              <Button
-                type="submit"
-                disabled={!isFormValid || loading}
-                style={{ width: '100%' }}
-              >
-                {loading ? 'Updating...' : 'Update Password'}
-              </Button>
-            </div>
+            <Button
+              type="submit"
+              disabled={!isFormValid || loading}
+              loading={loading}
+              fullWidth
+              style={{ marginTop: '4px' }}
+            >
+              Update Password
+            </Button>
           </form>
-        </div>
+        </Card>
       </div>
     </div>
   );

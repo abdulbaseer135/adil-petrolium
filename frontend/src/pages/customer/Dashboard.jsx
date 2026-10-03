@@ -2,6 +2,14 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import {
+  Fuel,
+  CreditCard,
+  Plus,
+  Clock,
+  AlertTriangle,
+  ArrowRight,
+} from 'lucide-react';
+import {
   getMyPumpAccounts,
   getPublicPetrolPumps,
   getAvailablePumps,
@@ -11,6 +19,13 @@ import {
 } from '../../api/customerPumpApi';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
+import { Badge } from '../../components/ui/Badge';
+import { EmptyState } from '../../components/ui/EmptyState';
+import { ErrorState } from '../../components/ui/ErrorState';
+import Modal from '../../components/ui/Modal';
+import Card from '../../components/ui/Card';
+import PageHeader from '../../components/layout/PageHeader';
+import StatCard from '../../components/dashboard/StatCard';
 import { formatMoneyPK } from '../../utils/pkFormat';
 
 export default function CustomerDashboard() {
@@ -71,7 +86,6 @@ export default function CustomerDashboard() {
     setRequestType('existing_account');
 
     try {
-      // Try public list first, fallback to available pumps
       let pumps = [];
       try {
         const pubRes = await getPublicPetrolPumps();
@@ -122,13 +136,12 @@ export default function CustomerDashboard() {
       const res = await submitLinkRequest(payload);
       setLinkSuccess(res.data?.message || 'Connection request submitted to the station manager for review.');
 
-      // Refresh dashboard data
       await fetchDashboardData();
 
       setTimeout(() => {
         setShowLinkModal(false);
         setLinkSuccess('');
-      }, 2000);
+      }, 1500);
     } catch (err) {
       setLinkError(
         err?.response?.data?.message ||
@@ -155,106 +168,74 @@ export default function CustomerDashboard() {
   const pendingRequests = requests.filter((r) => r.status === 'pending');
   const rejectedRequests = requests.filter((r) => r.status === 'rejected');
 
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '28px', maxWidth: 1200, margin: '0 auto' }}>
-      {/* Header Banner */}
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          flexWrap: 'wrap',
-          gap: '16px',
-          borderBottom: '1px solid var(--color-border)',
-          paddingBottom: '20px',
-        }}
-      >
-        <div>
-          <h1
-            style={{
-              fontSize: '26px',
-              fontWeight: 700,
-              margin: '0 0 6px',
-              color: 'var(--color-text)',
-              letterSpacing: '-0.02em',
-            }}
-          >
-            Welcome, {user?.name || 'Valued Customer'}
-          </h1>
-          <p style={{ margin: 0, fontSize: '14px', color: 'var(--color-text-muted)' }}>
-            Manage fuel ledger balances, view monthly statements, and inspect transactions across
-            all your connected petrol pumps
-          </p>
-        </div>
+  // Compute aggregate total outstanding across accounts
+  const totalOutstanding = accounts.reduce(
+    (sum, acc) => sum + (Number(acc.currentBalance) || 0),
+    0
+  );
 
-        <Button
-          onClick={() => openLinkModal()}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            minHeight: 42,
-            fontSize: '14px',
-            fontWeight: 600,
-            background: 'var(--color-primary)',
-          }}
-        >
-          <span>➕</span>
-          <span>Connect Another Petrol Pump</span>
-        </Button>
-      </div>
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+      {/* ─── Page Header ─── */}
+      <PageHeader
+        title={`Welcome, ${user?.name || 'Customer'}`}
+        subtitle="Manage fuel ledger balances, inspect statements, and track connected petrol pumps."
+        actions={
+          <Button
+            onClick={() => openLinkModal()}
+            variant="primary"
+            iconLeft={<Plus size={16} />}
+          >
+            Connect Another Petrol Pump
+          </Button>
+        }
+      />
 
       {/* Global Error Banner */}
       {error && (
-        <div
-          style={{
-            background: 'color-mix(in oklch, var(--color-error) 10%, var(--color-surface))',
-            padding: '16px',
-            borderRadius: '12px',
-            color: 'var(--color-error)',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-          }}
-        >
-          <span>{error}</span>
-          <Button onClick={fetchDashboardData} variant="secondary" style={{ padding: '6px 12px', fontSize: '13px' }}>
-            Retry
-          </Button>
-        </div>
+        <ErrorState message={error} onRetry={fetchDashboardData} />
       )}
 
-      {/* Pending Connection Requests Notice / Cards */}
-      {pendingRequests.length > 0 && (
-        <div
-          style={{
-            background: 'var(--color-surface)',
-            border: '1px solid var(--color-warning, #C47B12)',
-            borderRadius: '16px',
-            padding: '20px 24px',
-            boxShadow: 'var(--shadow-sm)',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
-            <span style={{ fontSize: '20px' }}>⏳</span>
-            <h3 style={{ fontSize: '16px', fontWeight: 700, margin: 0, color: 'var(--color-text)' }}>
-              Pending Connection Requests ({pendingRequests.length})
-            </h3>
-            <span
-              style={{
-                fontSize: '12px',
-                background: 'var(--color-warning-soft, #FFF6E5)',
-                color: 'var(--color-warning, #C47B12)',
-                padding: '2px 8px',
-                borderRadius: '999px',
-                fontWeight: 600,
-                border: '1px solid rgba(196, 123, 18, 0.25)',
-              }}
-            >
-              Waiting for Admin Approval
-            </span>
-          </div>
+      {/* ─── Account Summary KPIs ─── */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' }}>
+        <StatCard
+          icon={<CreditCard size={18} strokeWidth={2.2} />}
+          label="Total Balance"
+          value={formatMoneyPK(totalOutstanding)}
+          subtext={
+            totalOutstanding > 0
+              ? 'Payable across connected stations'
+              : totalOutstanding < 0
+              ? 'Advance credit balance'
+              : 'All accounts settled'
+          }
+          variant={totalOutstanding > 0 ? 'danger' : 'success'}
+        />
 
+        <StatCard
+          icon={<Fuel size={18} strokeWidth={2.2} />}
+          label="Connected Stations"
+          value={accounts.length}
+          subtext="Active station ledgers"
+          variant="primary"
+        />
+
+        <StatCard
+          icon={<Clock size={18} strokeWidth={2.2} />}
+          label="Pending Requests"
+          value={pendingRequests.length}
+          subtext="Awaiting station approval"
+          variant="warning"
+        />
+      </div>
+
+      {/* ─── Pending Connection Requests Notice ─── */}
+      {pendingRequests.length > 0 && (
+        <Card
+          title={`Pending Connection Requests (${pendingRequests.length})`}
+          subtitle="Waiting for station manager review and verification"
+          icon={<Clock size={16} />}
+        >
           <div
             style={{
               display: 'grid',
@@ -266,10 +247,10 @@ export default function CustomerDashboard() {
               <div
                 key={req._id}
                 style={{
-                  background: 'var(--color-surface-secondary, #F9FAFB)',
-                  border: '1px solid var(--color-border)',
-                  borderRadius: '12px',
-                  padding: '16px',
+                  background: 'var(--bg-surface-secondary, #F9FAFB)',
+                  border: '1px solid var(--border-default, #E2E8EC)',
+                  borderRadius: 'var(--radius-md, 8px)',
+                  padding: '14px',
                   display: 'flex',
                   flexDirection: 'column',
                   justifyContent: 'space-between',
@@ -278,83 +259,54 @@ export default function CustomerDashboard() {
               >
                 <div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                    <div style={{ fontWeight: 700, fontSize: '15px', color: 'var(--color-text)' }}>
-                      ⛽ {req.petrolPumpId?.name || 'Petrol Pump'}
+                    <div style={{ fontWeight: 600, fontSize: '14px', color: 'var(--text-primary, #17242D)' }}>
+                      {req.petrolPumpId?.name || 'Petrol Pump'}
                     </div>
-                    <span
-                      style={{
-                        fontSize: '11px',
-                        fontWeight: 700,
-                        padding: '2px 6px',
-                        borderRadius: '4px',
-                        background: 'var(--color-warning-soft, #FFF6E5)',
-                        color: 'var(--color-warning, #C47B12)',
-                        border: '1px solid rgba(196, 123, 18, 0.2)',
-                      }}
-                    >
-                      Pending
-                    </span>
+                    <Badge status="pending">Pending</Badge>
                   </div>
-                  <div style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginTop: '4px' }}>
+                  <div style={{ fontSize: '12px', color: 'var(--text-secondary, #5B6870)', marginTop: '4px' }}>
                     {req.petrolPumpId?.city ? `${req.petrolPumpId.city} • ` : ''}
                     {req.requestType === 'existing_account'
                       ? `Claiming Code: ${req.requestedCustomerCode || '—'}`
                       : 'New Customer Relationship'}
                   </div>
-                  <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', marginTop: '6px' }}>
+                  <div style={{ fontSize: '11px', color: 'var(--text-muted, #7A878E)', marginTop: '4px' }}>
                     Requested: {new Date(req.requestedAt || req.createdAt).toLocaleDateString()}
                   </div>
                 </div>
 
-                <div style={{ display: 'flex', justifyContent: 'flex-end', paddingTop: '8px', borderTop: '1px solid var(--color-border)' }}>
-                  <button
+                <div style={{ display: 'flex', justifyContent: 'flex-end', paddingTop: '8px', borderTop: '1px solid var(--border-divider, #E8ECEF)' }}>
+                  <Button
                     onClick={() => handleCancelRequest(req._id)}
                     disabled={cancellingId === req._id}
-                    style={{
-                      background: 'none',
-                      border: 'none',
-                      color: 'var(--color-error)',
-                      fontSize: '12px',
-                      cursor: 'pointer',
-                      fontWeight: 600,
-                      padding: '4px 8px',
-                    }}
+                    variant="ghost"
+                    size="sm"
+                    style={{ color: 'var(--color-danger, #C64040)' }}
                   >
                     {cancellingId === req._id ? 'Cancelling...' : 'Cancel Request'}
-                  </button>
+                  </Button>
                 </div>
               </div>
             ))}
           </div>
-        </div>
+        </Card>
       )}
 
-      {/* Rejected Requests Notice */}
+      {/* ─── Rejected Requests Notice ─── */}
       {rejectedRequests.length > 0 && (
-        <div
-          style={{
-            background: 'color-mix(in oklch, var(--color-error) 6%, var(--color-surface))',
-            border: '1px solid color-mix(in oklch, var(--color-error) 24%, transparent)',
-            borderRadius: '16px',
-            padding: '18px 22px',
-          }}
+        <Card
+          title={`Rejected Connection Requests (${rejectedRequests.length})`}
+          icon={<AlertTriangle size={16} />}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
-            <span style={{ fontSize: '18px' }}>⚠️</span>
-            <h3 style={{ fontSize: '15px', fontWeight: 700, margin: 0, color: 'var(--color-text)' }}>
-              Rejected Requests ({rejectedRequests.length})
-            </h3>
-          </div>
-
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             {rejectedRequests.map((req) => (
               <div
                 key={req._id}
                 style={{
-                  background: 'var(--color-surface)',
-                  border: '1px solid var(--color-border)',
-                  borderRadius: '10px',
-                  padding: '12px 16px',
+                  background: 'var(--bg-surface-secondary, #F9FAFB)',
+                  border: '1px solid var(--border-default, #E2E8EC)',
+                  borderRadius: 'var(--radius-md, 8px)',
+                  padding: '12px 14px',
                   display: 'flex',
                   justifyContent: 'space-between',
                   alignItems: 'center',
@@ -363,10 +315,10 @@ export default function CustomerDashboard() {
                 }}
               >
                 <div>
-                  <div style={{ fontWeight: 600, fontSize: '14px', color: 'var(--color-text)' }}>
+                  <div style={{ fontWeight: 600, fontSize: '14px', color: 'var(--text-primary, #17242D)' }}>
                     {req.petrolPumpId?.name || 'Petrol Pump'}
                   </div>
-                  <div style={{ fontSize: '12px', color: 'var(--color-error)', marginTop: '2px' }}>
+                  <div style={{ fontSize: '12px', color: 'var(--color-danger, #C64040)', marginTop: '2px' }}>
                     Reason: {req.rejectionReason || 'Verification could not be confirmed by the station manager.'}
                   </div>
                 </div>
@@ -374,79 +326,41 @@ export default function CustomerDashboard() {
                 <Button
                   onClick={() => openLinkModal(req.petrolPumpId?._id)}
                   variant="secondary"
-                  style={{ fontSize: '12px', padding: '6px 14px' }}
+                  size="sm"
                 >
                   Request Again
                 </Button>
               </div>
             ))}
           </div>
-        </div>
+        </Card>
       )}
 
-      {/* Main Section: Approved Petrol Pumps */}
-      <div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
-          <h2 style={{ fontSize: '19px', fontWeight: 700, margin: 0, color: 'var(--color-text)' }}>
-            My Petrol Pumps
-          </h2>
-          <span
-            style={{
-              background: 'rgba(79, 70, 229, 0.1)',
-              color: 'var(--color-primary)',
-              fontSize: '12px',
-              fontWeight: 700,
-              padding: '2px 8px',
-              borderRadius: '999px',
-            }}
-          >
-            {accounts.length} Connected
+      {/* ─── Connected Petrol Pump Accounts ─── */}
+      <Card
+        title="Connected Petrol Pumps"
+        subtitle="Active customer fuel accounts and balances"
+        icon={<Fuel size={16} />}
+        action={
+          <span style={{ fontSize: '12.5px', color: 'var(--text-muted, #7A878E)' }}>
+            {accounts.length} Station{accounts.length === 1 ? '' : 's'}
           </span>
-        </div>
-
+        }
+      >
         {loading ? (
-          <div style={{ padding: '48px', textAlign: 'center', color: 'var(--color-text-muted)' }}>
+          <div style={{ padding: '36px', textAlign: 'center', color: 'var(--text-muted, #7A878E)' }}>
             Loading your petrol pump accounts...
           </div>
         ) : accounts.length === 0 ? (
-          <div
-            style={{
-              background: 'var(--color-surface)',
-              border: '2px dashed var(--color-border)',
-              borderRadius: '16px',
-              padding: '48px 24px',
-              textAlign: 'center',
-            }}
-          >
-            <div style={{ fontSize: '44px', marginBottom: '14px' }}>⛽</div>
-            <h3
-              style={{
-                fontSize: '18px',
-                fontWeight: 700,
-                margin: '0 0 8px',
-                color: 'var(--color-text)',
-              }}
-            >
-              No Petrol Pumps Connected Yet
-            </h3>
-            <p
-              style={{
-                color: 'var(--color-text-muted)',
-                fontSize: '14px',
-                maxWidth: 460,
-                margin: '0 auto 24px',
-                lineHeight: 1.5,
-              }}
-            >
-              You have a global customer login. Connect your account to one or more petrol pump stations
-              to track purchases, view running balances, and inspect monthly statements.
-            </p>
-            <Button onClick={() => openLinkModal()} style={{ minHeight: 42, padding: '0 24px' }}>
-              Connect a Petrol Pump
-            </Button>
-          </div>
+          <EmptyState
+            icon={<Fuel size={36} />}
+            title="No Petrol Pumps Connected Yet"
+            description="Connect your customer account to a petrol pump station to inspect purchases, track balances, and download monthly statements."
+            action={() => openLinkModal()}
+            actionLabel="Connect a Petrol Pump"
+          />
         ) : (
-          <div className="responsive-card-grid">
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '16px' }}>
             {accounts.map((acc) => {
               const pump = acc.petrolPumpId;
               const isOwing = acc.currentBalance > 0;
@@ -456,19 +370,19 @@ export default function CustomerDashboard() {
                 <div
                   key={acc._id}
                   style={{
-                    background: 'var(--color-surface)',
-                    border: '1px solid var(--color-border)',
-                    borderRadius: '16px',
-                    padding: '22px',
-                    boxShadow: 'var(--shadow-sm)',
+                    background: 'var(--bg-surface, #FFFFFF)',
+                    border: '1px solid var(--border-default, #E2E8EC)',
+                    borderRadius: 'var(--radius-lg, 12px)',
+                    padding: '18px',
                     display: 'flex',
                     flexDirection: 'column',
                     justifyContent: 'space-between',
-                    transition: 'transform 0.15s ease, box-shadow 0.15s ease',
+                    boxShadow: 'var(--shadow-sm)',
+                    transition: 'all 150ms ease',
                   }}
                 >
                   <div>
-                    {/* Top Row: Station info & status */}
+                    {/* Header */}
                     <div
                       style={{
                         display: 'flex',
@@ -481,21 +395,17 @@ export default function CustomerDashboard() {
                       <div>
                         <div
                           style={{
-                            fontSize: '18px',
+                            fontSize: '16px',
                             fontWeight: 700,
-                            color: 'var(--color-text)',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '8px',
+                            color: 'var(--text-primary, #17242D)',
                           }}
                         >
-                          <span>⛽</span>
-                          <span>{pump?.name || 'Petrol Pump'}</span>
+                          {pump?.name || 'Petrol Pump'}
                         </div>
                         <div
                           style={{
-                            fontSize: '13px',
-                            color: 'var(--color-text-muted)',
+                            fontSize: '12.5px',
+                            color: 'var(--text-muted, #7A878E)',
                             marginTop: '2px',
                           }}
                         >
@@ -504,21 +414,7 @@ export default function CustomerDashboard() {
                       </div>
 
                       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
-                        <span
-                          style={{
-                            fontSize: '11px',
-                            fontWeight: 700,
-                            padding: '3px 8px',
-                            borderRadius: '6px',
-                            background: 'var(--color-success-soft, #EAF7EF)',
-                            color: 'var(--color-success, #18864B)',
-                            letterSpacing: '0.04em',
-                            textTransform: 'uppercase',
-                            border: '1px solid rgba(24, 134, 75, 0.2)',
-                          }}
-                        >
-                          ✓ Approved
-                        </span>
+                        <Badge status="approved">Active</Badge>
                         <span
                           style={{
                             fontSize: '11px',
@@ -535,95 +431,83 @@ export default function CustomerDashboard() {
                       </div>
                     </div>
 
-                    {/* Balance display */}
+                    {/* Balance */}
                     <div
                       style={{
-                        background: 'var(--color-surface-secondary, #F9FAFB)',
-                        border: '1px solid var(--color-border)',
-                        borderRadius: '12px',
-                        padding: '16px',
-                        marginBottom: '16px',
+                        background: 'var(--bg-surface-secondary, #F9FAFB)',
+                        border: '1px solid var(--border-default, #E2E8EC)',
+                        borderRadius: 'var(--radius-md, 8px)',
+                        padding: '14px',
+                        marginBottom: '14px',
                       }}
                     >
                       <div
                         style={{
-                          fontSize: '12px',
-                          color: 'var(--color-text-muted)',
+                          fontSize: '11.5px',
+                          color: 'var(--text-secondary, #5B6870)',
                           fontWeight: 600,
                           textTransform: 'uppercase',
+                          letterSpacing: '0.04em',
                         }}
                       >
-                        Current Outstanding Balance
+                        Outstanding Balance
                       </div>
                       <div
                         style={{
-                          fontSize: '24px',
-                          fontWeight: 800,
+                          fontSize: '22px',
+                          fontWeight: 700,
                           marginTop: '4px',
+                          fontVariantNumeric: 'tabular-nums',
                           color: isOwing
                             ? 'var(--color-danger, #C64040)'
                             : isCredit
                             ? 'var(--color-success, #18864B)'
-                            : 'var(--color-text-primary, #17242D)',
+                            : 'var(--text-primary, #17242D)',
                         }}
                       >
                         {formatMoneyPK(acc.currentBalance)}
                       </div>
                       <div
                         style={{
-                          fontSize: '12px',
-                          marginTop: '6px',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '6px',
+                          fontSize: '11.5px',
+                          marginTop: '4px',
+                          color: 'var(--text-muted, #7A878E)',
                         }}
                       >
-                        <span
-                          style={{
-                            display: 'inline-block',
-                            width: 8,
-                            height: 8,
-                            borderRadius: '50%',
-                            background: isOwing ? 'var(--color-danger, #C64040)' : isCredit ? 'var(--color-success, #18864B)' : 'var(--color-text-muted, #7A878E)',
-                          }}
-                        />
-                        <span style={{ color: 'var(--color-text-muted)' }}>
-                          {isOwing
-                            ? 'Payable to Station'
-                            : isCredit
-                            ? 'Advance Credit in your favor'
-                            : 'Zero Balance / Settled'}
-                        </span>
+                        {isOwing
+                          ? 'Payable to Station'
+                          : isCredit
+                          ? 'Advance Credit in your favor'
+                          : 'Zero Balance / Settled'}
                       </div>
                     </div>
 
-                    {/* Account Metadata */}
+                    {/* Metadata */}
                     <div
                       style={{
                         display: 'grid',
                         gridTemplateColumns: '1fr 1fr',
-                        gap: '8px',
+                        gap: '6px',
                         fontSize: '12px',
-                        color: 'var(--color-text-muted)',
-                        marginBottom: '20px',
+                        color: 'var(--text-secondary, #5B6870)',
+                        marginBottom: '16px',
                       }}
                     >
                       <div>
                         <span>Credit Limit: </span>
-                        <strong style={{ color: 'var(--color-text)' }}>
+                        <strong style={{ color: 'var(--text-primary)' }}>
                           {acc.creditLimit > 0 ? formatMoneyPK(acc.creditLimit) : 'No Limit'}
                         </strong>
                       </div>
                       <div>
-                        <span>Station Contact: </span>
-                        <strong style={{ color: 'var(--color-text)' }}>
+                        <span>Contact: </span>
+                        <strong style={{ color: 'var(--text-primary)' }}>
                           {pump?.businessPhone || '—'}
                         </strong>
                       </div>
                     </div>
                   </div>
 
-                  {/* Open Account Action Button */}
                   <Link
                     to={`/dashboard/pumps/${acc._id}`}
                     style={{
@@ -631,309 +515,169 @@ export default function CustomerDashboard() {
                       alignItems: 'center',
                       justifyContent: 'center',
                       gap: '8px',
-                      padding: '11px 16px',
-                      borderRadius: '10px',
-                      background: 'var(--color-primary)',
-                      color: '#fff',
-                      fontSize: '14px',
+                      padding: '10px 14px',
+                      borderRadius: 'var(--radius-md, 8px)',
+                      background: 'var(--color-primary, #0B5D4B)',
+                      color: '#ffffff',
+                      fontSize: '13.5px',
                       fontWeight: 600,
                       textDecoration: 'none',
-                      transition: 'opacity 0.15s ease',
                     }}
                   >
-                    <span>View Account</span>
-                    <span>→</span>
+                    <span>View Account & Statement</span>
+                    <ArrowRight size={15} />
                   </Link>
                 </div>
               );
             })}
           </div>
         )}
-      </div>
+      </Card>
 
-      {/* Connect Another Petrol Pump Modal */}
-      {showLinkModal && (
-        <div
-          onClick={() => setShowLinkModal(false)}
-          className="modal-overlay"
-          role="dialog"
-          aria-modal="true"
-        >
+      {/* ─── Connect Station Modal ─── */}
+      <Modal
+        isOpen={showLinkModal}
+        onClose={() => setShowLinkModal(false)}
+        title="Connect Petrol Pump Station"
+        maxWidth={500}
+      >
+        <p style={{ margin: '0 0 16px', fontSize: '13px', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+          Link your account to an existing station customer record or request a new customer ledger relationship.
+        </p>
+
+        {linkError && (
           <div
-            onClick={(e) => e.stopPropagation()}
-            className="modal-container"
+            role="alert"
+            style={{
+              background: 'var(--color-danger-bg, #FDEEEE)',
+              border: '1px solid var(--color-danger-border, #F7CACA)',
+              borderRadius: '8px',
+              padding: '10px 14px',
+              fontSize: '13px',
+              color: 'var(--color-danger, #C64040)',
+              marginBottom: '16px',
+            }}
           >
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                marginBottom: '16px',
-              }}
-            >
-              <h3
-                style={{
-                  margin: 0,
-                  fontSize: '19px',
-                  fontWeight: 700,
-                  color: 'var(--color-text)',
-                }}
-              >
-                Connect Petrol Pump Station
-              </h3>
-              <button
-                onClick={() => setShowLinkModal(false)}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  fontSize: '20px',
-                  cursor: 'pointer',
-                  color: 'var(--color-text-muted)',
-                }}
-              >
-                ✕
-              </button>
-            </div>
-
-            <p
-              style={{
-                fontSize: '13px',
-                color: 'var(--color-text-muted)',
-                lineHeight: 1.5,
-                marginTop: 0,
-                marginBottom: '18px',
-              }}
-            >
-              Link your login account to an existing station customer record or request a new customer
-              ledger relationship. The station manager will review and authorize your request.
-            </p>
-
-            {linkError && (
-              <div
-                role="alert"
-                style={{
-                  background: 'color-mix(in oklch, var(--color-error) 10%, var(--color-surface))',
-                  border: '1px solid color-mix(in oklch, var(--color-error) 24%, transparent)',
-                  borderRadius: '10px',
-                  padding: '11px 14px',
-                  fontSize: '13px',
-                  color: 'var(--color-error)',
-                  marginBottom: '16px',
-                }}
-              >
-                {linkError}
-              </div>
-            )}
-
-            {linkSuccess && (
-              <div
-                role="alert"
-                style={{
-                  background: 'rgba(16, 185, 129, 0.12)',
-                  border: '1px solid rgba(16, 185, 129, 0.3)',
-                  borderRadius: '10px',
-                  padding: '11px 14px',
-                  fontSize: '13px',
-                  color: '#059669',
-                  marginBottom: '16px',
-                  textAlign: 'center',
-                  fontWeight: 600,
-                }}
-              >
-                ✓ {linkSuccess}
-              </div>
-            )}
-
-            <form
-              onSubmit={handleLinkSubmit}
-              style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}
-            >
-              {/* Pump Select */}
-              <div>
-                <label
-                  style={{
-                    display: 'block',
-                    fontSize: '13px',
-                    fontWeight: 600,
-                    marginBottom: '6px',
-                    color: 'var(--color-text)',
-                  }}
-                >
-                  Select Petrol Pump
-                </label>
-                <select
-                  value={selectedPumpId}
-                  onChange={(e) => setSelectedPumpId(e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '10px 12px',
-                    borderRadius: '8px',
-                    border: '1px solid var(--color-border)',
-                    background: 'var(--color-bg)',
-                    color: 'var(--color-text)',
-                    fontSize: '14px',
-                  }}
-                  required
-                >
-                  {availablePumps.map((p) => (
-                    <option key={p._id} value={p._id}>
-                      {p.name} {p.city ? `(${p.city})` : ''}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Relationship Type Radio */}
-              <div>
-                <label
-                  style={{
-                    display: 'block',
-                    fontSize: '13px',
-                    fontWeight: 600,
-                    marginBottom: '8px',
-                    color: 'var(--color-text)',
-                  }}
-                >
-                  Do you already have a customer account with this petrol pump?
-                </label>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  <label
-                    style={{
-                      display: 'flex',
-                      alignItems: 'flex-start',
-                      gap: '10px',
-                      padding: '10px 12px',
-                      borderRadius: '8px',
-                      border: '1px solid var(--color-border)',
-                      cursor: 'pointer',
-                      background: requestType === 'existing_account' ? 'rgba(79, 70, 229, 0.05)' : 'transparent',
-                    }}
-                  >
-                    <input
-                      type="radio"
-                      name="requestType"
-                      value="existing_account"
-                      checked={requestType === 'existing_account'}
-                      onChange={() => setRequestType('existing_account')}
-                      style={{ marginTop: '2px' }}
-                    />
-                    <div>
-                      <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-text)' }}>
-                        Yes, I already deal with this petrol pump
-                      </div>
-                      <div style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
-                        Connect to your existing ledger account using your assigned customer code.
-                      </div>
-                    </div>
-                  </label>
-
-                  <label
-                    style={{
-                      display: 'flex',
-                      alignItems: 'flex-start',
-                      gap: '10px',
-                      padding: '10px 12px',
-                      borderRadius: '8px',
-                      border: '1px solid var(--color-border)',
-                      cursor: 'pointer',
-                      background: requestType === 'new_relationship' ? 'rgba(79, 70, 229, 0.05)' : 'transparent',
-                    }}
-                  >
-                    <input
-                      type="radio"
-                      name="requestType"
-                      value="new_relationship"
-                      checked={requestType === 'new_relationship'}
-                      onChange={() => setRequestType('new_relationship')}
-                      style={{ marginTop: '2px' }}
-                    />
-                    <div>
-                      <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-text)' }}>
-                        No, I want to request a new customer relationship
-                      </div>
-                      <div style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
-                        Request the station to open a new credit/fuel account for you.
-                      </div>
-                    </div>
-                  </label>
-                </div>
-              </div>
-
-              {/* Conditional Inputs */}
-              {requestType === 'existing_account' ? (
-                <>
-                  <Input
-                    label="Customer Code assigned by pump"
-                    value={customerCode}
-                    onChange={(e) => setCustomerCode(e.target.value)}
-                    placeholder="e.g. AP-100 or CUST-001"
-                    required
-                  />
-
-                  <Input
-                    label="Registered Mobile Phone (for verification)"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    placeholder="03001234567"
-                  />
-                </>
-              ) : (
-                <>
-                  <Input
-                    label="Business or Trade Name (Optional)"
-                    value={notes}
-                    onChange={(e) => setNotes(e.target.value)}
-                    placeholder="e.g. Ahmed Logistics / Personal Vehicle"
-                  />
-                  <Input
-                    label="Contact Phone"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    placeholder="03001234567"
-                  />
-                </>
-              )}
-
-              {/* Security notice */}
-              <div
-                style={{
-                  background: 'var(--color-bg)',
-                  border: '1px solid var(--color-border)',
-                  borderRadius: '8px',
-                  padding: '10px 12px',
-                  fontSize: '12px',
-                  color: 'var(--color-text-muted)',
-                  lineHeight: 1.4,
-                }}
-              >
-                🔒 <strong>Privacy & Security:</strong> For security and confidentiality, financial
-                details and statements are never displayed until authorized by the petrol pump administrator.
-              </div>
-
-              {/* Actions */}
-              <div
-                style={{
-                  display: 'flex',
-                  justifyContent: 'flex-end',
-                  gap: '10px',
-                  marginTop: '6px',
-                }}
-              >
-                <Button
-                  type="button"
-                  variant="secondary"
-                  onClick={() => setShowLinkModal(false)}
-                >
-                  Cancel
-                </Button>
-                <Button type="submit" loading={submitting}>
-                  Submit Request for Approval
-                </Button>
-              </div>
-            </form>
+            {linkError}
           </div>
-        </div>
-      )}
+        )}
+
+        {linkSuccess && (
+          <div
+            role="alert"
+            style={{
+              background: 'var(--color-success-bg, #EAF7EF)',
+              border: '1px solid var(--color-success-border, #C8EBD5)',
+              borderRadius: '8px',
+              padding: '10px 14px',
+              fontSize: '13px',
+              color: 'var(--color-success, #18864B)',
+              marginBottom: '16px',
+              fontWeight: 600,
+            }}
+          >
+            ✓ {linkSuccess}
+          </div>
+        )}
+
+        <form onSubmit={handleLinkSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          <div>
+            <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+              Select Petrol Pump
+            </label>
+            <select
+              value={selectedPumpId}
+              onChange={(e) => setSelectedPumpId(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '9px 12px',
+                borderRadius: 'var(--radius-md, 8px)',
+                border: '1px solid var(--border-default, #E2E8EC)',
+                background: 'var(--bg-surface, #FFFFFF)',
+                color: 'var(--text-primary, #17242D)',
+                fontSize: '13.5px',
+              }}
+              required
+            >
+              {availablePumps.map((p) => (
+                <option key={p._id} value={p._id}>
+                  {p.name} {p.city ? `(${p.city})` : ''}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+              Relationship Type
+            </label>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', cursor: 'pointer' }}>
+                <input
+                  type="radio"
+                  name="reqType"
+                  value="existing_account"
+                  checked={requestType === 'existing_account'}
+                  onChange={() => setRequestType('existing_account')}
+                />
+                <span>I already have an account code at this station</span>
+              </label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', cursor: 'pointer' }}>
+                <input
+                  type="radio"
+                  name="reqType"
+                  value="new_relationship"
+                  checked={requestType === 'new_relationship'}
+                  onChange={() => setRequestType('new_relationship')}
+                />
+                <span>I am requesting a new customer relationship</span>
+              </label>
+            </div>
+          </div>
+
+          {requestType === 'existing_account' && (
+            <Input
+              label="Assigned Customer Code"
+              placeholder="e.g. CUST-1042"
+              value={customerCode}
+              onChange={(e) => setCustomerCode(e.target.value)}
+              required
+            />
+          )}
+
+          <Input
+            label="Phone Number"
+            type="tel"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            placeholder="03001234567"
+          />
+
+          <Input
+            label="Additional Notes (Optional)"
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            placeholder="Vehicle details or account info"
+          />
+
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px' }}>
+            <Button
+              variant="outline"
+              type="button"
+              onClick={() => setShowLinkModal(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="primary"
+              type="submit"
+              loading={submitting}
+            >
+              Submit Connection Request
+            </Button>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 }

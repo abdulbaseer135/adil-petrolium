@@ -1,7 +1,10 @@
 import React, { useState } from 'react';
+import { KeyRound } from 'lucide-react';
 import { regenerateRecoveryKey } from '../../api/authApi';
 import { Button } from '../../components/ui/Button';
 import { RecoveryKeyBox } from '../../components/ui/RecoveryKeyBox';
+import { PageHeader } from '../../components/layout/PageHeader';
+import { Card } from '../../components/ui/Card';
 
 const RecoveryKey = () => {
   const [loading, setLoading] = useState(false);
@@ -24,51 +27,48 @@ const RecoveryKey = () => {
   };
 
   return (
-    <div className="form-page" style={{ padding: 'var(--space-6)', maxWidth: '640px', margin: '0 auto' }}>
-      <div className="form-hero">
-        <div className="form-hero__titleGroup">
-          <h1 className="form-hero__title">Recovery Key Management</h1>
-          <p className="form-hero__subtitle">Generate a new recovery key and save it securely before leaving the page.</p>
-        </div>
-      </div>
+    <div className="animate-fadeIn" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+      <PageHeader
+        title="Recovery Key Management"
+        subtitle="Generate a new recovery key and save it securely before leaving the page."
+      />
 
-      <div className="form-surface form-surface--padded form-section">
-        <div className="form-section__header">
-          <div>
-            <div className="form-section__title">Regenerate Recovery Key</div>
-            <div className="form-section__subtitle">The old key will be invalidated when a new one is generated.</div>
+      <div style={{ maxWidth: 640 }}>
+        <Card
+          title="Regenerate Recovery Key"
+          subtitle="The old key will be immediately invalidated when a new one is generated."
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            {error && (
+              <div style={{
+                background: 'var(--color-danger-bg, #FDEEEE)',
+                color: 'var(--color-danger, #C64040)',
+                padding: '10px 12px',
+                borderRadius: 'var(--radius-md, 8px)',
+                border: '1px solid var(--color-danger-border, #F7CACA)',
+                fontSize: '13px',
+              }}>
+                {error}
+              </div>
+            )}
+
+            {newKey && (
+              <div>
+                <RecoveryKeyBox recoveryKey={newKey} />
+              </div>
+            )}
+
+            <Button
+              onClick={handleRegenerate}
+              disabled={loading}
+              loading={loading}
+              fullWidth
+            >
+              <KeyRound size={16} />
+              <span>{loading ? 'Generating...' : 'Generate New Recovery Key'}</span>
+            </Button>
           </div>
-        </div>
-
-        {error && (
-          <div style={{
-            background: 'color-mix(in oklch, var(--color-error) 8%, var(--color-surface))',
-            color: 'var(--color-error)',
-            padding: 'var(--space-3)',
-            borderRadius: 'var(--radius-md)',
-            border: '1px solid color-mix(in oklch, var(--color-error) 20%, var(--color-divider))',
-            marginBottom: 'var(--space-4)',
-            fontSize: 'var(--text-sm)',
-          }}>
-            {error}
-          </div>
-        )}
-
-        {newKey && (
-          <div style={{ marginBottom: 'var(--space-4)' }}>
-            <RecoveryKeyBox recoveryKey={newKey} />
-          </div>
-        )}
-
-        <div className="form-actions--stacked">
-          <Button
-            onClick={handleRegenerate}
-            disabled={loading}
-            style={{ width: '100%' }}
-          >
-            {loading ? 'Generating...' : 'Generate New Recovery Key'}
-          </Button>
-        </div>
+        </Card>
       </div>
     </div>
   );

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link, Navigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
+import { Fuel, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
@@ -11,10 +12,10 @@ const Loader = () => (
       minHeight: '100dvh',
       display: 'grid',
       placeItems: 'center',
-      background: 'var(--color-bg)',
+      background: 'var(--bg-page, #F5F7F8)',
     }}
   >
-    <div style={{ color: 'var(--color-text-muted)', fontSize: 'var(--text-sm)' }}>
+    <div style={{ color: 'var(--text-muted, #7A878E)', fontSize: '14px' }}>
       Loading...
     </div>
   </div>
@@ -49,7 +50,7 @@ export default function LoginPage() {
 
     try {
       await login({ email: email.trim(), password });
-    } catch (err) {
+    } catch {
       // Error is tracked in Redux state (error) and displayed in the alert UI below
     } finally {
       setSubmitting(false);
@@ -62,66 +63,57 @@ export default function LoginPage() {
         minHeight: '100dvh',
         display: 'grid',
         placeItems: 'center',
-        background: 'var(--color-bg)',
+        background: 'var(--bg-page, #F5F7F8)',
         padding: '24px 16px',
       }}
     >
       <div
         style={{
           width: '100%',
-          maxWidth: 400,
-          background: 'var(--color-surface)',
-          border: '1px solid var(--color-border)',
-          borderRadius: '18px',
-          boxShadow: 'var(--shadow-md)',
-          padding: 'clamp(20px, 5vw, 28px) clamp(16px, 5vw, 24px)',
+          maxWidth: 420,
+          background: 'var(--bg-surface, #FFFFFF)',
+          border: '1px solid var(--border-default, #E2E8EC)',
+          borderRadius: 'var(--radius-xl, 14px)',
+          boxShadow: 'var(--shadow-card)',
+          padding: '32px 28px',
         }}
       >
-        {/* Top Header bar with Super Admin Login link */}
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            flexWrap: 'wrap',
-            gap: '8px',
-            marginBottom: '20px',
-            paddingBottom: '12px',
-            borderBottom: '1px solid var(--color-border)',
-          }}
-        >
-          <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--color-text-muted)' }}>
-            Petrol Management System
-          </span>
-          <Link
-            to="/super-admin/login"
-            id="top-super-admin-btn"
+        {/* Brand Block */}
+        <div style={{ marginBottom: '24px', textAlign: 'center' }}>
+          <div
             style={{
-              fontSize: '12px',
-              fontWeight: 600,
-              color: 'var(--color-primary)',
-              textDecoration: 'none',
               display: 'inline-flex',
               alignItems: 'center',
-              gap: '4px',
-              padding: '4px 10px',
-              borderRadius: '6px',
-              background: 'var(--color-primary-soft, #EAF5F1)',
-              border: '1px solid rgba(11, 93, 75, 0.25)',
+              gap: '10px',
+              marginBottom: '12px',
             }}
           >
-            <span>⚡</span>
-            <span>Super Admin</span>
-          </Link>
-        </div>
+            <div
+              style={{
+                width: 38,
+                height: 38,
+                borderRadius: 'var(--radius-md, 8px)',
+                background: 'var(--color-primary, #0B5D4B)',
+                color: '#ffffff',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: '0 4px 12px rgba(11, 93, 75, 0.35)',
+              }}
+            >
+              <Fuel size={20} strokeWidth={2.4} />
+            </div>
+            <span style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)' }}>
+              Petrol Management
+            </span>
+          </div>
 
-        <div style={{ marginBottom: '20px', textAlign: 'center' }}>
           <h1
             style={{
-              margin: 0,
-              fontSize: '30px',
+              margin: '0 0 6px',
+              fontSize: '22px',
               fontWeight: 700,
-              color: 'var(--color-text)',
+              color: 'var(--text-primary)',
               letterSpacing: '-0.02em',
             }}
           >
@@ -130,15 +122,31 @@ export default function LoginPage() {
 
           <p
             style={{
-              marginTop: '6px',
-              marginBottom: 0,
-              fontSize: '14px',
-              color: 'var(--color-text-muted)',
+              margin: 0,
+              fontSize: '13px',
+              color: 'var(--text-secondary)',
             }}
           >
-            Sign in to access your dashboard
+            Sign in to access your portal
           </p>
         </div>
+
+        {error && (
+          <div
+            role="alert"
+            style={{
+              background: 'var(--color-danger-bg, #FDEEEE)',
+              border: '1px solid var(--color-danger-border, #F7CACA)',
+              borderRadius: 'var(--radius-md, 8px)',
+              padding: '10px 12px',
+              fontSize: '13px',
+              color: 'var(--color-danger, #C64040)',
+              marginBottom: '16px',
+            }}
+          >
+            {error}
+          </div>
+        )}
 
         <form
           onSubmit={handleSubmit}
@@ -157,6 +165,7 @@ export default function LoginPage() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
+            placeholder="you@domain.com"
           />
 
           <Input
@@ -167,24 +176,8 @@ export default function LoginPage() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
+            placeholder="••••••••"
           />
-
-          {error ? (
-            <div
-              role="alert"
-              aria-live="polite"
-              style={{
-                background: 'color-mix(in oklch, var(--color-error) 10%, var(--color-surface))',
-                border: '1px solid color-mix(in oklch, var(--color-error) 24%, transparent)',
-                borderRadius: '10px',
-                padding: '10px 12px',
-                fontSize: '14px',
-                color: 'var(--color-error)',
-              }}
-            >
-              {error}
-            </div>
-          ) : null}
 
           <Button
             type="submit"
@@ -193,17 +186,14 @@ export default function LoginPage() {
             style={{
               marginTop: '6px',
               justifyContent: 'center',
-              minHeight: 44,
-              fontSize: '14px',
-              fontWeight: 600,
             }}
           >
             Sign in
           </Button>
 
-          <div style={{ marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '8px', textAlign: 'center', fontSize: '13px' }}>
+          <div style={{ marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '10px', textAlign: 'center', fontSize: '13px' }}>
             <div>
-              <span style={{ color: 'var(--color-text-muted)' }}>Station Owner? </span>
+              <span style={{ color: 'var(--text-secondary)' }}>Station Owner? </span>
               <Link
                 to="/signup/petrol-pump"
                 style={{
@@ -216,7 +206,7 @@ export default function LoginPage() {
               </Link>
             </div>
             <div>
-              <span style={{ color: 'var(--color-text-muted)' }}>Fuel Customer? </span>
+              <span style={{ color: 'var(--text-secondary)' }}>Fuel Customer? </span>
               <Link
                 to="/signup/customer"
                 style={{
@@ -230,7 +220,7 @@ export default function LoginPage() {
             </div>
 
             {/* Dedicated Super Admin Login Button */}
-            <div style={{ marginTop: '12px', paddingTop: '14px', borderTop: '1px solid var(--color-border)' }}>
+            <div style={{ marginTop: '12px', paddingTop: '14px', borderTop: '1px solid var(--border-default)' }}>
               <Link
                 to="/super-admin/login"
                 id="super-admin-login-button"
@@ -240,20 +230,19 @@ export default function LoginPage() {
                   justifyContent: 'center',
                   gap: '8px',
                   width: '100%',
-                  padding: '11px 16px',
-                  borderRadius: '10px',
-                  border: '1px solid rgba(11, 93, 75, 0.3)',
-                  background: 'var(--color-primary-soft, #EAF5F1)',
-                  color: 'var(--color-primary, #0B5D4B)',
+                  padding: '9px 16px',
+                  borderRadius: 'var(--radius-md, 8px)',
+                  border: '1px solid var(--border-default)',
+                  background: 'var(--bg-surface-secondary, #F9FAFB)',
+                  color: 'var(--text-secondary, #5B6870)',
                   fontSize: '13px',
                   fontWeight: 600,
                   textDecoration: 'none',
                   transition: 'all 0.15s ease',
-                  boxShadow: 'var(--shadow-xs)',
                 }}
               >
-                <span style={{ fontSize: '15px' }}>⚡</span>
-                <span>Super Admin Login</span>
+                <ShieldCheck size={16} color="var(--color-primary)" />
+                <span>Super Admin Console</span>
               </Link>
             </div>
           </div>

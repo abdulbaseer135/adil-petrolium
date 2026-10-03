@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { Fuel, CheckCircle } from 'lucide-react';
 import { registerAdminApi } from '../../api/authApi';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
@@ -59,18 +60,18 @@ export default function RegisterPetrolPump() {
           minHeight: '100dvh',
           display: 'grid',
           placeItems: 'center',
-          background: 'var(--color-bg)',
+          background: 'var(--bg-page, #F5F7F8)',
           padding: '24px 16px',
         }}
       >
         <div
           style={{
             width: '100%',
-            maxWidth: 520,
-            background: 'var(--color-surface)',
-            border: '1px solid var(--color-border)',
-            borderRadius: '16px',
-            boxShadow: 'var(--shadow-md)',
+            maxWidth: 500,
+            background: 'var(--bg-surface, #FFFFFF)',
+            border: '1px solid var(--border-default, #E2E8EC)',
+            borderRadius: 'var(--radius-xl, 14px)',
+            boxShadow: 'var(--shadow-card)',
             padding: '36px 28px',
             textAlign: 'center',
           }}
@@ -80,32 +81,31 @@ export default function RegisterPetrolPump() {
               width: 56,
               height: 56,
               borderRadius: '50%',
-              background: 'var(--color-success-soft, #EAF7EF)',
+              background: 'var(--color-success-bg, #EAF7EF)',
               color: 'var(--color-success, #18864B)',
-              border: '1px solid rgba(24, 134, 75, 0.25)',
+              border: '1px solid var(--color-success-border, #C8EBD5)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              fontSize: 28,
               margin: '0 auto 20px',
             }}
           >
-            ✓
+            <CheckCircle size={32} />
           </div>
           <h2
             style={{
               margin: '0 0 10px',
-              fontSize: '24px',
+              fontSize: '22px',
               fontWeight: 700,
-              color: 'var(--color-text)',
+              color: 'var(--text-primary)',
             }}
           >
             Registration Submitted
           </h2>
           <p
             style={{
-              color: 'var(--color-text-muted)',
-              fontSize: '15px',
+              color: 'var(--text-secondary)',
+              fontSize: '14px',
               lineHeight: 1.6,
               marginBottom: '24px',
             }}
@@ -114,7 +114,7 @@ export default function RegisterPetrolPump() {
             and submitted for approval. Our platform Super Administrator will review your details
             shortly.
           </p>
-          <Button onClick={() => navigate('/login')} fullWidth style={{ minHeight: 44 }}>
+          <Button onClick={() => navigate('/login')} fullWidth>
             Return to Login
           </Button>
         </div>
@@ -128,7 +128,7 @@ export default function RegisterPetrolPump() {
         minHeight: '100dvh',
         display: 'grid',
         placeItems: 'center',
-        background: 'var(--color-bg)',
+        background: 'var(--bg-page, #F5F7F8)',
         padding: '32px 16px',
       }}
     >
@@ -136,11 +136,11 @@ export default function RegisterPetrolPump() {
         style={{
           width: '100%',
           maxWidth: 640,
-          background: 'var(--color-surface)',
-          border: '1px solid var(--color-border)',
-          borderRadius: '16px',
-          boxShadow: 'var(--shadow-md)',
-          padding: 'clamp(20px, 4vw, 32px) clamp(16px, 4vw, 28px)',
+          background: 'var(--bg-surface, #FFFFFF)',
+          border: '1px solid var(--border-default, #E2E8EC)',
+          borderRadius: 'var(--radius-xl, 14px)',
+          boxShadow: 'var(--shadow-card)',
+          padding: '32px 28px',
         }}
       >
         <div style={{ marginBottom: '24px', textAlign: 'center' }}>
@@ -148,32 +148,41 @@ export default function RegisterPetrolPump() {
             style={{
               display: 'inline-flex',
               alignItems: 'center',
-              gap: '8px',
+              gap: '10px',
               marginBottom: '12px',
             }}
           >
-            <svg width="32" height="32" viewBox="0 0 40 40" fill="none">
-              <rect width="40" height="40" rx="10" fill="var(--color-primary)" />
-              <rect x="8" y="22" width="8" height="12" rx="2" fill="white" />
-              <rect x="20" y="16" width="8" height="18" rx="2" fill="white" opacity="0.8" />
-              <path d="M8 14 L20 8 L32 14" stroke="white" strokeWidth="2.5" strokeLinecap="round" />
-            </svg>
-            <span style={{ fontSize: '18px', fontWeight: 700, color: 'var(--color-text)' }}>
-              Petrol Management System
+            <div
+              style={{
+                width: 38,
+                height: 38,
+                borderRadius: 'var(--radius-md, 8px)',
+                background: 'var(--color-primary, #0B5D4B)',
+                color: '#ffffff',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: '0 4px 12px rgba(11, 93, 75, 0.35)',
+              }}
+            >
+              <Fuel size={20} strokeWidth={2.4} />
+            </div>
+            <span style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)' }}>
+              Petrol Management
             </span>
           </div>
           <h1
             style={{
               margin: '0 0 6px',
-              fontSize: '26px',
+              fontSize: '22px',
               fontWeight: 700,
-              color: 'var(--color-text)',
+              color: 'var(--text-primary)',
               letterSpacing: '-0.02em',
             }}
           >
             Register Petrol Pump
           </h1>
-          <p style={{ margin: 0, fontSize: '14px', color: 'var(--color-text-muted)' }}>
+          <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-secondary)' }}>
             Submit your petrol pump station for multi-tenant SaaS onboarding
           </p>
         </div>
@@ -182,12 +191,12 @@ export default function RegisterPetrolPump() {
           <div
             role="alert"
             style={{
-              background: 'color-mix(in oklch, var(--color-error) 10%, var(--color-surface))',
-              border: '1px solid color-mix(in oklch, var(--color-error) 24%, transparent)',
-              borderRadius: '10px',
-              padding: '12px 14px',
-              fontSize: '14px',
-              color: 'var(--color-error)',
+              background: 'var(--color-danger-bg, #FDEEEE)',
+              border: '1px solid var(--color-danger-border, #F7CACA)',
+              borderRadius: 'var(--radius-md, 8px)',
+              padding: '10px 12px',
+              fontSize: '13px',
+              color: 'var(--color-danger, #C64040)',
               marginBottom: '20px',
             }}
           >

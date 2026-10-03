@@ -1,26 +1,29 @@
 import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Fuel, DollarSign, AlertCircle, CheckCircle2, XCircle } from 'lucide-react';
 import { getCustomers } from '../../api/customerApi';
 import { createTransaction } from '../../api/transactionApi';
 import { Button } from '../../components/ui/Button';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { Input } from '../../components/ui/Input';
 import { Select } from '../../components/ui/Select';
+import { PageHeader } from '../../components/layout/PageHeader';
+import { StatCard } from '../../components/dashboard/StatCard';
 import { useToast } from '../../hooks/useToast';
-import { pkInputDateTimeToIso, toInputDateTimePK } from '../../utils/pkFormat';
+import { pkInputDateTimeToIso, toInputDateTimePK, formatPKR } from '../../utils/pkFormat';
 
 const SECTION_TITLE = {
-  fontSize: 'var(--text-xs)',
+  fontSize: '12px',
   fontWeight: 700,
   textTransform: 'uppercase',
   letterSpacing: '0.08em',
-  color: 'var(--color-text-muted)',
+  color: 'var(--text-muted)',
 };
 
 const fuelOptions = [
-  { value: 'pmg', label: 'PMG' },
-  { value: 'hsd', label: 'HSD' },
-  { value: 'nr', label: 'NR' },
+  { value: 'pmg', label: 'PMG (Super Petrol)' },
+  { value: 'hsd', label: 'HSD (High Speed Diesel)' },
+  { value: 'nr', label: 'NR (Normal / Other)' },
 ];
 
 const formatMoney = (value) =>
@@ -157,25 +160,25 @@ export default function FuelEntry() {
   };
 
   return (
-    <div className="animate-fadeIn form-page">
-      <div className="form-hero">
-        <div className="form-hero__titleGroup">
-          <h1 className="form-hero__title">Fuel Entry</h1>
-          <p className="form-hero__subtitle">Record PMG, HSD, or NR sales from this separate admin page.</p>
-        </div>
-      </div>
+    <div className="animate-fadeIn" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+      <PageHeader
+        title="Fuel Entry"
+        subtitle="Record PMG, HSD, or NR sales from this operational console."
+      />
 
-      <div className="report-stat-grid">
-        <div className="financial-summary-card">
-          <div style={SECTION_TITLE}>Fuel Types</div>
-          <div style={{ marginTop: 'var(--space-2)', fontWeight: 700 }}>PMG, HSD, NR</div>
-          <div className="financial-summary-hint">Choose the fuel type before saving the sale.</div>
-        </div>
-        <div className="financial-summary-card">
-          <div style={SECTION_TITLE}>Entry Amount</div>
-          <div style={{ marginTop: 'var(--space-2)', fontWeight: 700 }}>{formatMoney(amount)}</div>
-          <div className="financial-summary-hint">Calculated from quantity multiplied by rate.</div>
-        </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px' }}>
+        <StatCard
+          title="Fuel Types"
+          value="PMG · HSD · NR"
+          icon={<Fuel size={20} />}
+          description="Choose the fuel type before saving the sale"
+        />
+        <StatCard
+          title="Calculated Amount"
+          value={formatPKR(amount)}
+          icon={<DollarSign size={20} />}
+          description="Quantity multiplied by unit rate"
+        />
       </div>
 
       <form onSubmit={submit} className="form-section">
@@ -258,18 +261,24 @@ export default function FuelEntry() {
               {/* Inactive customer warning */}
               {!selectedCustomer.isActive && (
                 <div style={{
-                  marginTop: 'var(--space-4)',
-                  padding: 'var(--space-4)',
-                  background: 'color-mix(in oklch, var(--color-error) 10%, var(--color-surface))',
-                  border: '1px solid color-mix(in oklch, var(--color-error) 30%, transparent)',
-                  borderRadius: 'var(--radius-lg)',
-                  color: 'var(--color-error)',
-                  fontSize: 'var(--text-sm)',
-                  fontWeight: 600
+                  marginTop: '16px',
+                  padding: '14px 16px',
+                  background: 'var(--color-danger-bg, #FDEEEE)',
+                  border: '1px solid var(--color-danger-border, #F7CACA)',
+                  borderRadius: 'var(--radius-md, 8px)',
+                  color: 'var(--color-danger, #C64040)',
+                  fontSize: '13px',
+                  fontWeight: 500,
+                  display: 'flex',
+                  gap: '10px',
+                  alignItems: 'flex-start',
                 }}>
-                  <div style={{ marginBottom: 'var(--space-2)' }}>❌ This customer is inactive</div>
-                  <div style={{ fontSize: 'var(--text-xs)', opacity: 0.9 }}>
-                    Fuel entries cannot be created for inactive customers. Please activate this customer first.
+                  <XCircle size={18} style={{ flexShrink: 0, marginTop: 2 }} />
+                  <div>
+                    <div style={{ fontWeight: 700, marginBottom: 2 }}>This customer is inactive</div>
+                    <div style={{ opacity: 0.9 }}>
+                      Fuel entries cannot be created for inactive customers. Please activate this customer first.
+                    </div>
                   </div>
                 </div>
               )}
@@ -277,31 +286,38 @@ export default function FuelEntry() {
               {/* Credit limit warning */}
               {selectedCustomer.creditLimit > 0 && amount > 0 && (
                 <div style={{
-                  marginTop: 'var(--space-4)',
-                  padding: 'var(--space-4)',
+                  marginTop: '16px',
+                  padding: '14px 16px',
                   background: exceedsCreditLimit 
-                    ? 'color-mix(in oklch, var(--color-error) 10%, var(--color-surface))'
-                    : 'color-mix(in oklch, var(--color-warning) 10%, var(--color-surface))',
-                  border: `1px solid color-mix(in oklch, ${exceedsCreditLimit ? 'var(--color-error)' : 'var(--color-warning)'} 30%, transparent)`,
-                  borderRadius: 'var(--radius-lg)',
-                  color: exceedsCreditLimit ? 'var(--color-error)' : 'var(--color-warning)',
-                  fontSize: 'var(--text-sm)',
-                  fontWeight: 600
+                    ? 'var(--color-danger-bg, #FDEEEE)'
+                    : 'var(--color-warning-bg, #FFF8EC)',
+                  border: `1px solid ${exceedsCreditLimit ? 'var(--color-danger-border, #F7CACA)' : 'var(--color-warning-border, #FDE6B8)'}`,
+                  borderRadius: 'var(--radius-md, 8px)',
+                  color: exceedsCreditLimit ? 'var(--color-danger, #C64040)' : 'var(--color-warning, #C47B12)',
+                  fontSize: '13px',
+                  fontWeight: 500,
+                  display: 'flex',
+                  gap: '10px',
+                  alignItems: 'flex-start',
                 }}>
                   {exceedsCreditLimit ? (
                     <>
-                      <div style={{ marginBottom: 'var(--space-2)' }}>❌ Credit limit would be exceeded</div>
-                      <div style={{ fontSize: 'var(--text-xs)', opacity: 0.9 }}>
-                        Limit: {formatMoney(selectedCustomer.creditLimit)} | 
-                        Projected Balance: {formatMoney(projectedBalance)}
+                      <AlertCircle size={18} style={{ flexShrink: 0, marginTop: 2 }} />
+                      <div>
+                        <div style={{ fontWeight: 700, marginBottom: 2 }}>Credit limit would be exceeded</div>
+                        <div style={{ opacity: 0.9 }}>
+                          Limit: {formatMoney(selectedCustomer.creditLimit)} | Projected Balance: {formatMoney(projectedBalance)}
+                        </div>
                       </div>
                     </>
                   ) : (
                     <>
-                      <div style={{ marginBottom: 'var(--space-2)' }}>✓ Within credit limit</div>
-                      <div style={{ fontSize: 'var(--text-xs)', opacity: 0.9 }}>
-                        Limit: {formatMoney(selectedCustomer.creditLimit)} | 
-                        Projected Balance: {formatMoney(projectedBalance)}
+                      <CheckCircle2 size={18} style={{ flexShrink: 0, marginTop: 2 }} />
+                      <div>
+                        <div style={{ fontWeight: 700, marginBottom: 2 }}>Within credit limit</div>
+                        <div style={{ opacity: 0.9 }}>
+                          Limit: {formatMoney(selectedCustomer.creditLimit)} | Projected Balance: {formatMoney(projectedBalance)}
+                        </div>
                       </div>
                     </>
                   )}
@@ -388,8 +404,8 @@ export default function FuelEntry() {
         </div>
 
         {error ? (
-          <div style={{ marginTop: 'var(--space-4)' }}>
-            <EmptyState icon="⚠️" title="Submission Failed" description={error} />
+          <div style={{ marginTop: '16px' }}>
+            <EmptyState icon={<AlertCircle size={32} color="var(--color-danger)" />} title="Submission Failed" description={error} />
           </div>
         ) : null}
       </form>

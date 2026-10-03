@@ -1,13 +1,33 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import {
+  Users,
+  CreditCard,
+  Fuel,
+  BarChart3,
+  Calendar,
+  Download,
+  FileText,
+  UserPlus,
+  ArrowRight,
+  Bell,
+  Sparkles,
+  TrendingUp,
+} from 'lucide-react';
 import { getCustomers } from '../../api/customerApi';
 import { getTransactions } from '../../api/transactionApi';
 import { getDaily } from '../../api/reportApi';
 import { getAdminLinkRequests } from '../../api/customerPumpApi';
 import { SkeletonCard } from '../../components/ui/Skeleton';
 import { ErrorState } from '../../components/ui/ErrorState';
+import { EmptyState } from '../../components/ui/EmptyState';
+import { Badge } from '../../components/ui/Badge';
+import { Button } from '../../components/ui/Button';
+import Card from '../../components/ui/Card';
+import PageHeader from '../../components/layout/PageHeader';
+import StatCard from '../../components/dashboard/StatCard';
+import QuickAction from '../../components/dashboard/QuickAction';
 import { formatCurrencyPK, formatNumberPK, toInputDatePK, formatDatePK } from '../../utils/pkFormat';
-import '../../styles/adminDashboard.css';
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
@@ -22,7 +42,7 @@ export default function AdminDashboard() {
   const [error, setError] = useState('');
   const [timeRange, setTimeRange] = useState('7'); // '7' | '14' | '30'
 
-  // Formatted date string like: Friday, 2 October 2026
+  // Formatted date string
   const formattedTodayDate = useMemo(() => {
     return new Date().toLocaleDateString('en-GB', {
       weekday: 'long',
@@ -32,7 +52,7 @@ export default function AdminDashboard() {
     });
   }, []);
 
-  // Compute 7 days range
+  // Compute time range days
   const daysList = useMemo(() => {
     const count = Number(timeRange) || 7;
     const list = [];
@@ -125,7 +145,7 @@ export default function AdminDashboard() {
           0
         );
 
-        // Sort Top Customers by Total Purchases or Balance
+        // Sort Top Customers by Balance
         const topCustomers = [...customers]
           .sort((a, b) => (Number(b.currentBalance) || 0) - (Number(a.currentBalance) || 0))
           .slice(0, 5);
@@ -136,7 +156,7 @@ export default function AdminDashboard() {
           .sort((a, b) => new Date(b.transactionDate || b.createdAt) - new Date(a.transactionDate || a.createdAt))
           .slice(0, 6);
 
-        // Aggregate 7-Day Trend Points
+        // Aggregate Trend Points
         const trendPoints = daysList.map((day) => {
           const dayTxs = trendTxs.filter(
             (tx) => tx.transactionDate && tx.transactionDate.startsWith(day.iso)
@@ -151,7 +171,7 @@ export default function AdminDashboard() {
           };
         });
 
-        // Fuel Stock Calculation (from today's and trend transactions)
+        // Fuel Stock Calculation
         const pmgIssued = todayTxs
           .filter((tx) => tx.fuelType === 'pmg')
           .reduce((sum, tx) => sum + (Number(tx.fuelQuantity) || 0), 0);
@@ -198,14 +218,14 @@ export default function AdminDashboard() {
 
   if (loading && !summary) {
     return (
-      <div className="admin-dashboard-container">
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 24 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' }}>
           <SkeletonCard />
           <SkeletonCard />
           <SkeletonCard />
           <SkeletonCard />
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1.7fr 1fr', gap: 20 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1.7fr 1.1fr', gap: '20px' }}>
           <SkeletonCard />
           <SkeletonCard />
         </div>
@@ -214,11 +234,7 @@ export default function AdminDashboard() {
   }
 
   if (error && !summary) {
-    return (
-      <div className="admin-dashboard-container">
-        <ErrorState message={error} />
-      </div>
-    );
+    return <ErrorState message={error} onRetry={() => window.location.reload()} />;
   }
 
   const fmtRs = (n) => `Rs ${formatNumberPK(n || 0, 0, 0)}`;
@@ -227,7 +243,7 @@ export default function AdminDashboard() {
       ? Math.round((summary.todayCollected / summary.todayRevenue) * 100)
       : 0;
 
-  // Chart Coordinates Calculation
+  // Chart coordinates
   const maxTrendVal = Math.max(
     1,
     ...trendData.map((d) => Math.max(d.sales || 0, d.collections || 0))
@@ -244,7 +260,6 @@ export default function AdminDashboard() {
   const getX = (index) => paddingX + (index * (usableWidth / Math.max(1, pointsCount - 1)));
   const getY = (val) => chartHeight - 20 - ((val / maxTrendVal) * usableHeight);
 
-  // Generate SVG path strings
   const salesPath = trendData.length > 0
     ? trendData.map((d, i) => `${i === 0 ? 'M' : 'L'} ${getX(i)} ${getY(d.sales)}`).join(' ')
     : `M ${paddingX} ${chartHeight - 20} L ${chartWidth - 15} ${chartHeight - 20}`;
@@ -253,7 +268,6 @@ export default function AdminDashboard() {
     ? trendData.map((d, i) => `${i === 0 ? 'M' : 'L'} ${getX(i)} ${getY(d.collections)}`).join(' ')
     : `M ${paddingX} ${chartHeight - 20} L ${chartWidth - 15} ${chartHeight - 20}`;
 
-  // Area fill paths
   const salesAreaPath = trendData.length > 0
     ? `${salesPath} L ${getX(trendData.length - 1)} ${chartHeight - 20} L ${getX(0)} ${chartHeight - 20} Z`
     : '';
@@ -263,59 +277,50 @@ export default function AdminDashboard() {
     : '';
 
   return (
-    <div className="animate-fadeIn">
-      {/* ─── Hero Header Row ─── */}
-      <div className="admin-hero-row">
-        <div className="admin-hero-title-group">
-          <h1>
-            <span>Overview</span>
-            <span role="img" aria-label="Waving hand" style={{ fontSize: '26px' }}>👋</span>
-          </h1>
-          <p>Monitor your station performance and key activities at a glance.</p>
-        </div>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+      {/* ─── Shared Page Header ─── */}
+      <PageHeader
+        title="Overview"
+        subtitle="Monitor station performance and daily operations."
+        actions={
+          <>
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '8px 14px',
+                background: 'var(--bg-surface, #FFFFFF)',
+                border: '1px solid var(--border-default, #E2E8EC)',
+                borderRadius: 'var(--radius-md, 8px)',
+                fontSize: '13px',
+                color: 'var(--text-secondary, #5B6870)',
+                boxShadow: 'var(--shadow-sm)',
+              }}
+            >
+              <Calendar size={15} />
+              <span>{formattedTodayDate}</span>
+            </div>
 
-        <div className="admin-hero-actions">
-          {/* Date Selector Button */}
-          <button className="admin-date-picker-btn" title="Current station date">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-              <line x1="16" y1="2" x2="16" y2="6"></line>
-              <line x1="8" y1="2" x2="8" y2="6"></line>
-              <line x1="3" y1="10" x2="21" y2="10"></line>
-            </svg>
-            <span>{formattedTodayDate}</span>
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="6 9 12 15 18 9"></polyline>
-            </svg>
-          </button>
-
-          {/* Generate Report Button */}
-          <button
-            onClick={() => navigate('/admin/exports')}
-            className="admin-primary-btn"
-            title="Generate detailed station reports and Excel exports"
-          >
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-              <polyline points="14 2 14 8 20 8"></polyline>
-              <line x1="16" y1="13" x2="8" y2="13"></line>
-              <line x1="16" y1="17" x2="8" y2="17"></line>
-              <polyline points="10 9 9 9 8 9"></polyline>
-            </svg>
-            <span>Generate Report</span>
-          </button>
-        </div>
-      </div>
+            <Button
+              onClick={() => navigate('/admin/exports')}
+              variant="primary"
+              iconLeft={<Download size={15} />}
+            >
+              Generate Report
+            </Button>
+          </>
+        }
+      />
 
       {/* ─── Pending Requests Notification Banner ─── */}
       {pendingLinkCount > 0 && (
         <div
           style={{
-            marginBottom: '20px',
             padding: '14px 18px',
-            borderRadius: '12px',
-            background: 'linear-gradient(135deg, rgba(234, 88, 12, 0.08) 0%, rgba(249, 115, 22, 0.03) 100%)',
-            border: '1px solid rgba(234, 88, 12, 0.28)',
+            borderRadius: 'var(--radius-lg, 12px)',
+            background: 'var(--color-warning-bg, #FFF6E5)',
+            border: '1px solid var(--color-warning-border, #FCE6BD)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
@@ -324,170 +329,109 @@ export default function AdminDashboard() {
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <span style={{ fontSize: '20px' }}>🔔</span>
+            <div
+              style={{
+                width: 36,
+                height: 36,
+                borderRadius: '8px',
+                background: 'rgba(196, 123, 18, 0.15)',
+                color: 'var(--color-warning, #C47B12)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+              }}
+            >
+              <Bell size={18} />
+            </div>
             <div>
-              <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '13.5px' }}>
+              <div style={{ fontWeight: 700, color: 'var(--text-primary, #17242D)', fontSize: '13.5px' }}>
                 {pendingLinkCount} Pending Customer Connection Request{pendingLinkCount > 1 ? 's' : ''}
               </div>
-              <div style={{ fontSize: '12px', color: '#64748b' }}>
-                Review and approve customer account requests to enable online balances and ledgers.
+              <div style={{ fontSize: '12px', color: 'var(--text-secondary, #5B6870)' }}>
+                Review and approve customer account requests to enable online balance statements.
               </div>
             </div>
           </div>
-          <button
+          <Button
             onClick={() => navigate('/admin/customer-requests')}
-            className="admin-primary-btn"
-            style={{
-              padding: '6px 14px',
-              fontSize: '12px',
-              background: '#ea580c',
-              borderColor: '#ea580c',
-            }}
+            variant="secondary"
+            size="sm"
+            iconRight={<ArrowRight size={14} />}
           >
-            Review Requests ({pendingLinkCount}) →
-          </button>
+            Review Requests ({pendingLinkCount})
+          </Button>
         </div>
       )}
 
-      {/* ─── Row 1: 4 KPI Cards (Matching Mockup) ─── */}
-      <div className="admin-kpi-grid">
-        {/* Card 1: Active Customers (Blue) */}
-        <div className="admin-kpi-card kpi-blue">
-          <div className="kpi-header">
-            <div className="kpi-icon-badge">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                <circle cx="9" cy="7" r="4"></circle>
-                <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-              </svg>
-            </div>
-            <span className="kpi-label">Active Customers</span>
-          </div>
+      {/* ─── KPI Grid (4 Columns) ─── */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '18px' }}>
+        <StatCard
+          icon={<Users size={18} strokeWidth={2.2} />}
+          label="Active Customers"
+          value={summary?.customersCount ?? 0}
+          subtext="Registered customer accounts"
+          variant="secondary"
+        />
 
-          <div className="kpi-body">
-            <div className="kpi-metric-val">{summary?.customersCount ?? 0}</div>
-          </div>
+        <StatCard
+          icon={<CreditCard size={18} strokeWidth={2.2} />}
+          label="Total Outstanding"
+          value={fmtRs(summary?.totalOutstanding)}
+          subtext={`${summary?.customersWithDebt ?? 0} customers with balance`}
+          variant="danger"
+        />
 
-          <div className="kpi-footer">
-            <span className="kpi-pill-badge trend-up">▲ +0%</span>
-            <span className="kpi-subtext">Registered accounts</span>
-          </div>
+        <StatCard
+          icon={<Fuel size={18} strokeWidth={2.2} />}
+          label="Today's Sales"
+          value={fmtRs(summary?.todayRevenue)}
+          subtext={`${summary?.todayTxCount ?? 0} fuel transactions`}
+          variant="warning"
+        />
 
-          <div className="kpi-watermark" aria-hidden="true">
-            👥
-          </div>
-        </div>
-
-        {/* Card 2: Total Outstanding (Red) */}
-        <div className="admin-kpi-card kpi-red">
-          <div className="kpi-header">
-            <div className="kpi-icon-badge">
-              <span>Rs</span>
-            </div>
-            <span className="kpi-label">Total Outstanding</span>
-          </div>
-
-          <div className="kpi-body">
-            <div className="kpi-metric-val">{fmtRs(summary?.totalOutstanding)}</div>
-          </div>
-
-          <div className="kpi-footer">
-            <span className="kpi-pill-badge trend-down">▲ +0%</span>
-            <span className="kpi-subtext">{summary?.customersWithDebt ?? 0} customers</span>
-          </div>
-
-          <div className="kpi-watermark" aria-hidden="true">
-            💳
-          </div>
-        </div>
-
-        {/* Card 3: Today's Sales (Amber/Gold) */}
-        <div className="admin-kpi-card kpi-amber">
-          <div className="kpi-header">
-            <div className="kpi-icon-badge">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M3 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18"/>
-                <path d="M14 13h2a2 2 0 0 1 2 2v2a2 2 0 0 0 2 2h0a2 2 0 0 0 2-2V9.83a2 2 0 0 0-.59-1.42L18 5"/>
-                <circle cx="9" cy="9" r="2"/>
-              </svg>
-            </div>
-            <span className="kpi-label">Today's Sales</span>
-          </div>
-
-          <div className="kpi-body">
-            <div className="kpi-metric-val">{fmtRs(summary?.todayRevenue)}</div>
-          </div>
-
-          <div className="kpi-footer">
-            <span className="kpi-pill-badge trend-up">▲ +0%</span>
-            <span className="kpi-subtext">{summary?.todayTxCount ?? 0} transactions</span>
-          </div>
-
-          <div className="kpi-watermark" aria-hidden="true">
-            📊
-          </div>
-        </div>
-
-        {/* Card 4: Today's Collections (Green) */}
-        <div className="admin-kpi-card kpi-green">
-          <div className="kpi-header">
-            <div className="kpi-icon-badge">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="2" y="6" width="20" height="12" rx="2"></rect>
-                <circle cx="12" cy="12" r="2"></circle>
-                <path d="M6 12h.01M18 12h.01"></path>
-              </svg>
-            </div>
-            <span className="kpi-label">Today's Collections</span>
-          </div>
-
-          <div className="kpi-body">
-            <div className="kpi-metric-val">{fmtRs(summary?.todayCollected)}</div>
-          </div>
-
-          <div className="kpi-footer">
-            <span className="kpi-pill-badge trend-up">▲ +0%</span>
-            <span className="kpi-subtext">{collectionRate}% collection rate</span>
-          </div>
-
-          <div className="kpi-watermark" aria-hidden="true">
-            %
-          </div>
-        </div>
+        <StatCard
+          icon={<BarChart3 size={18} strokeWidth={2.2} />}
+          label="Today's Collections"
+          value={fmtRs(summary?.todayCollected)}
+          subtext={`${collectionRate}% collection rate`}
+          variant="success"
+        />
       </div>
 
-      {/* ─── Row 2: Middle Section (Sales & Collections Trend + Quick Actions) ─── */}
-      <div className="admin-middle-grid">
-        {/* Left: Sales & Collections Trend Chart */}
-        <div className="admin-card">
-          <div className="admin-card-header">
-            <div className="admin-card-title-group">
-              <div className="admin-card-header-icon" style={{ background: 'var(--color-primary-soft, #EAF5F1)', color: 'var(--color-primary, #0B5D4B)' }}>
-                📊
+      {/* ─── Middle Grid (Sales Trend + Quick Actions) ─── */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '20px' }}>
+        {/* Trend Chart */}
+        <Card
+          title="Sales & Collections Trend"
+          subtitle="Daily comparison over selected time range"
+          icon={<TrendingUp size={16} />}
+          action={
+            <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '12px', fontWeight: 500, color: 'var(--text-secondary)' }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--color-primary)' }} />
+                  Sales
+                </span>
+                <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--color-secondary)' }} />
+                  Collections
+                </span>
               </div>
-              <div>
-                <div className="admin-card-title">Sales & Collections Trend</div>
-                <div className="admin-card-subtitle">Last 7 days overview</div>
-              </div>
-            </div>
-
-            <div className="admin-chart-controls">
-              <div className="admin-chart-legend">
-                <div className="legend-item">
-                  <span className="legend-dot" style={{ background: 'var(--color-primary, #0B5D4B)' }}></span>
-                  <span>Sales (Rs)</span>
-                </div>
-                <div className="legend-item">
-                  <span className="legend-dot" style={{ background: 'var(--color-secondary, #1F3A4D)' }}></span>
-                  <span>Collections (Rs)</span>
-                </div>
-              </div>
-
               <select
                 value={timeRange}
                 onChange={(e) => setTimeRange(e.target.value)}
-                className="admin-select-sm"
+                style={{
+                  background: 'var(--bg-surface-secondary, #F9FAFB)',
+                  border: '1px solid var(--border-default, #E2E8EC)',
+                  borderRadius: 'var(--radius-sm, 6px)',
+                  padding: '5px 10px',
+                  fontSize: '12px',
+                  fontWeight: 500,
+                  color: 'var(--text-secondary, #5B6870)',
+                  cursor: 'pointer',
+                  outline: 'none',
+                }}
                 aria-label="Select trend time range"
               >
                 <option value="7">Last 7 Days</option>
@@ -495,10 +439,9 @@ export default function AdminDashboard() {
                 <option value="30">Last 30 Days</option>
               </select>
             </div>
-          </div>
-
-          {/* SVG Line Chart */}
-          <div className="admin-chart-container">
+          }
+        >
+          <div style={{ width: '100%', height: 220, position: 'relative' }}>
             <svg
               viewBox={`0 0 ${chartWidth} ${chartHeight}`}
               preserveAspectRatio="none"
@@ -515,7 +458,7 @@ export default function AdminDashboard() {
                 </linearGradient>
               </defs>
 
-              {/* Horizontal Gridlines & Y-Axis Labels */}
+              {/* Gridlines */}
               {[1.0, 0.8, 0.6, 0.4, 0.2, 0].map((step) => {
                 const yPos = chartHeight - 20 - (step * usableHeight);
                 const displayVal = maxTrendVal > 1
@@ -529,7 +472,7 @@ export default function AdminDashboard() {
                       y1={yPos}
                       x2={chartWidth - 15}
                       y2={yPos}
-                      stroke="#f1f5f9"
+                      stroke="var(--border-divider, #E8ECEF)"
                       strokeWidth="1"
                       strokeDasharray={step > 0 ? '3 3' : 'none'}
                     />
@@ -537,7 +480,7 @@ export default function AdminDashboard() {
                       x={paddingX - 8}
                       y={yPos + 3.5}
                       textAnchor="end"
-                      fill="#94a3b8"
+                      fill="var(--text-muted, #7A878E)"
                       fontSize="9.5"
                       fontFamily="Inter, sans-serif"
                     >
@@ -547,15 +490,15 @@ export default function AdminDashboard() {
                 );
               })}
 
-              {/* Area Under Lines */}
+              {/* Area fills */}
               {salesAreaPath && <path d={salesAreaPath} fill="url(#salesGlow)" />}
               {collectionsAreaPath && <path d={collectionsAreaPath} fill="url(#collectionsGlow)" />}
 
-              {/* Data Path Lines */}
+              {/* Line paths */}
               <path
                 d={salesPath}
                 fill="none"
-                stroke="#0B5D4B"
+                stroke="var(--color-primary, #0B5D4B)"
                 strokeWidth="2.5"
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -563,13 +506,13 @@ export default function AdminDashboard() {
               <path
                 d={collectionsPath}
                 fill="none"
-                stroke="#1F3A4D"
+                stroke="var(--color-secondary, #1F3A4D)"
                 strokeWidth="2.5"
                 strokeLinecap="round"
                 strokeLinejoin="round"
               />
 
-              {/* Data Points and X-Axis Labels */}
+              {/* Points */}
               {trendData.map((d, i) => {
                 const cx = getX(i);
                 const cySales = getY(d.sales);
@@ -577,12 +520,11 @@ export default function AdminDashboard() {
 
                 return (
                   <g key={d.date || i}>
-                    {/* X-axis date label */}
                     <text
                       x={cx}
                       y={chartHeight - 4}
                       textAnchor="middle"
-                      fill="#94a3b8"
+                      fill="var(--text-muted, #7A878E)"
                       fontSize="10"
                       fontFamily="Inter, sans-serif"
                       fontWeight="500"
@@ -590,25 +532,23 @@ export default function AdminDashboard() {
                       {d.label}
                     </text>
 
-                    {/* Sales Dot */}
                     <circle
                       cx={cx}
                       cy={cySales}
                       r="4"
                       fill="#ffffff"
-                      stroke="#0B5D4B"
+                      stroke="var(--color-primary, #0B5D4B)"
                       strokeWidth="2"
                     >
                       <title>{`Sales: Rs ${d.sales}`}</title>
                     </circle>
 
-                    {/* Collections Dot */}
                     <circle
                       cx={cx}
                       cy={cyCol}
                       r="4"
                       fill="#ffffff"
-                      stroke="#1F3A4D"
+                      stroke="var(--color-secondary, #1F3A4D)"
                       strokeWidth="2"
                     >
                       <title>{`Collections: Rs ${d.collections}`}</title>
@@ -618,109 +558,104 @@ export default function AdminDashboard() {
               })}
             </svg>
           </div>
-        </div>
+        </Card>
 
-        {/* Right: Quick Actions (2x2 Grid) */}
-        <div className="admin-card">
-          <div className="admin-card-header" style={{ marginBottom: 16 }}>
-            <div className="admin-card-title-group">
-              <div className="admin-card-header-icon" style={{ background: 'var(--color-primary-soft, #EAF5F1)', color: 'var(--color-primary, #0B5D4B)' }}>
-                ⚡
-              </div>
-              <div>
-                <div className="admin-card-title">Quick Actions</div>
-                <div className="admin-card-subtitle">Common tasks to manage your station</div>
-              </div>
-            </div>
+        {/* Quick Actions (Neutral, Clean) */}
+        <Card
+          title="Quick Actions"
+          subtitle="Frequent station operations"
+          icon={<Sparkles size={16} />}
+        >
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px', flex: 1 }}>
+            <QuickAction
+              to="/admin/fuel-entry"
+              icon={<Fuel size={17} />}
+              label="Add Fuel Entry"
+              description="Record pump dispenser sale"
+            />
+            <QuickAction
+              to="/admin/customers/new"
+              icon={<UserPlus size={17} />}
+              label="Register Customer"
+              description="Create customer ledger"
+            />
+            <QuickAction
+              to="/admin/transactions"
+              icon={<FileText size={17} />}
+              label="Transactions"
+              description="Manage credit & payments"
+            />
+            <QuickAction
+              to="/admin/daily-record"
+              icon={<Calendar size={17} />}
+              label="Daily Record"
+              description="Inspect daily closing register"
+            />
           </div>
-
-          <div className="admin-quick-actions-grid">
-            {/* Tile 1: Add Fuel Entry */}
-            <Link to="/admin/fuel-entry" className="admin-action-tile tile-blue" title="Record fuel sale">
-              <div className="admin-action-content">
-                <span className="admin-action-icon">⛽</span>
-                <span className="admin-action-label">Add Fuel Entry</span>
-              </div>
-              <span className="admin-action-arrow">→</span>
-            </Link>
-
-            {/* Tile 2: Register Customer */}
-            <Link to="/admin/customers/create" className="admin-action-tile tile-green" title="Create customer account">
-              <div className="admin-action-content">
-                <span className="admin-action-icon">👤+</span>
-                <span className="admin-action-label">Register Customer</span>
-              </div>
-              <span className="admin-action-arrow">→</span>
-            </Link>
-
-            {/* Tile 3: View Transactions */}
-            <Link to="/admin/transactions" className="admin-action-tile tile-purple" title="Open station transactions ledger">
-              <div className="admin-action-content">
-                <span className="admin-action-icon">📄</span>
-                <span className="admin-action-label">View Transactions</span>
-              </div>
-              <span className="admin-action-arrow">→</span>
-            </Link>
-
-            {/* Tile 4: Daily Record */}
-            <Link to="/admin/daily-record" className="admin-action-tile tile-orange" title="View or lock daily record">
-              <div className="admin-action-content">
-                <span className="admin-action-icon">📊</span>
-                <span className="admin-action-label">Daily Record</span>
-              </div>
-              <span className="admin-action-arrow">→</span>
-            </Link>
-          </div>
-        </div>
+        </Card>
       </div>
 
-      {/* ─── Row 3: Three Data Panels / Tables ─── */}
-      <div className="admin-bottom-grid">
-        {/* Panel 1: Recent Transactions */}
-        <div className="admin-data-card">
-          <div className="admin-card-header">
-            <div className="admin-card-title-group">
-              <div className="admin-card-header-icon" style={{ background: '#ffedd5', color: '#ea580c' }}>
-                📄
-              </div>
-              <div className="admin-card-title">Recent Transactions</div>
-            </div>
-            <Link to="/admin/transactions" className="admin-card-btn-link">View All</Link>
-          </div>
-
+      {/* ─── Bottom Data Panels ─── */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '20px' }}>
+        {/* Recent Transactions */}
+        <Card
+          title="Recent Transactions"
+          icon={<FileText size={16} />}
+          action={
+            <Link
+              to="/admin/transactions"
+              style={{
+                fontSize: '12px',
+                fontWeight: 600,
+                color: 'var(--color-primary, #0B5D4B)',
+                textDecoration: 'none',
+              }}
+            >
+              View All →
+            </Link>
+          }
+        >
           {recentTransactions.length > 0 ? (
-            <div className="admin-micro-table-wrap">
-              <table className="admin-micro-table">
+            <div style={{ width: '100%', overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
                 <thead>
-                  <tr>
-                    <th>Sl#</th>
-                    <th>Date & Time</th>
-                    <th>Customer</th>
-                    <th>Fuel</th>
-                    <th style={{ textAlign: 'right' }}>Litres</th>
-                    <th style={{ textAlign: 'right' }}>Amount (Rs)</th>
-                    <th style={{ textAlign: 'center' }}>Status</th>
+                  <tr style={{ borderBottom: '1px solid var(--border-default, #E2E8EC)', textAlign: 'left', color: 'var(--text-secondary, #5B6870)', fontSize: '11px', textTransform: 'uppercase' }}>
+                    <th style={{ padding: '8px 10px' }}>Date</th>
+                    <th style={{ padding: '8px 10px' }}>Customer</th>
+                    <th style={{ padding: '8px 10px' }}>Fuel</th>
+                    <th style={{ padding: '8px 10px', textAlign: 'right' }}>Litres</th>
+                    <th style={{ padding: '8px 10px', textAlign: 'right' }}>Amount</th>
+                    <th style={{ padding: '8px 10px', textAlign: 'center' }}>Status</th>
                   </tr>
                 </thead>
                 <tbody>
                   {recentTransactions.map((tx, idx) => (
-                    <tr key={tx._id || idx}>
-                      <td style={{ color: '#94a3b8' }}>{idx + 1}</td>
-                      <td>{formatDatePK(tx.transactionDate || tx.createdAt)}</td>
-                      <td style={{ fontWeight: 600 }}>{tx.customerId?.name || tx.customerId?.customerCode || 'Walk-in'}</td>
-                      <td>
-                        <span style={{ textTransform: 'uppercase', fontWeight: 700, fontSize: 11 }}>
-                          {tx.fuelType || '—'}
-                        </span>
+                    <tr key={tx._id || idx} style={{ borderBottom: '1px solid var(--border-divider, #E8ECEF)' }}>
+                      <td style={{ padding: '9px 10px', color: 'var(--text-muted, #7A878E)', fontSize: '12px' }}>
+                        {formatDatePK(tx.transactionDate || tx.createdAt)}
                       </td>
-                      <td style={{ textAlign: 'right' }}>{tx.fuelQuantity ? formatNumberPK(tx.fuelQuantity, 0, 0) : '—'}</td>
-                      <td style={{ textAlign: 'right', fontWeight: 700, color: (tx.totalAmount || 0) > 0 ? '#dc2626' : '#16a34a' }}>
+                      <td style={{ padding: '9px 10px', fontWeight: 600, color: 'var(--text-primary, #17242D)' }}>
+                        {tx.customerId?.name || tx.customerId?.customerCode || 'Walk-in'}
+                      </td>
+                      <td style={{ padding: '9px 10px', textTransform: 'uppercase', fontWeight: 600, fontSize: '11.5px' }}>
+                        {tx.fuelType || '—'}
+                      </td>
+                      <td style={{ padding: '9px 10px', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
+                        {tx.fuelQuantity ? formatNumberPK(tx.fuelQuantity, 0, 0) : '—'}
+                      </td>
+                      <td
+                        style={{
+                          padding: '9px 10px',
+                          textAlign: 'right',
+                          fontWeight: 700,
+                          fontVariantNumeric: 'tabular-nums',
+                          color: (tx.totalAmount || 0) > 0 ? 'var(--color-danger, #C64040)' : 'var(--color-success, #18864B)',
+                        }}
+                      >
                         {formatCurrencyPK(tx.totalAmount || tx.paymentReceived || 0)}
                       </td>
-                      <td style={{ textAlign: 'center' }}>
-                        <span style={{ padding: '2px 6px', borderRadius: 4, fontSize: 10.5, fontWeight: 700, background: '#dcfce7', color: '#16a34a' }}>
-                          Completed
-                        </span>
+                      <td style={{ padding: '9px 10px', textAlign: 'center' }}>
+                        <Badge status="completed">Completed</Badge>
                       </td>
                     </tr>
                   ))}
@@ -728,47 +663,61 @@ export default function AdminDashboard() {
               </table>
             </div>
           ) : (
-            <div className="admin-empty-state-box">
-              <div className="admin-empty-icon">📑</div>
-              <div className="admin-empty-title">No transactions found</div>
-              <div className="admin-empty-subtitle">Transactions will appear here once fuel entries are added.</div>
-            </div>
+            <EmptyState
+              icon={<FileText size={32} />}
+              title="No recent transactions"
+              description="Fuel sales and customer payments will appear here."
+            />
           )}
-        </div>
+        </Card>
 
-        {/* Panel 2: Top Customers */}
-        <div className="admin-data-card">
-          <div className="admin-card-header">
-            <div className="admin-card-title-group">
-              <div className="admin-card-header-icon" style={{ background: '#dcfce7', color: '#16a34a' }}>
-                👥
-              </div>
-              <div className="admin-card-title">Top Customers</div>
-            </div>
-            <Link to="/admin/customers" className="admin-card-btn-link">View All</Link>
-          </div>
-
+        {/* Top Customers */}
+        <Card
+          title="Top Customer Balances"
+          icon={<Users size={16} />}
+          action={
+            <Link
+              to="/admin/customers"
+              style={{
+                fontSize: '12px',
+                fontWeight: 600,
+                color: 'var(--color-primary, #0B5D4B)',
+                textDecoration: 'none',
+              }}
+            >
+              View All →
+            </Link>
+          }
+        >
           {summary?.topCustomers?.length > 0 ? (
-            <div className="admin-micro-table-wrap">
-              <table className="admin-micro-table">
+            <div style={{ width: '100%', overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
                 <thead>
-                  <tr>
-                    <th>#</th>
-                    <th>Customer Name</th>
-                    <th style={{ textAlign: 'right' }}>Balance (Rs)</th>
-                    <th style={{ textAlign: 'center' }}>Code</th>
+                  <tr style={{ borderBottom: '1px solid var(--border-default, #E2E8EC)', textAlign: 'left', color: 'var(--text-secondary, #5B6870)', fontSize: '11px', textTransform: 'uppercase' }}>
+                    <th style={{ padding: '8px 10px' }}>Customer Name</th>
+                    <th style={{ padding: '8px 10px', textAlign: 'center' }}>Code</th>
+                    <th style={{ padding: '8px 10px', textAlign: 'right' }}>Balance</th>
                   </tr>
                 </thead>
                 <tbody>
                   {summary.topCustomers.map((c, idx) => (
-                    <tr key={c._id || idx}>
-                      <td style={{ color: '#94a3b8' }}>{idx + 1}</td>
-                      <td style={{ fontWeight: 600 }}>{c.userId?.name || c.name || 'Unknown'}</td>
-                      <td style={{ textAlign: 'right', fontWeight: 700, color: (c.currentBalance || 0) > 0 ? '#dc2626' : '#16a34a' }}>
-                        {formatCurrencyPK(c.currentBalance || 0)}
+                    <tr key={c._id || idx} style={{ borderBottom: '1px solid var(--border-divider, #E8ECEF)' }}>
+                      <td style={{ padding: '9px 10px', fontWeight: 600, color: 'var(--text-primary, #17242D)' }}>
+                        {c.userId?.name || c.name || 'Unknown'}
                       </td>
-                      <td style={{ textAlign: 'center', fontFamily: 'monospace', fontWeight: 700, color: '#2563eb' }}>
+                      <td style={{ padding: '9px 10px', textAlign: 'center', fontFamily: 'monospace', fontSize: '12px', fontWeight: 600 }}>
                         {c.customerCode || '—'}
+                      </td>
+                      <td
+                        style={{
+                          padding: '9px 10px',
+                          textAlign: 'right',
+                          fontWeight: 700,
+                          fontVariantNumeric: 'tabular-nums',
+                          color: (c.currentBalance || 0) > 0 ? 'var(--color-danger, #C64040)' : 'var(--color-success, #18864B)',
+                        }}
+                      >
+                        {formatCurrencyPK(c.currentBalance || 0)}
                       </td>
                     </tr>
                   ))}
@@ -776,44 +725,64 @@ export default function AdminDashboard() {
               </table>
             </div>
           ) : (
-            <div className="admin-empty-state-box">
-              <div className="admin-empty-icon">👥</div>
-              <div className="admin-empty-title">No customers found</div>
-              <div className="admin-empty-subtitle">Registered customers will appear here.</div>
-            </div>
+            <EmptyState
+              icon={<Users size={32} />}
+              title="No customers found"
+              description="Registered customers will appear here."
+            />
           )}
-        </div>
+        </Card>
 
-        {/* Panel 3: Fuel Stock Summary */}
-        <div className="admin-data-card">
-          <div className="admin-card-header">
-            <div className="admin-card-title-group">
-              <div className="admin-card-header-icon" style={{ background: '#f3e8ff', color: '#7c3aed' }}>
-                ⛽
-              </div>
-              <div className="admin-card-title">Fuel Stock Summary</div>
-            </div>
-            <Link to="/admin/fuel-entry" className="admin-card-btn-link">Manage</Link>
-          </div>
-
+        {/* Fuel Stock Summary */}
+        <Card
+          title="Fuel Stock Summary"
+          icon={<Fuel size={16} />}
+          action={
+            <Link
+              to="/admin/fuel-entry"
+              style={{
+                fontSize: '12px',
+                fontWeight: 600,
+                color: 'var(--color-primary, #0B5D4B)',
+                textDecoration: 'none',
+              }}
+            >
+              Manage →
+            </Link>
+          }
+        >
           {fuelStock.length > 0 ? (
-            <div className="admin-micro-table-wrap">
-              <table className="admin-micro-table">
+            <div style={{ width: '100%', overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
                 <thead>
-                  <tr>
-                    <th>Fuel Type</th>
-                    <th style={{ textAlign: 'right' }}>Opening</th>
-                    <th style={{ textAlign: 'right' }}>Issued</th>
-                    <th style={{ textAlign: 'right' }}>Balance</th>
+                  <tr style={{ borderBottom: '1px solid var(--border-default, #E2E8EC)', textAlign: 'left', color: 'var(--text-secondary, #5B6870)', fontSize: '11px', textTransform: 'uppercase' }}>
+                    <th style={{ padding: '8px 10px' }}>Fuel Type</th>
+                    <th style={{ padding: '8px 10px', textAlign: 'right' }}>Opening</th>
+                    <th style={{ padding: '8px 10px', textAlign: 'right' }}>Issued</th>
+                    <th style={{ padding: '8px 10px', textAlign: 'right' }}>Balance</th>
                   </tr>
                 </thead>
                 <tbody>
                   {fuelStock.map((s) => (
-                    <tr key={s.type}>
-                      <td style={{ fontWeight: 700 }}>{s.name}</td>
-                      <td style={{ textAlign: 'right' }}>{formatNumberPK(s.opening, 0, 0)} L</td>
-                      <td style={{ textAlign: 'right', color: '#ea580c', fontWeight: 600 }}>{formatNumberPK(s.issued, 0, 0)} L</td>
-                      <td style={{ textAlign: 'right', fontWeight: 750, color: s.balance >= 0 ? '#16a34a' : '#dc2626' }}>
+                    <tr key={s.type} style={{ borderBottom: '1px solid var(--border-divider, #E8ECEF)' }}>
+                      <td style={{ padding: '9px 10px', fontWeight: 650, color: 'var(--text-primary, #17242D)' }}>
+                        {s.name}
+                      </td>
+                      <td style={{ padding: '9px 10px', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
+                        {formatNumberPK(s.opening, 0, 0)} L
+                      </td>
+                      <td style={{ padding: '9px 10px', textAlign: 'right', fontVariantNumeric: 'tabular-nums', color: 'var(--color-warning, #C47B12)', fontWeight: 600 }}>
+                        {formatNumberPK(s.issued, 0, 0)} L
+                      </td>
+                      <td
+                        style={{
+                          padding: '9px 10px',
+                          textAlign: 'right',
+                          fontWeight: 700,
+                          fontVariantNumeric: 'tabular-nums',
+                          color: s.balance >= 0 ? 'var(--color-success, #18864B)' : 'var(--color-danger, #C64040)',
+                        }}
+                      >
                         {formatNumberPK(s.balance, 0, 0)} L
                       </td>
                     </tr>
@@ -822,13 +791,13 @@ export default function AdminDashboard() {
               </table>
             </div>
           ) : (
-            <div className="admin-empty-state-box">
-              <div className="admin-empty-icon">⛽</div>
-              <div className="admin-empty-title">No fuel stock data</div>
-              <div className="admin-empty-subtitle">Add fuel entries to see stock summary.</div>
-            </div>
+            <EmptyState
+              icon={<Fuel size={32} />}
+              title="No fuel stock data"
+              description="Add daily fuel entries to track stock balances."
+            />
           )}
-        </div>
+        </Card>
       </div>
     </div>
   );

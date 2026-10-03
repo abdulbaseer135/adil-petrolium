@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { Fuel, Check, X, ShieldAlert, RotateCcw } from 'lucide-react';
 import {
   getPetrolPumps,
   approvePetrolPump,
@@ -8,6 +9,12 @@ import {
   reactivatePetrolPump,
 } from '../../api/superAdminApi';
 import { Button } from '../../components/ui/Button';
+import { Badge } from '../../components/ui/Badge';
+import { EmptyState } from '../../components/ui/EmptyState';
+import { ErrorState } from '../../components/ui/ErrorState';
+import Modal from '../../components/ui/Modal';
+import Card from '../../components/ui/Card';
+import PageHeader from '../../components/layout/PageHeader';
 
 export default function PetrolPumps() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -103,178 +110,139 @@ export default function PetrolPumps() {
     }
   };
 
-  const getStatusBadge = (status) => {
-    const styles = {
-      pending: { bg: 'var(--color-warning-soft, #FFF6E5)', color: 'var(--color-warning, #C47B12)', label: 'Pending Approval' },
-      approved: { bg: 'var(--color-success-soft, #EAF7EF)', color: 'var(--color-success, #18864B)', label: 'Approved / Active' },
-      active: { bg: 'var(--color-success-soft, #EAF7EF)', color: 'var(--color-success, #18864B)', label: 'Active' },
-      suspended: { bg: 'var(--color-danger-soft, #FDEEEE)', color: 'var(--color-danger, #C64040)', label: 'Suspended' },
-      rejected: { bg: 'var(--color-surface-secondary, #F9FAFB)', color: 'var(--color-text-muted, #7A878E)', label: 'Rejected' },
-    };
-    const s = styles[status] || { bg: 'var(--color-surface-secondary, #F9FAFB)', color: 'var(--color-text-muted)', label: status };
-    return (
-      <span
-        style={{
-          display: 'inline-block',
-          padding: '3px 8px',
-          borderRadius: '999px',
-          background: s.bg,
-          color: s.color,
-          border: `1px solid ${s.color}33`,
-          fontSize: '11px',
-          fontWeight: 600,
-          textTransform: 'uppercase',
-          letterSpacing: '0.04em',
-        }}
-      >
-        {s.label}
-      </span>
-    );
-  };
-
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
       {/* Page Title */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '12px' }}>
-        <div>
-          <h1 style={{ fontSize: '24px', fontWeight: 700, margin: '0 0 6px', color: 'var(--color-text)' }}>
-            Petrol Pump Management
-          </h1>
-          <p style={{ margin: 0, fontSize: '14px', color: 'var(--color-text-muted)' }}>
-            Review, approve, suspend, and supervise all petrol pump stations in the system
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        title="Petrol Pump Management"
+        subtitle="Review, approve, suspend, and supervise all petrol pump stations in the system."
+      />
 
       {/* Filter Tabs and Search Bar */}
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          flexWrap: 'wrap',
-          gap: '12px',
-          background: 'var(--color-surface)',
-          padding: 'clamp(10px, 2.5vw, 16px)',
-          borderRadius: '12px',
-          border: '1px solid var(--color-border)',
-        }}
-      >
+      <Card>
         <div
           style={{
             display: 'flex',
-            gap: '6px',
-            overflowX: 'auto',
-            maxWidth: '100%',
-            paddingBottom: '4px',
-            WebkitOverflowScrolling: 'touch',
-          }}
-        >
-          {[
-            { id: '', label: 'All Stations' },
-            { id: 'pending', label: 'Pending Approvals' },
-            { id: 'approved', label: 'Active & Approved' },
-            { id: 'suspended', label: 'Suspended' },
-            { id: 'rejected', label: 'Rejected' },
-          ].map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => handleStatusFilterChange(tab.id)}
-              style={{
-                padding: '6px 14px',
-                borderRadius: '8px',
-                border: '1px solid',
-                borderColor: selectedStatus === tab.id ? 'var(--color-primary)' : 'transparent',
-                background: selectedStatus === tab.id ? 'rgba(79, 70, 229, 0.1)' : 'transparent',
-                color: selectedStatus === tab.id ? 'var(--color-primary)' : 'var(--color-text-muted)',
-                fontWeight: selectedStatus === tab.id ? 600 : 500,
-                fontSize: '13px',
-                cursor: 'pointer',
-                whiteSpace: 'nowrap',
-                flexShrink: 0,
-              }}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
-
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            fetchPumps();
-          }}
-          style={{
-            display: 'flex',
-            gap: '8px',
-            width: '100%',
-            maxWidth: 360,
+            justifyContent: 'space-between',
+            alignItems: 'center',
             flexWrap: 'wrap',
+            gap: '12px',
           }}
         >
-          <input
-            type="text"
-            placeholder="Search name, city..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+          <div
             style={{
-              padding: '8px 12px',
-              borderRadius: '8px',
-              border: '1px solid var(--color-border)',
-              background: 'var(--color-bg)',
-              color: 'var(--color-text)',
-              fontSize: '13px',
-              flex: '1 1 180px',
-              minWidth: 0,
+              display: 'flex',
+              gap: '6px',
+              overflowX: 'auto',
+              maxWidth: '100%',
+              paddingBottom: '2px',
             }}
-          />
-          <Button type="submit" style={{ minHeight: 38, padding: '6px 16px', fontSize: '13px' }}>
-            Search
-          </Button>
-        </form>
-      </div>
+          >
+            {[
+              { id: '', label: 'All Stations' },
+              { id: 'pending', label: 'Pending Approvals' },
+              { id: 'approved', label: 'Active & Approved' },
+              { id: 'suspended', label: 'Suspended' },
+              { id: 'rejected', label: 'Rejected' },
+            ].map((tab) => {
+              const isActive = selectedStatus === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => handleStatusFilterChange(tab.id)}
+                  style={{
+                    padding: '6px 14px',
+                    borderRadius: 'var(--radius-md, 8px)',
+                    border: '1px solid',
+                    borderColor: isActive ? 'var(--color-primary)' : 'transparent',
+                    background: isActive ? 'var(--color-primary-soft, #EAF5F1)' : 'transparent',
+                    color: isActive ? 'var(--color-primary)' : 'var(--text-secondary)',
+                    fontWeight: isActive ? 650 : 500,
+                    fontSize: '13px',
+                    cursor: 'pointer',
+                    whiteSpace: 'nowrap',
+                    flexShrink: 0,
+                    transition: 'all 150ms ease',
+                  }}
+                >
+                  {tab.label}
+                </button>
+              );
+            })}
+          </div>
+
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              fetchPumps();
+            }}
+            style={{
+              display: 'flex',
+              gap: '8px',
+              width: '100%',
+              maxWidth: 360,
+              flexWrap: 'wrap',
+            }}
+          >
+            <input
+              type="text"
+              placeholder="Search name, city..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              style={{
+                padding: '8px 12px',
+                borderRadius: 'var(--radius-md, 8px)',
+                border: '1px solid var(--border-default, #E2E8EC)',
+                background: 'var(--bg-surface-secondary, #F9FAFB)',
+                color: 'var(--text-primary, #17242D)',
+                fontSize: '13px',
+                flex: '1 1 180px',
+                minWidth: 0,
+                outline: 'none',
+              }}
+            />
+            <Button type="submit" variant="primary" size="sm">
+              Search
+            </Button>
+          </form>
+        </div>
+      </Card>
 
       {/* Main Table */}
-      <div
-        style={{
-          background: 'var(--color-surface)',
-          border: '1px solid var(--color-border)',
-          borderRadius: '14px',
-          overflow: 'hidden',
-        }}
-      >
+      <Card>
         {loading ? (
-          <div style={{ padding: '40px', textAlign: 'center', color: 'var(--color-text-muted)' }}>
+          <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>
             Loading stations...
           </div>
         ) : error ? (
-          <div style={{ padding: '24px', color: 'var(--color-error)', textAlign: 'center' }}>
-            {error}
-          </div>
+          <ErrorState message={error} onRetry={fetchPumps} />
         ) : pumps.length === 0 ? (
-          <div style={{ padding: '48px', textAlign: 'center', color: 'var(--color-text-muted)' }}>
-            No petrol pumps found matching the criteria.
-          </div>
+          <EmptyState
+            icon={<Fuel size={36} />}
+            title="No petrol pumps found"
+            description="No stations match the selected filter or search criteria."
+          />
         ) : (
-          <div className="table-responsive">
+          <div style={{ width: '100%', overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', minWidth: 720 }}>
               <thead>
                 <tr
                   style={{
-                    borderBottom: '1px solid var(--color-border)',
-                    background: 'var(--color-bg)',
+                    borderBottom: '1px solid var(--border-default, #E2E8EC)',
+                    background: 'var(--bg-surface-secondary, #F9FAFB)',
                     textAlign: 'left',
-                    color: 'var(--color-text-muted)',
-                    fontSize: '12px',
+                    color: 'var(--text-secondary, #5B6870)',
+                    fontSize: '11px',
                     textTransform: 'uppercase',
+                    letterSpacing: '0.04em',
                   }}
                 >
-                  <th style={{ padding: '12px 14px' }}>Station</th>
-                  <th style={{ padding: '12px 14px' }}>Location</th>
-                  <th style={{ padding: '12px 14px' }}>Administrator</th>
-                  <th style={{ padding: '12px 14px' }}>Status</th>
-                  <th style={{ padding: '12px 14px' }}>Registered</th>
-                  <th style={{ padding: '12px 14px', textAlign: 'right' }}>Actions</th>
+                  <th style={{ padding: '10px 12px' }}>Station</th>
+                  <th style={{ padding: '10px 12px' }}>Location</th>
+                  <th style={{ padding: '10px 12px' }}>Administrator</th>
+                  <th style={{ padding: '10px 12px' }}>Status</th>
+                  <th style={{ padding: '10px 12px' }}>Registered</th>
+                  <th style={{ padding: '10px 12px', textAlign: 'right' }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -282,43 +250,44 @@ export default function PetrolPumps() {
                   <tr
                     key={pump._id}
                     style={{
-                      borderBottom: '1px solid var(--color-border)',
-                      transition: 'background 0.15s ease',
+                      borderBottom: '1px solid var(--border-divider, #E8ECEF)',
                     }}
                   >
-                    <td style={{ padding: '14px', fontWeight: 600, color: 'var(--color-text)' }}>
+                    <td style={{ padding: '12px', fontWeight: 650, color: 'var(--text-primary, #17242D)' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <span>⛽</span>
+                        <Fuel size={16} color="var(--color-primary, #0B5D4B)" />
                         <span>{pump.name}</span>
                       </div>
                       {pump.registrationNumber && (
-                        <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', fontWeight: 400, marginLeft: '24px' }}>
+                        <div style={{ fontSize: '11px', color: 'var(--text-muted, #7A878E)', fontWeight: 400, marginLeft: '24px' }}>
                           Reg: {pump.registrationNumber}
                         </div>
                       )}
                     </td>
-                    <td style={{ padding: '14px', color: 'var(--color-text-muted)' }}>
+                    <td style={{ padding: '12px', color: 'var(--text-secondary, #5B6870)' }}>
                       <div>{pump.city || '—'}</div>
-                      <div style={{ fontSize: '12px' }}>{pump.province || ''}</div>
+                      <div style={{ fontSize: '11.5px', color: 'var(--text-muted)' }}>{pump.province || ''}</div>
                     </td>
-                    <td style={{ padding: '14px' }}>
-                      <div style={{ fontWeight: 500, color: 'var(--color-text)' }}>
+                    <td style={{ padding: '12px' }}>
+                      <div style={{ fontWeight: 600, color: 'var(--text-primary, #17242D)' }}>
                         {pump.ownerAdminId?.name || '—'}
                       </div>
-                      <div style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
+                      <div style={{ fontSize: '11.5px', color: 'var(--text-muted, #7A878E)' }}>
                         {pump.ownerAdminId?.email}
                       </div>
                     </td>
-                    <td style={{ padding: '14px' }}>{getStatusBadge(pump.status)}</td>
-                    <td style={{ padding: '14px', color: 'var(--color-text-muted)', fontSize: '13px' }}>
+                    <td style={{ padding: '12px' }}>
+                      <Badge status={pump.status}>{pump.status}</Badge>
+                    </td>
+                    <td style={{ padding: '12px', color: 'var(--text-muted, #7A878E)', fontSize: '12.5px' }}>
                       {new Date(pump.createdAt).toLocaleDateString()}
                     </td>
-                    <td style={{ padding: '14px', textAlign: 'right' }}>
+                    <td style={{ padding: '12px', textAlign: 'right' }}>
                       <div style={{ display: 'inline-flex', gap: '6px' }}>
                         <Button
                           onClick={() => setSelectedPump(pump)}
                           variant="ghost"
-                          style={{ padding: '4px 8px', fontSize: '12px', minHeight: 30 }}
+                          size="sm"
                         >
                           Details
                         </Button>
@@ -330,6 +299,7 @@ export default function PetrolPumps() {
                               loading={actionLoading === pump._id}
                               variant="primary"
                               size="sm"
+                              iconLeft={<Check size={13} />}
                             >
                               Approve
                             </Button>
@@ -338,6 +308,7 @@ export default function PetrolPumps() {
                               loading={actionLoading === pump._id}
                               variant="danger"
                               size="sm"
+                              iconLeft={<X size={13} />}
                             >
                               Reject
                             </Button>
@@ -350,6 +321,7 @@ export default function PetrolPumps() {
                             loading={actionLoading === pump._id}
                             variant="danger"
                             size="sm"
+                            iconLeft={<ShieldAlert size={13} />}
                           >
                             Suspend
                           </Button>
@@ -361,6 +333,7 @@ export default function PetrolPumps() {
                             loading={actionLoading === pump._id}
                             variant="primary"
                             size="sm"
+                            iconLeft={<RotateCcw size={13} />}
                           >
                             Reactivate
                           </Button>
@@ -373,74 +346,54 @@ export default function PetrolPumps() {
             </table>
           </div>
         )}
-      </div>
+      </Card>
 
       {/* Details Modal */}
       {selectedPump && (
-        <div
-          onClick={() => setSelectedPump(null)}
-          className="modal-overlay"
-          role="dialog"
-          aria-modal="true"
+        <Modal
+          isOpen={!!selectedPump}
+          onClose={() => setSelectedPump(null)}
+          title={`Station Details: ${selectedPump.name}`}
+          footer={
+            <Button onClick={() => setSelectedPump(null)} variant="secondary">
+              Close
+            </Button>
+          }
         >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            className="modal-container"
-          >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-              <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 700, color: 'var(--color-text)' }}>
-                Station Details: {selectedPump.name}
-              </h3>
-              <button
-                onClick={() => setSelectedPump(null)}
-                style={{ background: 'none', border: 'none', fontSize: '18px', cursor: 'pointer', color: 'var(--color-text-muted)', padding: '4px' }}
-                aria-label="Close station details"
-              >
-                ✕
-              </button>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', fontSize: '13.5px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <strong>Status:</strong> <Badge status={selectedPump.status}>{selectedPump.status}</Badge>
             </div>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', fontSize: '14px' }}>
-              <div>
-                <strong>Status:</strong> {getStatusBadge(selectedPump.status)}
+            {selectedPump.rejectionReason && (
+              <div style={{ background: 'var(--color-danger-bg, #FDEEEE)', border: '1px solid var(--color-danger-border, #F7CACA)', padding: '10px 12px', borderRadius: '8px', color: 'var(--color-danger, #C64040)' }}>
+                <strong>Rejection Reason:</strong> {selectedPump.rejectionReason}
               </div>
-              {selectedPump.rejectionReason && (
-                <div style={{ background: 'rgba(239, 68, 68, 0.08)', padding: '10px', borderRadius: '8px', color: '#dc2626' }}>
-                  <strong>Rejection Reason:</strong> {selectedPump.rejectionReason}
-                </div>
-              )}
-              {selectedPump.suspensionReason && (
-                <div style={{ background: 'rgba(239, 68, 68, 0.08)', padding: '10px', borderRadius: '8px', color: '#dc2626' }}>
-                  <strong>Suspension Reason:</strong> {selectedPump.suspensionReason}
-                </div>
-              )}
-              <div>
-                <strong>Registration #:</strong> {selectedPump.registrationNumber || 'None provided'}
+            )}
+            {selectedPump.suspensionReason && (
+              <div style={{ background: 'var(--color-danger-bg, #FDEEEE)', border: '1px solid var(--color-danger-border, #F7CACA)', padding: '10px 12px', borderRadius: '8px', color: 'var(--color-danger, #C64040)' }}>
+                <strong>Suspension Reason:</strong> {selectedPump.suspensionReason}
               </div>
-              <div>
-                <strong>Address:</strong> {selectedPump.address || '—'}, {selectedPump.city}, {selectedPump.province}
-              </div>
-              <div>
-                <strong>Business Phone:</strong> {selectedPump.businessPhone || '—'}
-              </div>
-              <div>
-                <strong>Business Email:</strong> {selectedPump.businessEmail || '—'}
-              </div>
-              <div>
-                <strong>Owner Admin:</strong> {selectedPump.ownerAdminId?.name} ({selectedPump.ownerAdminId?.email})
-              </div>
-              <div>
-                <strong>Created At:</strong> {new Date(selectedPump.createdAt).toLocaleString()}
-              </div>
+            )}
+            <div>
+              <strong>Registration #:</strong> {selectedPump.registrationNumber || 'None provided'}
             </div>
-
-            <div style={{ marginTop: '16px', textAlign: 'right' }}>
-              <Button onClick={() => setSelectedPump(null)} variant="secondary" style={{ minHeight: 40 }}>
-                Close
-              </Button>
+            <div>
+              <strong>Address:</strong> {selectedPump.address || '—'}, {selectedPump.city}, {selectedPump.province}
+            </div>
+            <div>
+              <strong>Business Phone:</strong> {selectedPump.businessPhone || '—'}
+            </div>
+            <div>
+              <strong>Business Email:</strong> {selectedPump.businessEmail || '—'}
+            </div>
+            <div>
+              <strong>Owner Admin:</strong> {selectedPump.ownerAdminId?.name} ({selectedPump.ownerAdminId?.email})
+            </div>
+            <div>
+              <strong>Created At:</strong> {new Date(selectedPump.createdAt).toLocaleString()}
             </div>
           </div>
-        </div>
+        </Modal>
       )}
     </div>
   );

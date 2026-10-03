@@ -1,14 +1,15 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { ChevronDown } from 'lucide-react';
 import { getMySummaryMonthly } from '../../api/customerApi';
 import { formatNumberPK } from '../../utils/pkFormat';
+import PageHeader from '../../components/layout/PageHeader';
+import Card from '../../components/ui/Card';
 
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
-// Build year list dynamically: from 2023 up to the current year
 const CURRENT_YEAR = new Date().getFullYear();
 const YEARS = Array.from({ length: CURRENT_YEAR - 2022 }, (_, i) => 2023 + i);
 
-// Format different number types: fuel (0 decimals), currency (2 decimals)
 const formatFuel = (n) => formatNumberPK(n, 0, 0);
 const formatCurrency = (n) => formatNumberPK(n, 2, 2);
 
@@ -16,7 +17,6 @@ function YearDropdown({ value, onChange }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
 
-  // Close when clicking outside
   useEffect(() => {
     const handler = (e) => {
       if (ref.current && !ref.current.contains(e.target)) setOpen(false);
@@ -29,30 +29,27 @@ function YearDropdown({ value, onChange }) {
     <div ref={ref} style={{ position: 'relative', display: 'inline-block' }}>
       <button
         type="button"
-        onClick={() => setOpen(o => !o)}
-        className="report-filter__control"
+        onClick={() => setOpen((o) => !o)}
         style={{
           display: 'flex',
           alignItems: 'center',
-          gap: '0.5rem',
+          gap: '8px',
           cursor: 'pointer',
-          background: 'var(--color-surface)',
-          border: '1px solid var(--color-border)',
-          borderRadius: 'var(--radius-md)',
-          minWidth: '90px',
+          background: 'var(--bg-surface, #FFFFFF)',
+          border: '1px solid var(--border-default, #E2E8EC)',
+          borderRadius: 'var(--radius-md, 8px)',
+          padding: '8px 14px',
+          fontSize: '13px',
+          fontWeight: 600,
+          color: 'var(--text-primary, #17242D)',
+          minWidth: '94px',
           justifyContent: 'space-between',
         }}
         aria-haspopup="listbox"
         aria-expanded={open}
       >
         <span>{value}</span>
-        <svg
-          width="12" height="12" viewBox="0 0 12 12" fill="none"
-          style={{ transform: open ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.15s' }}
-          aria-hidden="true"
-        >
-          <path d="M2 4l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-        </svg>
+        <ChevronDown size={14} style={{ transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s ease' }} />
       </button>
 
       {open && (
@@ -65,32 +62,33 @@ function YearDropdown({ value, onChange }) {
             right: 0,
             zIndex: 200,
             margin: 0,
-            padding: '4px 0',
+            padding: '4px',
             listStyle: 'none',
-            background: 'var(--color-surface)',
-            border: '1px solid var(--color-border)',
-            borderRadius: 'var(--radius-md)',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.12)',
-            minWidth: '90px',
+            background: 'var(--bg-surface, #FFFFFF)',
+            border: '1px solid var(--border-default, #E2E8EC)',
+            borderRadius: 'var(--radius-md, 8px)',
+            boxShadow: 'var(--shadow-dropdown)',
+            minWidth: '94px',
           }}
         >
-          {YEARS.map(y => (
+          {YEARS.map((y) => (
             <li
               key={y}
               role="option"
               aria-selected={y === value}
               onClick={() => { onChange(y); setOpen(false); }}
               style={{
-                padding: '8px 16px',
+                padding: '6px 12px',
                 cursor: 'pointer',
                 fontVariantNumeric: 'tabular-nums',
-                fontSize: 'var(--text-sm)',
-                fontWeight: y === value ? 700 : 400,
-                color: y === value ? 'var(--color-primary)' : 'var(--color-text)',
-                background: y === value ? 'var(--color-primary-subtle, rgba(0,150,136,0.08))' : 'transparent',
+                fontSize: '13px',
+                borderRadius: '6px',
+                fontWeight: y === value ? 700 : 500,
+                color: y === value ? 'var(--color-primary)' : 'var(--text-primary)',
+                background: y === value ? 'var(--color-primary-soft)' : 'transparent',
               }}
-              onMouseEnter={e => { if (y !== value) e.currentTarget.style.background = 'var(--color-bg-subtle, rgba(0,0,0,0.04))'; }}
-              onMouseLeave={e => { e.currentTarget.style.background = y === value ? 'var(--color-primary-subtle, rgba(0,150,136,0.08))' : 'transparent'; }}
+              onMouseEnter={(e) => { if (y !== value) e.currentTarget.style.background = 'var(--bg-surface-secondary)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = y === value ? 'var(--color-primary-soft)' : 'transparent'; }}
             >
               {y}
             </li>
@@ -102,58 +100,67 @@ function YearDropdown({ value, onChange }) {
 }
 
 export default function MonthlySummary() {
-  const [data, setData]     = useState([]);
-  const [year, setYear]     = useState(CURRENT_YEAR);
+  const [data, setData] = useState([]);
+  const [year, setYear] = useState(CURRENT_YEAR);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     setLoading(true);
     getMySummaryMonthly(year)
-      .then(r => setData(r.data.data || []))
+      .then((r) => setData(r.data.data || []))
       .catch(() => setData([]))
       .finally(() => setLoading(false));
   }, [year]);
 
   return (
-    <div className="animate-fadeIn page-shell">
-      <div className="page-shell__header">
-        <div className="page-shell__title-group">
-          <h1 className="page-shell__title">Monthly Summary</h1>
-          <p className="page-shell__subtitle">Overview of fuel purchases and payments by month.</p>
-        </div>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+      <PageHeader
+        title="Monthly Summary"
+        subtitle="Overview of fuel purchases and payments by month."
+        actions={<YearDropdown value={year} onChange={setYear} />}
+      />
 
-        <div className="page-shell__actions">
-          <YearDropdown value={year} onChange={setYear} />
-        </div>
-      </div>
-
-      <div className="surface-panel">
-        <div className="responsive-table">
-          <table>
+      <Card>
+        <div style={{ width: '100%', overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', minWidth: 540 }}>
             <thead>
-              <tr>
-                {['Month','Fuel (L)','Sales (Rs)','Paid (Rs)','Closing Balance'].map(h => (
-                  <th key={h} style={{ textAlign: h === 'Month' ? 'left' : 'right' }}>{h}</th>
+              <tr style={{ borderBottom: '1px solid var(--border-default, #E2E8EC)', background: 'var(--bg-surface-secondary, #F9FAFB)', textAlign: 'left', color: 'var(--text-secondary, #5B6870)', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                {['Month','Fuel (L)','Sales (Rs)','Paid (Rs)','Closing Balance'].map((h) => (
+                  <th key={h} style={{ padding: '10px 12px', textAlign: h === 'Month' ? 'left' : 'right' }}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {!loading && data.length === 0 && (
-                <tr><td colSpan={5} style={{ textAlign: 'center', padding: 'var(--space-12)', color: 'var(--color-text-muted)' }}>No data for {year}</td></tr>
+                <tr>
+                  <td colSpan={5} style={{ textAlign: 'center', padding: '36px', color: 'var(--text-muted)' }}>
+                    No purchase data recorded for {year}
+                  </td>
+                </tr>
               )}
               {data.map((r) => (
-                <tr key={r.month}>
-                  <td style={{ fontWeight: 600 }}>{MONTHS[r.month - 1]}</td>
-                  <td style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{formatFuel(r.totalFuel)}</td>
-                  <td style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{formatCurrency(r.totalSales)}</td>
-                  <td style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{formatCurrency(r.totalPayments)}</td>
-                  <td style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums', color: r.closingBalance > 0 ? 'var(--color-error)' : 'var(--color-success)' }}>{formatCurrency(r.closingBalance)}</td>
+                <tr key={r.month} style={{ borderBottom: '1px solid var(--border-divider, #E8ECEF)' }}>
+                  <td style={{ padding: '12px', fontWeight: 600, color: 'var(--text-primary)' }}>{MONTHS[r.month - 1]}</td>
+                  <td style={{ padding: '12px', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{formatFuel(r.totalFuel)}</td>
+                  <td style={{ padding: '12px', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{formatCurrency(r.totalSales)}</td>
+                  <td style={{ padding: '12px', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{formatCurrency(r.totalPayments)}</td>
+                  <td
+                    style={{
+                      padding: '12px',
+                      textAlign: 'right',
+                      fontVariantNumeric: 'tabular-nums',
+                      fontWeight: 700,
+                      color: r.closingBalance > 0 ? 'var(--color-danger, #C64040)' : 'var(--color-success, #18864B)',
+                    }}
+                  >
+                    {formatCurrency(r.closingBalance)}
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
-      </div>
+      </Card>
     </div>
   );
 }

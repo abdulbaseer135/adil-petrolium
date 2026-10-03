@@ -1,5 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Users } from 'lucide-react';
 import { Badge } from '../ui/Badge';
 import { Button } from '../ui/Button';
 import { SkeletonTable } from '../ui/Skeleton';
@@ -21,7 +22,7 @@ export const CustomerTable = ({ data, loading, onAdd }) => {
   if (loading) return <SkeletonTable rows={6} cols={6} />;
   if (!data?.length) return (
     <EmptyState
-      icon="👤"
+      icon={<Users size={36} />}
       title="No customers yet"
       description="Add your first customer to get started."
       action={onAdd}

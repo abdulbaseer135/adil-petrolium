@@ -1,5 +1,11 @@
 import React, { useEffect, useState } from 'react';
+import { Fuel, UserCheck } from 'lucide-react';
 import { getPlatformAdmins } from '../../api/superAdminApi';
+import { Badge } from '../../components/ui/Badge';
+import { EmptyState } from '../../components/ui/EmptyState';
+import { ErrorState } from '../../components/ui/ErrorState';
+import Card from '../../components/ui/Card';
+import PageHeader from '../../components/layout/PageHeader';
 
 export default function Admins() {
   const [admins, setAdmins] = useState([]);
@@ -23,107 +29,75 @@ export default function Admins() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-      <div>
-        <h1 style={{ fontSize: '24px', fontWeight: 700, margin: '0 0 6px', color: 'var(--color-text)' }}>
-          Station Administrators
-        </h1>
-        <p style={{ margin: 0, fontSize: '14px', color: 'var(--color-text-muted)' }}>
-          Platform-wide registry of petrol pump administrators and station managers
-        </p>
-      </div>
+      <PageHeader
+        title="Station Administrators"
+        subtitle="Platform-wide registry of petrol pump administrators and station managers."
+      />
 
-      <div
-        style={{
-          background: 'var(--color-surface)',
-          border: '1px solid var(--color-border)',
-          borderRadius: '14px',
-          overflow: 'hidden',
-        }}
-      >
+      <Card>
         {loading ? (
-          <div style={{ padding: '40px', textAlign: 'center', color: 'var(--color-text-muted)' }}>
+          <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>
             Loading administrators...
           </div>
         ) : error ? (
-          <div style={{ padding: '24px', color: 'var(--color-error)', textAlign: 'center' }}>
-            {error}
-          </div>
+          <ErrorState message={error} />
         ) : admins.length === 0 ? (
-          <div style={{ padding: '48px', textAlign: 'center', color: 'var(--color-text-muted)' }}>
-            No administrators found.
-          </div>
+          <EmptyState
+            icon={<UserCheck size={36} />}
+            title="No administrators found"
+            description="Registered station administrators will appear here."
+          />
         ) : (
-          <div className="table-responsive">
+          <div style={{ width: '100%', overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', minWidth: 640 }}>
               <thead>
                 <tr
                   style={{
-                    borderBottom: '1px solid var(--color-border)',
-                    background: 'var(--color-bg)',
+                    borderBottom: '1px solid var(--border-default, #E2E8EC)',
+                    background: 'var(--bg-surface-secondary, #F9FAFB)',
                     textAlign: 'left',
-                    color: 'var(--color-text-muted)',
-                    fontSize: '12px',
+                    color: 'var(--text-secondary, #5B6870)',
+                    fontSize: '11px',
                     textTransform: 'uppercase',
+                    letterSpacing: '0.04em',
                   }}
                 >
-                  <th style={{ padding: '12px 14px' }}>Administrator</th>
-                  <th style={{ padding: '12px 14px' }}>Contact Phone</th>
-                  <th style={{ padding: '12px 14px' }}>Assigned Station</th>
-                  <th style={{ padding: '12px 14px' }}>Account Status</th>
-                  <th style={{ padding: '12px 14px' }}>Joined Date</th>
+                  <th style={{ padding: '10px 14px' }}>Administrator</th>
+                  <th style={{ padding: '10px 14px' }}>Contact Phone</th>
+                  <th style={{ padding: '10px 14px' }}>Assigned Station</th>
+                  <th style={{ padding: '10px 14px' }}>Account Status</th>
+                  <th style={{ padding: '10px 14px' }}>Joined Date</th>
                 </tr>
               </thead>
               <tbody>
                 {admins.map((admin) => (
-                  <tr key={admin._id} style={{ borderBottom: '1px solid var(--color-border)' }}>
-                    <td style={{ padding: '14px', fontWeight: 600, color: 'var(--color-text)' }}>
+                  <tr key={admin._id} style={{ borderBottom: '1px solid var(--border-divider, #E8ECEF)' }}>
+                    <td style={{ padding: '12px 14px', fontWeight: 650, color: 'var(--text-primary, #17242D)' }}>
                       <div>{admin.name}</div>
-                      <div style={{ fontSize: '12px', color: 'var(--color-text-muted)', fontWeight: 400 }}>
+                      <div style={{ fontSize: '11.5px', color: 'var(--text-muted, #7A878E)', fontWeight: 400 }}>
                         {admin.email}
                       </div>
                     </td>
-                    <td style={{ padding: '14px', color: 'var(--color-text-muted)' }}>
+                    <td style={{ padding: '12px 14px', color: 'var(--text-secondary, #5B6870)' }}>
                       {admin.phone || '—'}
                     </td>
-                    <td style={{ padding: '14px', color: 'var(--color-text)' }}>
+                    <td style={{ padding: '12px 14px', color: 'var(--text-primary)' }}>
                       {admin.petrolPumpId?.name ? (
-                        <div style={{ fontWeight: 500 }}>
-                          ⛽ {admin.petrolPumpId.name}
-                          <span style={{ fontSize: '12px', color: 'var(--color-text-muted)', display: 'block' }}>
-                            {admin.petrolPumpId.city}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 500 }}>
+                          <Fuel size={14} color="var(--color-primary, #0B5D4B)" />
+                          <span>{admin.petrolPumpId.name}</span>
+                          <span style={{ fontSize: '11.5px', color: 'var(--text-muted)' }}>
+                            ({admin.petrolPumpId.city})
                           </span>
                         </div>
                       ) : (
-                        <span style={{ color: 'var(--color-text-muted)' }}>Unassigned</span>
+                        <span style={{ color: 'var(--text-muted)' }}>Unassigned</span>
                       )}
                     </td>
-                    <td style={{ padding: '14px' }}>
-                      <span
-                        style={{
-                          display: 'inline-block',
-                          padding: '2px 8px',
-                          borderRadius: '999px',
-                          fontSize: '11px',
-                          fontWeight: 600,
-                          textTransform: 'uppercase',
-                          background:
-                            admin.status === 'approved' || admin.status === 'active'
-                              ? 'rgba(16, 185, 129, 0.12)'
-                              : admin.status === 'pending'
-                              ? 'rgba(234, 179, 8, 0.12)'
-                              : 'rgba(239, 68, 68, 0.12)',
-                          color:
-                            admin.status === 'approved' || admin.status === 'active'
-                              ? '#059669'
-                              : admin.status === 'pending'
-                              ? '#ca8a04'
-                              : '#dc2626',
-                        }}
-                      >
-                        {admin.status || 'Active'}
-                      </span>
+                    <td style={{ padding: '12px 14px' }}>
+                      <Badge status={admin.status || 'active'}>{admin.status || 'Active'}</Badge>
                     </td>
-                    <td style={{ padding: '14px', color: 'var(--color-text-muted)', fontSize: '13px' }}>
+                    <td style={{ padding: '12px 14px', color: 'var(--text-muted, #7A878E)', fontSize: '12.5px' }}>
                       {new Date(admin.createdAt).toLocaleDateString()}
                     </td>
                   </tr>
@@ -132,7 +106,7 @@ export default function Admins() {
             </table>
           </div>
         )}
-      </div>
+      </Card>
     </div>
   );
 }

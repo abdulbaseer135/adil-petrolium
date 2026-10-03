@@ -16,8 +16,8 @@
 .admin-sidebar-modern {
   width: 250px;
   min-width: 250px;
-  background: var(--color-sidebar-bg, #163241);
-  border-right: 1px solid var(--color-sidebar-border, rgba(255, 255, 255, 0.08));
+  background: var(--color-sidebar-bg, #FFFFFF);
+  border-right: 1px solid var(--color-sidebar-border, #E2E8EC);
   display: flex;
   flex-direction: column;
   justify-content: space-between;

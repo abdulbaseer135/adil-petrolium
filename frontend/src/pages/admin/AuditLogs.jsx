@@ -1,9 +1,12 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { RefreshCw, FileText, Tag, Users, Link2, ScrollText, AlertCircle } from 'lucide-react';
 import { getAuditLogs } from '../../api/reportApi';
 import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
 import { EmptyState } from '../../components/ui/EmptyState';
-
+import { PageHeader } from '../../components/layout/PageHeader';
+import { Card } from '../../components/ui/Card';
+import { StatCard } from '../../components/dashboard/StatCard';
 import { Input } from '../../components/ui/Input';
 import { Pagination } from '../../components/common/Pagination';
 import { SkeletonTable } from '../../components/ui/Skeleton';
@@ -53,76 +56,6 @@ const formatActionLabel = (action) => {
   if (!action) return 'Unknown';
   return action.replace(/_/g, ' ').toLowerCase();
 };
-
-const StatCard = ({ label, value, hint, accent, icon }) => (
-  <div
-    style={{
-      background: 'var(--color-surface)',
-      border: '1px solid var(--color-border)',
-      borderRadius: 'var(--radius-lg)',
-      padding: 'var(--space-5)',
-      boxShadow: 'var(--shadow-sm)',
-      display: 'flex',
-      flexDirection: 'column',
-      gap: 'var(--space-2)',
-    }}
-  >
-    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-      <span
-        style={{
-          fontSize: 'var(--text-xs)',
-          fontWeight: 600,
-          textTransform: 'uppercase',
-          letterSpacing: '0.07em',
-          color: 'var(--color-text-muted)',
-        }}
-      >
-        {label}
-      </span>
-      <span
-        style={{
-          width: 30,
-          height: 30,
-          borderRadius: 'var(--radius-md)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          background: `color-mix(in oklch, ${accent} 12%, var(--color-surface))`,
-          color: accent,
-          fontSize: 14,
-        }}
-      >
-        {icon}
-      </span>
-    </div>
-
-    <div
-      style={{
-        fontSize: 'clamp(1.15rem, 2vw, 1.7rem)',
-        fontWeight: 700,
-        letterSpacing: '-0.03em',
-        lineHeight: 1.15,
-        fontVariantNumeric: 'tabular-nums',
-      }}
-    >
-      {value}
-    </div>
-
-    {hint ? (
-      <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)' }}>
-        {hint}
-      </div>
-    ) : null}
-
-    <div
-      style={{
-        height: 3,
-        borderRadius: 2,
-        background: `color-mix(in oklch, ${accent} 24%, transparent)`,
-      }}
-    />
-  </div>
-);
 
 const Field = ({ label, children, hint }) => (
   <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
@@ -219,25 +152,46 @@ export default function AuditLogs() {
   }), [meta, logs]);
 
   return (
-    <div className="animate-fadeIn report-page" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-6)' }}>
-      <div className="report-hero">
-        <div>
-          <h1 style={{ fontSize: 'var(--text-xl)', fontWeight: 700, letterSpacing: '-0.02em' }}>Audit Logs</h1>
-          <p style={{ color: 'var(--color-text-muted)', fontSize: 'var(--text-sm)', marginTop: 'var(--space-1)' }}>
-            Review security, operational, and traceability events across the system.
-          </p>
-        </div>
-        <Button variant="secondary" onClick={loadLogs}>Refresh</Button>
+    <div className="animate-fadeIn" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+      <PageHeader
+        title="Audit Logs"
+        subtitle="Review security, operational, and traceability events across the station."
+        actions={
+          <Button variant="outline" onClick={loadLogs}>
+            <RefreshCw size={15} />
+            <span>Refresh</span>
+          </Button>
+        }
+      />
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' }}>
+        <StatCard
+          title="Loaded Logs"
+          value={String(totals.count)}
+          icon={<FileText size={20} />}
+          description="Current filtered result count"
+        />
+        <StatCard
+          title="Visible Actions"
+          value={String(totals.actions)}
+          icon={<Tag size={20} />}
+          description="Distinct event types in result"
+        />
+        <StatCard
+          title="Visible Actors"
+          value={String(totals.actors)}
+          icon={<Users size={20} />}
+          description="Distinct users or system actors"
+        />
+        <StatCard
+          title="Tracked Requests"
+          value={String(totals.requests)}
+          icon={<Link2 size={20} />}
+          description="Rows with correlated request IDs"
+        />
       </div>
 
-      <div className="report-stat-grid">
-        <StatCard label="Loaded Logs" value={totals.count} hint="Current filtered result" accent="var(--color-primary)" icon="🧾" />
-        <StatCard label="Visible Actions" value={totals.actions} hint="Distinct event types on page" accent="var(--color-warning)" icon="🏷️" />
-        <StatCard label="Visible Actors" value={totals.actors} hint="Distinct users or system actors" accent="var(--color-success)" icon="👤" />
-        <StatCard label="Tracked Requests" value={totals.requests} hint="Rows with request IDs" accent="var(--color-blue)" icon="🔗" />
-      </div>
-
-      <div className="financial-detail-card">
+      <Card style={{ padding: '16px 20px' }}>
         <div className="financial-detail-card__body" style={{ display: 'flex', gap: 'var(--space-4)', alignItems: 'flex-end', flexWrap: 'nowrap' }}>
           <div style={{ flex: '0 0 auto', minWidth: 200 }}>
             <Field label="Action">
@@ -286,18 +240,18 @@ export default function AuditLogs() {
 
           <div style={{ flex: '1' }} />
 
-          <div style={{ flex: '0 0 auto', display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
+          <div style={{ flex: '0 0 auto', display: 'flex', flexDirection: 'column', gap: '8px' }}>
             <Button onClick={applyFilters}>Apply</Button>
             <Button variant="secondary" onClick={resetFilters}>Reset</Button>
           </div>
         </div>
-      </div>
+      </Card>
 
       {loading ? (
         <SkeletonTable rows={8} cols={7} />
       ) : error ? (
         <EmptyState
-          icon="⚠️"
+          icon={<AlertCircle size={32} color="var(--color-danger)" />}
           title="Could not load audit logs"
           description={error}
           action={loadLogs}
@@ -305,7 +259,7 @@ export default function AuditLogs() {
         />
       ) : logs.length === 0 ? (
         <EmptyState
-          icon="🔍"
+          icon={<ScrollText size={36} color="var(--text-muted)" />}
           title="No audit logs found"
           description="Try adjusting the filters or refreshing the list."
           action={loadLogs}

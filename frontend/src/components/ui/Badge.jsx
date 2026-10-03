@@ -12,19 +12,40 @@ const colors = {
   neutral: { bg: 'var(--color-surface-2, #F9FAFB)', color: 'var(--color-text-muted, #5B6870)', border: 'var(--color-border, #E2E8EC)' },
 };
 
-export const Badge = ({ children, variant = 'neutral', dot }) => {
-  const tone = colors[variant] || colors.neutral;
+const statusMap = {
+  approved: 'success',
+  active: 'success',
+  completed: 'success',
+  cleared: 'success',
+  pending: 'warning',
+  partial: 'warning',
+  rejected: 'danger',
+  suspended: 'danger',
+  debt: 'danger',
+  failed: 'danger',
+  info: 'info',
+  information: 'info',
+};
+
+export const Badge = ({ children, variant, status, dot, style = {}, className = '' }) => {
+  const effectiveVariant =
+    (status && statusMap[String(status).toLowerCase()]) ||
+    (variant && statusMap[String(variant).toLowerCase()]) ||
+    variant ||
+    'neutral';
+
+  const tone = colors[effectiveVariant] || colors.neutral;
 
   return (
     <span
-      className={`ui-badge ui-badge--${variant}`}
+      className={`ui-badge ui-badge--${effectiveVariant} ${className}`}
       style={{
         display: 'inline-flex',
         alignItems: 'center',
-        gap: '4px',
+        gap: '5px',
         padding: '3px 8px',
         borderRadius: 'var(--radius-full, 9999px)',
-        fontSize: '11.5px',
+        fontSize: '11px',
         fontWeight: 650,
         letterSpacing: '0.04em',
         textTransform: 'uppercase',
@@ -34,6 +55,7 @@ export const Badge = ({ children, variant = 'neutral', dot }) => {
         background: tone.bg,
         color: tone.color,
         lineHeight: 1.2,
+        ...style,
       }}
     >
       {dot && (
@@ -47,7 +69,7 @@ export const Badge = ({ children, variant = 'neutral', dot }) => {
           }}
         />
       )}
-      {children}
+      {children || status}
     </span>
   );
 };

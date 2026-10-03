@@ -1,4 +1,5 @@
 import React from 'react';
+import { AlertCircle, FileText } from 'lucide-react';
 import { EmptyState } from '../ui/EmptyState';
 import { SkeletonTable } from '../ui/Skeleton';
 
@@ -129,7 +130,7 @@ export function StatementLedgerView({
         ) : error ? (
           <div style={{ padding: 'var(--space-5)' }}>
             <EmptyState
-              icon="⚠️"
+              icon={<AlertCircle size={32} color="var(--color-danger)" />}
               title={emptyTitle || 'Could not load report'}
               description={error}
               action={onRetry}
@@ -138,7 +139,7 @@ export function StatementLedgerView({
           </div>
         ) : rows.length === 0 ? (
           <EmptyState
-            icon={emptyIcon || '🧾'}
+            icon={emptyIcon || <FileText size={36} color="var(--text-muted)" />}
             title={emptyTitle || 'No rows found'}
             description={emptyDescription || 'No entries found for the selected period.'}
           />

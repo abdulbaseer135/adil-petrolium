@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Download } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { downloadMyStatement } from '../../api/customerApi';
 import { downloadPumpStatement } from '../../api/customerPumpApi';
@@ -49,7 +50,7 @@ export const StatementDownload = ({ customerCode, pumpAccountId }) => {
         </div>
 
         <div className="sdp-actions">
-          <Button onClick={downloadExcel} loading={loading} variant="primary">⬇ Download</Button>
+          <Button onClick={downloadExcel} loading={loading} variant="primary" iconLeft={<Download size={15} />}>Download Statement</Button>
         </div>
       </div>
 

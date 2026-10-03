@@ -1,6 +1,12 @@
 import React, { useEffect, useState } from 'react';
+import { Fuel, ShieldCheck } from 'lucide-react';
 import { getPlatformAuditLogs } from '../../api/superAdminApi';
 import { Button } from '../../components/ui/Button';
+import { Badge } from '../../components/ui/Badge';
+import { EmptyState } from '../../components/ui/EmptyState';
+import { ErrorState } from '../../components/ui/ErrorState';
+import Card from '../../components/ui/Card';
+import PageHeader from '../../components/layout/PageHeader';
 
 export default function AuditLogs() {
   const [logs, setLogs] = useState([]);
@@ -30,29 +36,37 @@ export default function AuditLogs() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [actionFilter]);
 
+  const getActionBadgeVariant = (action) => {
+    if (action.includes('REJECT') || action.includes('SUSPEND') || action.includes('VOID')) {
+      return 'danger';
+    }
+    if (action.includes('APPROVE') || action.includes('REACTIVATE')) {
+      return 'success';
+    }
+    if (action.includes('REGISTER') || action.includes('LINK')) {
+      return 'primary';
+    }
+    return 'neutral';
+  };
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '12px' }}>
-        <div>
-          <h1 style={{ fontSize: '24px', fontWeight: 700, margin: '0 0 6px', color: 'var(--color-text)' }}>
-            Platform Audit Trail
-          </h1>
-          <p style={{ margin: 0, fontSize: '14px', color: 'var(--color-text-muted)' }}>
-            Tamper-evident logs of administrative, approval, financial, and security actions across all tenants
-          </p>
-        </div>
-
-        <div>
+      <PageHeader
+        title="Platform Audit Trail"
+        subtitle="Tamper-evident logs of administrative, approval, financial, and security actions across all tenants."
+        actions={
           <select
             value={actionFilter}
             onChange={(e) => setActionFilter(e.target.value)}
             style={{
               padding: '8px 12px',
-              borderRadius: '8px',
-              border: '1px solid var(--color-border)',
-              background: 'var(--color-surface)',
-              color: 'var(--color-text)',
+              borderRadius: 'var(--radius-md, 8px)',
+              border: '1px solid var(--border-default, #E2E8EC)',
+              background: 'var(--bg-surface, #FFFFFF)',
+              color: 'var(--text-primary, #17242D)',
               fontSize: '13px',
+              outline: 'none',
+              cursor: 'pointer',
             }}
           >
             <option value="">All Platform Actions</option>
@@ -65,101 +79,78 @@ export default function AuditLogs() {
             <option value="TRANSACTION_CREATED">Transaction Created</option>
             <option value="TRANSACTION_VOIDED">Transaction Voided</option>
           </select>
-        </div>
-      </div>
+        }
+      />
 
-      <div
-        style={{
-          background: 'var(--color-surface)',
-          border: '1px solid var(--color-border)',
-          borderRadius: '14px',
-          overflow: 'hidden',
-        }}
-      >
+      <Card>
         {loading ? (
-          <div style={{ padding: '40px', textAlign: 'center', color: 'var(--color-text-muted)' }}>
+          <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>
             Loading audit logs...
           </div>
         ) : error ? (
-          <div style={{ padding: '24px', color: 'var(--color-error)', textAlign: 'center' }}>
-            {error}
-          </div>
+          <ErrorState message={error} />
         ) : logs.length === 0 ? (
-          <div style={{ padding: '48px', textAlign: 'center', color: 'var(--color-text-muted)' }}>
-            No audit records match the selected criteria.
-          </div>
+          <EmptyState
+            icon={<ShieldCheck size={36} />}
+            title="No audit records found"
+            description="No audit trail events match the selected criteria."
+          />
         ) : (
-          <div className="table-responsive">
+          <div style={{ width: '100%', overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', minWidth: 720 }}>
               <thead>
                 <tr
                   style={{
-                    borderBottom: '1px solid var(--color-border)',
-                    background: 'var(--color-bg)',
+                    borderBottom: '1px solid var(--border-default, #E2E8EC)',
+                    background: 'var(--bg-surface-secondary, #F9FAFB)',
                     textAlign: 'left',
-                    color: 'var(--color-text-muted)',
+                    color: 'var(--text-secondary, #5B6870)',
                     fontSize: '11px',
                     textTransform: 'uppercase',
+                    letterSpacing: '0.04em',
                   }}
                 >
-                  <th style={{ padding: '12px 14px' }}>Timestamp</th>
-                  <th style={{ padding: '12px 14px' }}>Action</th>
-                  <th style={{ padding: '12px 14px' }}>Actor</th>
-                  <th style={{ padding: '12px 14px' }}>Station Tenant</th>
-                  <th style={{ padding: '12px 14px' }}>Target</th>
-                  <th style={{ padding: '12px 14px' }}>IP / Agent</th>
+                  <th style={{ padding: '10px 14px' }}>Timestamp</th>
+                  <th style={{ padding: '10px 14px' }}>Action</th>
+                  <th style={{ padding: '10px 14px' }}>Actor</th>
+                  <th style={{ padding: '10px 14px' }}>Station Tenant</th>
+                  <th style={{ padding: '10px 14px' }}>Target</th>
+                  <th style={{ padding: '10px 14px' }}>IP / Agent</th>
                 </tr>
               </thead>
               <tbody>
                 {logs.map((log) => (
-                  <tr key={log._id} style={{ borderBottom: '1px solid var(--color-border)' }}>
-                    <td style={{ padding: '12px 14px', whiteSpace: 'nowrap', color: 'var(--color-text-muted)' }}>
+                  <tr key={log._id} style={{ borderBottom: '1px solid var(--border-divider, #E8ECEF)' }}>
+                    <td style={{ padding: '12px 14px', whiteSpace: 'nowrap', color: 'var(--text-muted, #7A878E)' }}>
                       {new Date(log.createdAt).toLocaleString()}
                     </td>
                     <td style={{ padding: '12px 14px' }}>
-                      <span
-                        style={{
-                          display: 'inline-block',
-                          padding: '2px 8px',
-                          borderRadius: '6px',
-                          fontSize: '11px',
-                          fontWeight: 600,
-                          background: log.action.includes('REJECT') || log.action.includes('SUSPEND')
-                            ? 'rgba(239, 68, 68, 0.1)'
-                            : log.action.includes('APPROVE')
-                            ? 'rgba(16, 185, 129, 0.1)'
-                            : 'rgba(79, 70, 229, 0.08)',
-                          color: log.action.includes('REJECT') || log.action.includes('SUSPEND')
-                            ? '#dc2626'
-                            : log.action.includes('APPROVE')
-                            ? '#059669'
-                            : 'var(--color-primary)',
-                        }}
-                      >
+                      <Badge variant={getActionBadgeVariant(log.action)}>
                         {log.action}
-                      </span>
+                      </Badge>
                     </td>
                     <td style={{ padding: '12px 14px' }}>
-                      <div style={{ fontWeight: 500, color: 'var(--color-text)' }}>
+                      <div style={{ fontWeight: 600, color: 'var(--text-primary, #17242D)' }}>
                         {log.actorEmail || 'System / Service'}
                       </div>
-                      <div style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>
+                      <div style={{ fontSize: '11.5px', color: 'var(--text-muted, #7A878E)' }}>
                         Role: {log.actorRole || 'system'}
                       </div>
                     </td>
                     <td style={{ padding: '12px 14px' }}>
                       {log.petrolPumpId?.name ? (
-                        <span style={{ fontWeight: 500, color: 'var(--color-text)' }}>
-                          ⛽ {log.petrolPumpId.name}
-                        </span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 500, color: 'var(--text-primary)' }}>
+                          <Fuel size={14} color="var(--color-primary, #0B5D4B)" />
+                          <span>{log.petrolPumpId.name}</span>
+                        </div>
                       ) : (
-                        <span style={{ color: 'var(--color-text-muted)' }}>Platform Level</span>
+                        <span style={{ color: 'var(--text-muted, #7A878E)' }}>Platform Level</span>
                       )}
                     </td>
-                    <td style={{ padding: '12px 14px', color: 'var(--color-text-muted)', fontSize: '12px' }}>
+                    <td style={{ padding: '12px 14px', color: 'var(--text-secondary, #5B6870)', fontSize: '12px' }}>
                       {log.targetType || log.targetModel || '—'}: {log.targetId ? String(log.targetId).slice(-6) : ''}
                     </td>
-                    <td style={{ padding: '12px 14px', color: 'var(--color-text-muted)', fontSize: '11px' }}>
+                    <td style={{ padding: '12px 14px', color: 'var(--text-muted, #7A878E)', fontSize: '11.5px' }}>
                       {log.ipAddress || '—'}
                     </td>
                   </tr>
@@ -172,13 +163,13 @@ export default function AuditLogs() {
         {meta.totalPages > 1 && (
           <div
             style={{
-              padding: '12px 16px',
+              padding: '14px 16px',
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center',
-              borderTop: '1px solid var(--color-border)',
+              borderTop: '1px solid var(--border-divider, #E8ECEF)',
               fontSize: '13px',
-              color: 'var(--color-text-muted)',
+              color: 'var(--text-secondary, #5B6870)',
             }}
           >
             <div>
@@ -188,23 +179,23 @@ export default function AuditLogs() {
               <Button
                 disabled={meta.page <= 1}
                 onClick={() => fetchLogs(meta.page - 1)}
-                variant="secondary"
-                style={{ padding: '4px 10px', fontSize: '12px' }}
+                variant="outline"
+                size="sm"
               >
                 Previous
               </Button>
               <Button
                 disabled={meta.page >= meta.totalPages}
                 onClick={() => fetchLogs(meta.page + 1)}
-                variant="secondary"
-                style={{ padding: '4px 10px', fontSize: '12px' }}
+                variant="outline"
+                size="sm"
               >
                 Next
               </Button>
             </div>
           </div>
         )}
-      </div>
+      </Card>
     </div>
   );
 }

@@ -1,11 +1,13 @@
 import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { ArrowLeft, CheckCircle2 } from 'lucide-react';
 import { createCustomer } from '../../api/customerApi';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { Badge } from '../../components/ui/Badge';
 import { Section as SectionCard } from '../../components/ui/Section';
+import { PageHeader } from '../../components/layout/PageHeader';
 import { useToast } from '../../hooks/useToast';
 
 const initialForm = {
@@ -143,29 +145,27 @@ export default function CustomerCreate() {
   };
 
   return (
-    <div className="animate-fadeIn form-page" style={{ maxWidth: 1120 }}>
-      <div className="form-hero">
-        <div className="form-hero__titleGroup">
-          <Button variant="ghost" onClick={() => nav('/admin/customers')} style={{ alignSelf: 'flex-start' }}>
-            ← Back
-          </Button>
-          <h1 className="form-hero__title">Add Petrol Pump Customer Account</h1>
-          <p className="form-hero__subtitle">
-            Create a station ledger account. Customers manage their own logins online and link to this account to view statements.
-          </p>
-        </div>
-
-        <div className="form-badges">
-          <InfoChip color="var(--color-primary)">Ledger Account</InfoChip>
-          <InfoChip color={requiredComplete ? 'var(--color-success)' : 'var(--color-warning)'}>
-            {requiredComplete ? 'Required Complete' : 'Required Pending'}
-          </InfoChip>
-        </div>
-      </div>
+    <div className="animate-fadeIn" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+      <PageHeader
+        title="Add Customer Account"
+        subtitle="Create a station ledger account. Customers manage their own logins online and link to this account to view statements."
+        actions={
+          <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+            <Button variant="outline" onClick={() => nav('/admin/customers')}>
+              <ArrowLeft size={16} />
+              <span>Back</span>
+            </Button>
+            <Badge variant="info">Ledger Account</Badge>
+            <Badge variant={requiredComplete ? 'success' : 'warning'}>
+              {requiredComplete ? 'Required Complete' : 'Required Pending'}
+            </Badge>
+          </div>
+        }
+      />
 
       {created ? (
         <EmptyState
-          icon="✅"
+          icon={<CheckCircle2 size={36} color="var(--color-success)" />}
           title="Customer account created successfully"
           description={`Account ${created.profile?.customerCode || created.customerCode || ''} is ready.`}
           action={() => nav(`/admin/customers/${created.profile?._id || created._id}`)}

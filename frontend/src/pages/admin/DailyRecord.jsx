@@ -1,11 +1,14 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { Lock, Fuel, DollarSign, CreditCard, TrendingUp, AlertCircle, FolderOpen, Calendar, Search } from 'lucide-react';
 import { getDaily, lockDailyRecord } from '../../api/reportApi';
 import { getTransactions } from '../../api/transactionApi';
 import { Button } from '../../components/ui/Button';
 import { EmptyState }    from '../../components/ui/EmptyState';
 import { ConfirmDialog } from '../../components/common/ConfirmDialog';
 import { CustomerStatementGroups, buildCustomerStatementGroups, filterCustomerStatementGroups } from '../../components/admin/CustomerStatementGroups';
-import { SectionHeader } from '../../components/ui/Section';
+import { PageHeader } from '../../components/layout/PageHeader';
+import { Card } from '../../components/ui/Card';
+import { StatCard } from '../../components/dashboard/StatCard';
 import { formatDatePK, formatNumberPK, toInputDatePK, formatCurrencyShortPK } from '../../utils/pkFormat';
 
 const fmt     = formatCurrencyShortPK;
@@ -13,22 +16,6 @@ const fmtL    = (v) => `${formatNumberPK(v, 0, 0)} L`;
 const fmtDate = formatDatePK;
 
 const localToday = () => toInputDatePK(new Date());
-
-const SummaryCard = ({ label, value, hint, accent }) => (
-  <div style={{
-    background: 'var(--color-surface)',
-    border: '1px solid var(--color-border)',
-    borderRadius: 'var(--radius-xl)',
-    boxShadow: 'var(--shadow-sm)',
-    padding: 'var(--space-4)',
-    display: 'flex',
-    flexDirection: 'column',
-  }}>
-    <div style={{ fontSize: 'var(--text-xs)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--color-text-muted)' }}>{label}</div>
-    <div style={{ marginTop: 'var(--space-2)', fontSize: 'var(--text-xl)', fontWeight: 700, color: accent || 'var(--color-text)', fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.02em', lineHeight: 1.2 }}>{value}</div>
-    {hint ? <div style={{ marginTop: 'var(--space-1)', fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)', fontWeight: 500 }}>{hint}</div> : null}
-  </div>
-);
 
 export default function DailyRecord() {
   const [selectedDate, setSelectedDate] = useState(localToday);
@@ -177,59 +164,102 @@ export default function DailyRecord() {
 
   return (
     <>
-      <div className="animate-fadeIn report-page">
-        <SectionHeader
+      <div className="animate-fadeIn" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        <PageHeader
           title="Daily Record"
-          subtitle="Review and lock the daily summary for a specific date"
-          action={
-            <div className="report-toolbar" style={{ alignItems: 'flex-end' }}>
-            <div className="report-filter">
-              <span className="report-filter__label">Record Date</span>
-              <input
-                className="report-filter__control"
-                type="date"
-                value={selectedDate}
-                onChange={(e) => setSelectedDate(e.target.value)}
-                max={todayStr}
-              />
-            </div>
+          subtitle="Review and lock the daily summary for a specific operational date"
+          actions={
+            <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Calendar size={15} style={{ color: 'var(--text-secondary)' }} />
+                <input
+                  type="date"
+                  value={selectedDate}
+                  onChange={(e) => setSelectedDate(e.target.value)}
+                  max={todayStr}
+                  style={{
+                    padding: '6px 10px',
+                    borderRadius: 'var(--radius-md, 8px)',
+                    border: '1px solid var(--border-default)',
+                    background: 'var(--bg-surface)',
+                    color: 'var(--text-primary)',
+                    fontSize: '13px',
+                  }}
+                />
+              </div>
 
-            {record && !record.isLocked ? (
-              <Button size="sm" variant="danger" onClick={() => setLockTarget(record)}>
-                Lock Record
-              </Button>
-            ) : null}
+              {record && !record.isLocked ? (
+                <Button variant="danger" onClick={() => setLockTarget(record)}>
+                  <Lock size={15} />
+                  <span>Lock Record</span>
+                </Button>
+              ) : null}
             </div>
           }
         />
 
-        <div className="report-stat-grid">
-          <SummaryCard label="Total Sale" value={loadingSummary ? 'Loading…' : fmt(dailySummary.totalSalesAmount)} accent="var(--color-primary)" hint="Debit transactions in the selected date." />
-          <SummaryCard label="Total Fuel Sold" value={loadingSummary ? 'Loading…' : fmtL(dailySummary.totalFuelSold)} accent="var(--color-warning)" hint="Total litres sold across all entries." />
-          <SummaryCard label="Total Payments" value={loadingSummary ? 'Loading…' : fmt(dailySummary.totalPaymentsReceived)} accent="var(--color-success)" hint="Credit transactions received." />
-          <SummaryCard label="Remaining" value={loadingSummary ? 'Loading…' : fmt(dailySummary.totalSalesAmount - dailySummary.totalPaymentsReceived)} accent="var(--color-warning)" hint="Outstanding amount after payments." />
-        </div>
-
-        <div className="report-filter" style={{ minWidth: 'min(100%, 200px)', maxWidth: 400, marginTop: 'var(--space-2)' }}>
-          <span className="report-filter__label">Search</span>
-          <input
-            className="report-filter__control"
-            type="search"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search customer name..."
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' }}>
+          <StatCard
+            title="Total Sale"
+            value={loadingSummary ? 'Loading…' : fmt(dailySummary.totalSalesAmount)}
+            icon={<DollarSign size={20} />}
+            description="Debit transactions on selected date"
+          />
+          <StatCard
+            title="Total Fuel Sold"
+            value={loadingSummary ? 'Loading…' : fmtL(dailySummary.totalFuelSold)}
+            icon={<Fuel size={20} />}
+            description="Total litres sold across entries"
+          />
+          <StatCard
+            title="Total Payments"
+            value={loadingSummary ? 'Loading…' : fmt(dailySummary.totalPaymentsReceived)}
+            icon={<CreditCard size={20} />}
+            description="Credit transactions received"
+          />
+          <StatCard
+            title="Net Balance"
+            value={loadingSummary ? 'Loading…' : fmt(dailySummary.totalSalesAmount - dailySummary.totalPaymentsReceived)}
+            icon={<TrendingUp size={20} />}
+            description="Outstanding amount after payments"
           />
         </div>
 
+        <Card style={{ padding: '14px 18px' }}>
+          <div style={{ display: 'flex', gap: '10px', alignItems: 'center', maxWidth: 400 }}>
+            <Search size={16} style={{ color: 'var(--text-muted)' }} />
+            <input
+              type="search"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search customer name..."
+              style={{
+                width: '100%',
+                border: 'none',
+                outline: 'none',
+                background: 'transparent',
+                color: 'var(--text-primary)',
+                fontSize: '14px',
+              }}
+            />
+          </div>
+        </Card>
+
         {summaryError || transactionsError || recordError ? (
-          <EmptyState icon="⚠️" title="Could not load daily record" description={summaryError || transactionsError || recordError} action={() => Promise.all([loadDailySummary(), loadDayTransactions(), loadRecord()])} actionLabel="Try Again" />
+          <EmptyState
+            icon={<AlertCircle size={32} color="var(--color-danger)" />}
+            title="Could not load daily record"
+            description={summaryError || transactionsError || recordError}
+            action={() => Promise.all([loadDailySummary(), loadDayTransactions(), loadRecord()])}
+            actionLabel="Try Again"
+          />
         ) : (
           <CustomerStatementGroups
             groups={filteredStatementGroups}
             loading={loading}
             error={''}
             onRetry={() => Promise.all([loadDailySummary(), loadDayTransactions(), loadRecord()])}
-            emptyIcon="📂"
+            emptyIcon={<FolderOpen size={36} color="var(--text-muted)" />}
             emptyTitle="No record for this date"
             emptyDescription="Select a date that has transactions to view its customer statements."
           />

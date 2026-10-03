@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { FileSpreadsheet, FileText, AlertCircle, Plus } from 'lucide-react';
 import { getCustomers } from '../../api/customerApi';
 import { downloadAdminStatementExcel } from '../../api/reportApi';
 import { getTransactions, voidTransaction } from '../../api/transactionApi';
@@ -7,7 +8,7 @@ import { generateCustomerStatementPdf } from '../../utils/pdf/customerStatementP
 import { TransactionForm } from '../../components/admin/TransactionForm';
 import { Pagination } from '../../components/common/Pagination';
 import { EmptyState } from '../../components/ui/EmptyState';
-import { SectionHeader } from '../../components/ui/Section';
+import { PageHeader } from '../../components/layout/PageHeader';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
 import { Input } from '../../components/ui/Input';
@@ -418,25 +419,28 @@ export default function Transactions() {
 
   return (
     <div>
-    <div className="animate-fadeIn report-page" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-6)' }}>
-      <SectionHeader
+    <div className="animate-fadeIn" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+      <PageHeader
         title={isStatementMode ? 'Customer Account Statement' : 'Account Statement'}
-        subtitle={
-          ''
-        }
-        action={
-          <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap', justifyContent: 'flex-end', alignItems: 'center' }}>
+        subtitle={isStatementMode ? `Ledger statement for ${selectedCustomer?.userId?.name || selectedCustomer?.customerCode || 'selected account'}` : 'Search, review, and manage customer ledger transactions.'}
+        actions={
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', justifyContent: 'flex-end', alignItems: 'center' }}>
             {isStatementMode ? (
               <>
-                <Button variant="secondary" onClick={handleShareStatement}>
-                  ⬇ Download Excel
+                <Button variant="outline" onClick={handleShareStatement}>
+                  <FileSpreadsheet size={15} />
+                  <span>Download Excel</span>
                 </Button>
-                <Button variant="secondary" onClick={handleDownloadPdf}>
-                  ⬇ Download PDF
+                <Button variant="outline" onClick={handleDownloadPdf}>
+                  <FileText size={15} />
+                  <span>Download PDF</span>
                 </Button>
               </>
             ) : null}
-            <Button onClick={() => setShowCreate(true)}>Receive Payment</Button>
+            <Button onClick={() => setShowCreate(true)}>
+              <Plus size={15} />
+              <span>Receive Payment</span>
+            </Button>
           </div>
         }
       />
@@ -613,7 +617,7 @@ export default function Transactions() {
         <SkeletonTable rows={8} cols={9} />
       ) : error ? (
         <EmptyState
-          icon="⚠️"
+          icon={<AlertCircle size={32} color="var(--color-danger)" />}
           title="Could not load statement"
           description={error}
           action={loadTransactions}
@@ -621,7 +625,7 @@ export default function Transactions() {
         />
       ) : statementRows.length === 0 ? (
         <EmptyState
-          icon="🧾"
+          icon={<FileText size={36} color="var(--text-muted)" />}
           title="No statement rows found"
           description={
             isStatementMode

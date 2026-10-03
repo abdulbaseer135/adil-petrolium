@@ -1,11 +1,28 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
+  Fuel,
+  Clock,
+  CheckCircle,
+  AlertOctagon,
+  UserCheck,
+  Users,
+  ShieldCheck,
+  Check,
+  X,
+} from 'lucide-react';
+import {
   getSuperAdminDashboard,
   approvePetrolPump,
   rejectPetrolPump,
 } from '../../api/superAdminApi';
 import { Button } from '../../components/ui/Button';
+import { EmptyState } from '../../components/ui/EmptyState';
+import { ErrorState } from '../../components/ui/ErrorState';
+import { SkeletonCard } from '../../components/ui/Skeleton';
+import Card from '../../components/ui/Card';
+import PageHeader from '../../components/layout/PageHeader';
+import StatCard from '../../components/dashboard/StatCard';
 
 export default function SuperAdminDashboard() {
   const [data, setData] = useState(null);
@@ -57,30 +74,23 @@ export default function SuperAdminDashboard() {
     }
   };
 
-  if (loading) {
+  if (loading && !data) {
     return (
-      <div style={{ padding: '40px', textAlign: 'center', color: 'var(--color-text-muted)' }}>
-        Loading platform dashboard...
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
+          <SkeletonCard />
+          <SkeletonCard />
+          <SkeletonCard />
+          <SkeletonCard />
+          <SkeletonCard />
+          <SkeletonCard />
+        </div>
       </div>
     );
   }
 
-  if (error) {
-    return (
-      <div
-        style={{
-          background: 'color-mix(in oklch, var(--color-error) 10%, var(--color-surface))',
-          padding: '16px',
-          borderRadius: '12px',
-          color: 'var(--color-error)',
-        }}
-      >
-        {error}
-        <Button onClick={fetchDashboard} style={{ marginTop: '12px' }}>
-          Retry
-        </Button>
-      </div>
-    );
+  if (error && !data) {
+    return <ErrorState message={error} onRetry={fetchDashboard} />;
   }
 
   const overview = data?.overview || data?.stats || {};
@@ -96,203 +106,140 @@ export default function SuperAdminDashboard() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-      {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '12px' }}>
-        <div>
-          <h1 style={{ fontSize: 'clamp(20px, 4vw, 26px)', fontWeight: 700, margin: '0 0 6px', color: 'var(--color-text)' }}>
-            Platform Dashboard
-          </h1>
-          <p style={{ margin: 0, fontSize: 'clamp(12px, 2.5vw, 14px)', color: 'var(--color-text-muted)' }}>
-            Multi-tenant SaaS oversight, station approvals, and system-wide operational metrics
-          </p>
-        </div>
-      </div>
-
-      {/* Metrics Grid */}
-      <div className="kpi-grid">
-        <div
-          style={{
-            background: 'var(--color-surface)',
-            border: '1px solid var(--color-border)',
-            borderRadius: '12px',
-            padding: 'clamp(14px, 3vw, 20px)',
-            boxShadow: 'var(--shadow-xs)',
-          }}
-        >
-          <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-            Total Stations
-          </div>
-          <div style={{ fontSize: 'clamp(22px, 5vw, 28px)', fontWeight: 750, color: 'var(--color-text)', marginTop: '6px' }}>
-            {totalStations}
-          </div>
-        </div>
-
-        <div
-          style={{
-            background: 'var(--color-surface)',
-            border: '1px solid var(--color-border)',
-            borderRadius: '12px',
-            padding: 'clamp(14px, 3vw, 20px)',
-            boxShadow: 'var(--shadow-xs)',
-          }}
-        >
-          <div style={{ fontSize: '11px', color: 'var(--color-warning, #C47B12)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-            Pending Approvals
-          </div>
-          <div style={{ fontSize: 'clamp(22px, 5vw, 28px)', fontWeight: 750, color: 'var(--color-warning, #C47B12)', marginTop: '6px' }}>
-            {pendingApprovalsCount}
-          </div>
-        </div>
-
-        <div
-          style={{
-            background: 'var(--color-surface)',
-            border: '1px solid var(--color-border)',
-            borderRadius: '12px',
-            padding: 'clamp(14px, 3vw, 20px)',
-            boxShadow: 'var(--shadow-xs)',
-          }}
-        >
-          <div style={{ fontSize: '11px', color: 'var(--color-success, #18864B)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-            Active Stations
-          </div>
-          <div style={{ fontSize: 'clamp(22px, 5vw, 28px)', fontWeight: 750, color: 'var(--color-success, #18864B)', marginTop: '6px' }}>
-            {activeStations}
-          </div>
-        </div>
-
-        <div
-          style={{
-            background: 'var(--color-surface)',
-            border: '1px solid var(--color-border)',
-            borderRadius: '12px',
-            padding: 'clamp(14px, 3vw, 20px)',
-            boxShadow: 'var(--shadow-xs)',
-          }}
-        >
-          <div style={{ fontSize: '11px', color: 'var(--color-danger, #C64040)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-            Suspended Stations
-          </div>
-          <div style={{ fontSize: 'clamp(22px, 5vw, 28px)', fontWeight: 750, color: 'var(--color-danger, #C64040)', marginTop: '6px' }}>
-            {suspendedStations}
-          </div>
-        </div>
-
-        <div
-          style={{
-            background: 'var(--color-surface)',
-            border: '1px solid var(--color-border)',
-            borderRadius: '12px',
-            padding: 'clamp(14px, 3vw, 20px)',
-            boxShadow: 'var(--shadow-xs)',
-          }}
-        >
-          <div style={{ fontSize: '11px', color: 'var(--color-primary)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-            Station Admins
-          </div>
-          <div style={{ fontSize: 'clamp(22px, 5vw, 28px)', fontWeight: 750, color: 'var(--color-text)', marginTop: '6px' }}>
-            {totalAdminsCount}
-          </div>
-        </div>
-
-        <div
-          style={{
-            background: 'var(--color-surface)',
-            border: '1px solid var(--color-border)',
-            borderRadius: '12px',
-            padding: 'clamp(14px, 3vw, 20px)',
-            boxShadow: 'var(--shadow-xs)',
-          }}
-        >
-          <div style={{ fontSize: '11px', color: 'var(--color-primary)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-            Global Customers
-          </div>
-          <div style={{ fontSize: 'clamp(22px, 5vw, 28px)', fontWeight: 750, color: 'var(--color-text)', marginTop: '6px' }}>
-            {totalCustomersCount}
-          </div>
-        </div>
-      </div>
-
-      {/* Pending Approvals Section */}
-      <div
-        style={{
-          background: 'var(--color-surface)',
-          border: '1px solid var(--color-border)',
-          borderRadius: '14px',
-          padding: 'clamp(16px, 3vw, 22px)',
-        }}
-      >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px', marginBottom: '16px' }}>
-          <div>
-            <h2 style={{ fontSize: '17px', fontWeight: 700, margin: '0 0 4px', color: 'var(--color-text)' }}>
-              Pending Station Registrations ({pendingPumps.length})
-            </h2>
-            <p style={{ margin: 0, fontSize: '13px', color: 'var(--color-text-muted)' }}>
-              New applications requiring Super Admin review and verification
-            </p>
-          </div>
-          <Link
-            to="/super-admin/petrol-pumps?status=pending"
-            style={{ fontSize: '13px', color: 'var(--color-primary)', fontWeight: 600, textDecoration: 'none' }}
+      {/* ─── Page Header ─── */}
+      <PageHeader
+        title="Platform Dashboard"
+        subtitle="Multi-tenant SaaS oversight, station approvals, and system-wide operational metrics."
+        actions={
+          <Button
+            onClick={fetchDashboard}
+            variant="outline"
+            size="sm"
           >
-            View all pumps →
-          </Link>
-        </div>
+            Refresh Metrics
+          </Button>
+        }
+      />
 
-        {pendingPumps.length === 0 ? (
-          <div style={{ padding: '32px', textAlign: 'center', color: 'var(--color-text-muted)', fontSize: '14px' }}>
-            🎉 All registrations have been reviewed. No pending approvals!
-          </div>
-        ) : (
-          <>
-            {/* Desktop Table View */}
-            <div className="table-responsive desktop-only" style={{ display: 'block' }}>
+      {/* ─── KPI Metrics Grid (6 Cards) ─── */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
+        <StatCard
+          icon={<Fuel size={18} strokeWidth={2.2} />}
+          label="Total Stations"
+          value={totalStations}
+          subtext="Registered petrol pumps"
+          variant="primary"
+        />
+
+        <StatCard
+          icon={<Clock size={18} strokeWidth={2.2} />}
+          label="Pending Approvals"
+          value={pendingApprovalsCount}
+          subtext="Requiring review"
+          variant="warning"
+        />
+
+        <StatCard
+          icon={<CheckCircle size={18} strokeWidth={2.2} />}
+          label="Active Stations"
+          value={activeStations}
+          subtext="Operating online"
+          variant="success"
+        />
+
+        <StatCard
+          icon={<AlertOctagon size={18} strokeWidth={2.2} />}
+          label="Suspended"
+          value={suspendedStations}
+          subtext="Halted operations"
+          variant="danger"
+        />
+
+        <StatCard
+          icon={<UserCheck size={18} strokeWidth={2.2} />}
+          label="Station Admins"
+          value={totalAdminsCount}
+          subtext="Station owners / admins"
+          variant="secondary"
+        />
+
+        <StatCard
+          icon={<Users size={18} strokeWidth={2.2} />}
+          label="Global Customers"
+          value={totalCustomersCount}
+          subtext="Registered customer accounts"
+          variant="secondary"
+        />
+      </div>
+
+      {/* ─── Main Content Grid: Approvals & Audit Activity ─── */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '20px' }}>
+        {/* Pending Station Registrations */}
+        <Card
+          title={`Pending Registrations (${pendingPumps.length})`}
+          subtitle="New station applications awaiting review"
+          icon={<Clock size={16} />}
+          action={
+            <Link
+              to="/super-admin/petrol-pumps?status=pending"
+              style={{
+                fontSize: '12.5px',
+                fontWeight: 600,
+                color: 'var(--color-primary, #0B5D4B)',
+                textDecoration: 'none',
+              }}
+            >
+              View All Pumps →
+            </Link>
+          }
+        >
+          {pendingPumps.length === 0 ? (
+            <EmptyState
+              icon={<CheckCircle size={34} />}
+              title="All caught up!"
+              description="No pending station registration applications at this time."
+            />
+          ) : (
+            <div style={{ width: '100%', overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
                 <thead>
-                  <tr style={{ borderBottom: '1px solid var(--color-border)', textAlign: 'left', color: 'var(--color-text-muted)', fontSize: '11px', textTransform: 'uppercase' }}>
-                    <th style={{ padding: '10px 12px' }}>Station Name</th>
-                    <th style={{ padding: '10px 12px' }}>Location</th>
-                    <th style={{ padding: '10px 12px' }}>Owner / Admin</th>
-                    <th style={{ padding: '10px 12px' }}>Contact</th>
-                    <th style={{ padding: '10px 12px' }}>Submitted At</th>
-                    <th style={{ padding: '10px 12px', textAlign: 'right' }}>Actions</th>
+                  <tr style={{ borderBottom: '1px solid var(--border-default, #E2E8EC)', textAlign: 'left', color: 'var(--text-secondary, #5B6870)', fontSize: '11px', textTransform: 'uppercase' }}>
+                    <th style={{ padding: '8px 10px' }}>Station</th>
+                    <th style={{ padding: '8px 10px' }}>City</th>
+                    <th style={{ padding: '8px 10px' }}>Owner</th>
+                    <th style={{ padding: '8px 10px', textAlign: 'right' }}>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {pendingPumps.map((pump) => (
-                    <tr key={pump._id} style={{ borderBottom: '1px solid var(--color-border)' }}>
-                      <td style={{ padding: '12px', fontWeight: 600, color: 'var(--color-text)' }}>
-                        {pump.name}
+                    <tr key={pump._id} style={{ borderBottom: '1px solid var(--border-divider, #E8ECEF)' }}>
+                      <td style={{ padding: '10px', fontWeight: 650, color: 'var(--text-primary, #17242D)' }}>
+                        <div>{pump.name}</div>
                         {pump.registrationNumber && (
-                          <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', fontWeight: 400 }}>
+                          <div style={{ fontSize: '11px', color: 'var(--text-muted, #7A878E)', fontWeight: 400 }}>
                             Reg: {pump.registrationNumber}
                           </div>
                         )}
                       </td>
-                      <td style={{ padding: '12px', color: 'var(--color-text-muted)' }}>
-                        {pump.city || '—'}, {pump.province || ''}
+                      <td style={{ padding: '10px', color: 'var(--text-secondary, #5B6870)' }}>
+                        {pump.city || '—'}
                       </td>
-                      <td style={{ padding: '12px' }}>
-                        <div style={{ fontWeight: 500, color: 'var(--color-text)' }}>
+                      <td style={{ padding: '10px' }}>
+                        <div style={{ fontWeight: 600, color: 'var(--text-primary, #17242D)' }}>
                           {pump.ownerAdminId?.name || '—'}
                         </div>
-                        <div style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
+                        <div style={{ fontSize: '11px', color: 'var(--text-muted, #7A878E)' }}>
                           {pump.ownerAdminId?.email}
                         </div>
                       </td>
-                      <td style={{ padding: '12px', color: 'var(--color-text-muted)', fontSize: '13px' }}>
-                        {pump.businessPhone || pump.ownerAdminId?.phone || '—'}
-                      </td>
-                      <td style={{ padding: '12px', color: 'var(--color-text-muted)', fontSize: '13px' }}>
-                        {new Date(pump.createdAt).toLocaleDateString()}
-                      </td>
-                      <td style={{ padding: '12px', textAlign: 'right' }}>
-                        <div style={{ display: 'inline-flex', gap: '8px' }}>
+                      <td style={{ padding: '10px', textAlign: 'right' }}>
+                        <div style={{ display: 'inline-flex', gap: '6px' }}>
                           <Button
                             onClick={() => handleApprove(pump._id)}
                             loading={actionLoading === pump._id}
                             variant="primary"
                             size="sm"
+                            iconLeft={<Check size={13} />}
                           >
                             Approve
                           </Button>
@@ -301,6 +248,7 @@ export default function SuperAdminDashboard() {
                             loading={actionLoading === pump._id}
                             variant="danger"
                             size="sm"
+                            iconLeft={<X size={13} />}
                           >
                             Reject
                           </Button>
@@ -311,162 +259,83 @@ export default function SuperAdminDashboard() {
                 </tbody>
               </table>
             </div>
+          )}
+        </Card>
 
-            {/* Mobile Card View */}
-            <div className="mobile-only" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              {pendingPumps.map((pump) => (
+        {/* Recent Platform Activity */}
+        <Card
+          title="Recent Platform Activity"
+          subtitle="Audit log events across tenants"
+          icon={<ShieldCheck size={16} />}
+          action={
+            <Link
+              to="/super-admin/audit-logs"
+              style={{
+                fontSize: '12.5px',
+                fontWeight: 600,
+                color: 'var(--color-primary, #0B5D4B)',
+                textDecoration: 'none',
+              }}
+            >
+              Full Audit Log →
+            </Link>
+          }
+        >
+          {recentActivity.length === 0 ? (
+            <EmptyState
+              icon={<ShieldCheck size={34} />}
+              title="No recent activity"
+              description="Platform audit events will appear here."
+            />
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {recentActivity.map((log) => (
                 <div
-                  key={pump._id}
+                  key={log._id}
                   style={{
-                    background: 'var(--color-surface)',
-                    border: '1px solid var(--color-border)',
-                    borderRadius: '10px',
-                    padding: '14px',
                     display: 'flex',
-                    flexDirection: 'column',
-                    gap: '10px',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '10px 12px',
+                    background: 'var(--bg-surface-secondary, #F9FAFB)',
+                    borderRadius: 'var(--radius-md, 8px)',
+                    border: '1px solid var(--border-default, #E2E8EC)',
+                    fontSize: '13px',
+                    flexWrap: 'wrap',
+                    gap: '6px',
                   }}
                 >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px' }}>
-                    <div>
-                      <div style={{ fontWeight: 700, fontSize: '15px', color: 'var(--color-text)' }}>
-                        ⛽ {pump.name}
-                      </div>
-                      <div style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginTop: '2px' }}>
-                        📍 {pump.city || '—'}, {pump.province || ''}
-                      </div>
-                    </div>
-                    <span
-                      style={{
-                        fontSize: '11px',
-                        fontWeight: 600,
-                        padding: '2px 8px',
-                        borderRadius: '999px',
-                        background: 'var(--color-warning-soft, #FFF6E5)',
-                        color: 'var(--color-warning, #C47B12)',
-                        border: '1px solid rgba(196, 123, 18, 0.2)',
-                      }}
-                    >
-                      Pending
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                    <span style={{ fontWeight: 650, color: 'var(--text-primary, #17242D)' }}>
+                      {log.action}
                     </span>
+                    <span style={{ color: 'var(--text-muted, #7A878E)', fontSize: '12px' }}>
+                      by {log.actorEmail || 'System'}
+                    </span>
+                    {log.petrolPumpId?.name && (
+                      <span
+                        style={{
+                          background: 'var(--color-primary-soft, #EAF5F1)',
+                          color: 'var(--color-primary, #0B5D4B)',
+                          border: '1px solid rgba(11, 93, 75, 0.2)',
+                          padding: '1px 6px',
+                          borderRadius: '4px',
+                          fontSize: '11px',
+                          fontWeight: 600,
+                        }}
+                      >
+                        {log.petrolPumpId.name}
+                      </span>
+                    )}
                   </div>
-
-                  <div style={{ fontSize: '12px', display: 'flex', flexDirection: 'column', gap: '4px', borderTop: '1px solid var(--color-border)', paddingTop: '8px' }}>
-                    <div>
-                      <span style={{ color: 'var(--color-text-muted)' }}>Owner: </span>
-                      <strong>{pump.ownerAdminId?.name || '—'}</strong> ({pump.ownerAdminId?.email})
-                    </div>
-                    <div>
-                      <span style={{ color: 'var(--color-text-muted)' }}>Phone: </span>
-                      <span>{pump.businessPhone || pump.ownerAdminId?.phone || '—'}</span>
-                    </div>
-                    <div>
-                      <span style={{ color: 'var(--color-text-muted)' }}>Submitted: </span>
-                      <span>{new Date(pump.createdAt).toLocaleDateString()}</span>
-                    </div>
-                  </div>
-
-                  <div style={{ display: 'flex', gap: '8px', borderTop: '1px solid var(--color-border)', paddingTop: '10px' }}>
-                    <Button
-                      onClick={() => handleApprove(pump._id)}
-                      loading={actionLoading === pump._id}
-                      variant="primary"
-                      style={{ flex: 1, minHeight: 40 }}
-                    >
-                      Approve
-                    </Button>
-                    <Button
-                      onClick={() => handleReject(pump._id)}
-                      loading={actionLoading === pump._id}
-                      variant="danger"
-                      style={{ flex: 1, minHeight: 40 }}
-                    >
-                      Reject
-                    </Button>
+                  <div style={{ color: 'var(--text-muted, #7A878E)', fontSize: '11px' }}>
+                    {new Date(log.createdAt).toLocaleString()}
                   </div>
                 </div>
               ))}
             </div>
-          </>
-        )}
-      </div>
-
-      {/* Recent Platform Audit Activity */}
-      <div
-        style={{
-          background: 'var(--color-surface)',
-          border: '1px solid var(--color-border)',
-          borderRadius: '14px',
-          padding: 'clamp(16px, 3vw, 22px)',
-        }}
-      >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px', marginBottom: '16px' }}>
-          <div>
-            <h2 style={{ fontSize: '17px', fontWeight: 700, margin: '0 0 4px', color: 'var(--color-text)' }}>
-              Recent Platform Activity
-            </h2>
-            <p style={{ margin: 0, fontSize: '13px', color: 'var(--color-text-muted)' }}>
-              System audit events across tenants
-            </p>
-          </div>
-          <Link
-            to="/super-admin/audit-logs"
-            style={{ fontSize: '13px', color: 'var(--color-primary)', fontWeight: 600, textDecoration: 'none' }}
-          >
-            Full audit log →
-          </Link>
-        </div>
-
-        {recentActivity.length === 0 ? (
-          <div style={{ padding: '24px', textAlign: 'center', color: 'var(--color-text-muted)', fontSize: '14px' }}>
-            No recent activity recorded yet.
-          </div>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            {recentActivity.map((log) => (
-              <div
-                key={log._id}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: '10px 12px',
-                  background: 'var(--color-bg)',
-                  borderRadius: '8px',
-                  border: '1px solid var(--color-border)',
-                  fontSize: '13px',
-                  flexWrap: 'wrap',
-                  gap: '6px',
-                }}
-              >
-                <div>
-                  <span style={{ fontWeight: 600, color: 'var(--color-text)' }}>{log.action}</span>
-                  <span style={{ color: 'var(--color-text-muted)', marginLeft: '8px' }}>
-                    by {log.actorEmail || 'System'}
-                  </span>
-                  {log.petrolPumpId?.name && (
-                    <span
-                      style={{
-                        marginLeft: '8px',
-                        background: 'rgba(79, 70, 229, 0.1)',
-                        color: 'var(--color-primary)',
-                        padding: '2px 6px',
-                        borderRadius: '4px',
-                        fontSize: '11px',
-                        fontWeight: 600,
-                      }}
-                    >
-                      {log.petrolPumpId.name}
-                    </span>
-                  )}
-                </div>
-                <div style={{ color: 'var(--color-text-muted)', fontSize: '11px' }}>
-                  {new Date(log.createdAt).toLocaleString()}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+          )}
+        </Card>
       </div>
     </div>
   );

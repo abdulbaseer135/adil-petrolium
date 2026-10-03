@@ -51,10 +51,10 @@ export default function SuperAdminEntry() {
           minHeight: '100dvh',
           display: 'grid',
           placeItems: 'center',
-          background: 'var(--color-bg)',
+          background: 'var(--bg-page, #F5F7F8)',
         }}
       >
-        <div style={{ color: 'var(--color-text-muted)', fontSize: '14px' }}>
+        <div style={{ color: 'var(--text-muted, #7A878E)', fontSize: '14px' }}>
           Checking Super Admin status...
         </div>
       </div>

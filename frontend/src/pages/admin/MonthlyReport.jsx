@@ -1,30 +1,18 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { RefreshCw, DollarSign, Fuel, CreditCard, TrendingUp, Search, FileText } from 'lucide-react';
 import { getTransactions } from '../../api/transactionApi';
 import { Button } from '../../components/ui/Button';
 import { Select } from '../../components/ui/Select';
 import { CustomerStatementGroups, buildCustomerStatementGroups, filterCustomerStatementGroups } from '../../components/admin/CustomerStatementGroups';
+import { PageHeader } from '../../components/layout/PageHeader';
+import { Card } from '../../components/ui/Card';
+import { StatCard } from '../../components/dashboard/StatCard';
 import { formatNumberPK, formatCurrencyShortPK } from '../../utils/pkFormat';
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 const fmt = formatCurrencyShortPK;
 const fmtL = (v) => `${formatNumberPK(v, 0, 0)} L`;
-
-const SummaryCard = ({ label, value, hint, accent }) => (
-  <div style={{
-    background: 'var(--color-surface)',
-    border: '1px solid var(--color-border)',
-    borderRadius: 'var(--radius-xl)',
-    boxShadow: 'var(--shadow-sm)',
-    padding: 'var(--space-4)',
-    display: 'flex',
-    flexDirection: 'column',
-  }}>
-    <div style={{ fontSize: 'var(--text-xs)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--color-text-muted)' }}>{label}</div>
-    <div style={{ marginTop: 'var(--space-2)', fontSize: 'var(--text-xl)', fontWeight: 700, color: accent || 'var(--color-text)', fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.02em', lineHeight: 1.2 }}>{value}</div>
-    {hint ? <div style={{ marginTop: 'var(--space-1)', fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)', fontWeight: 500 }}>{hint}</div> : null}
-  </div>
-);
 
 export default function MonthlyReport() {
   const currentDate = useMemo(() => new Date(), []);
@@ -100,15 +88,12 @@ export default function MonthlyReport() {
   const handleYearChange = (newYear) => {
     setYear(newYear);
     
-    // If current month is not available in the new year, adjust it to the last available month
     const currentYear = currentDate.getFullYear();
     const currentMonth = currentDate.getMonth() + 1;
     
     if (newYear > currentYear) {
-      // No months available, set to 1
       setMonth(1);
     } else if (newYear === currentYear && month > currentMonth) {
-      // Adjust to current month if past month was selected
       setMonth(currentMonth);
     }
   };
@@ -127,58 +112,83 @@ export default function MonthlyReport() {
   );
 
   return (
-    <div className="animate-fadeIn report-page">
-      <div className="report-hero">
-        <div className="page-shell__title-group">
-          <h1 style={{ fontSize: 'var(--text-xl)', fontWeight: 700, letterSpacing: '-0.02em' }}>Monthly Report</h1>
-          <p style={{ color: 'var(--color-text-muted)', fontSize: 'var(--text-sm)', marginTop: 'var(--space-1)' }}>
-            Monthly transaction review grouped by day and customer activity.
-          </p>
-        </div>
+    <div className="animate-fadeIn" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+      <PageHeader
+        title="Monthly Report"
+        subtitle="Monthly transaction review grouped by day and customer activity."
+        actions={
+          <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+            <div style={{ width: 110 }}>
+              <Select value={month} onChange={(e) => setMonth(Number(e.target.value))}>
+                {availableMonths.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
+              </Select>
+            </div>
+            <div style={{ width: 95 }}>
+              <Select value={year} onChange={(e) => handleYearChange(Number(e.target.value))}>
+                {availableYears.map((item) => <option key={item} value={item}>{item}</option>)}
+              </Select>
+            </div>
+            <Button variant="secondary" onClick={handleReload} loading={reloading}>
+              <RefreshCw size={15} />
+              <span>Reload</span>
+            </Button>
+          </div>
+        }
+      />
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' }}>
+        <StatCard
+          title="Total Sale"
+          value={loading ? 'Loading…' : fmt(summary.totalSales)}
+          icon={<DollarSign size={20} />}
+          description="Debit transactions in selected month"
+        />
+        <StatCard
+          title="Total Fuel Sold"
+          value={loading ? 'Loading…' : fmtL(summary.totalFuelSold)}
+          icon={<Fuel size={20} />}
+          description="Total litres sold across all entries"
+        />
+        <StatCard
+          title="Total Payments"
+          value={loading ? 'Loading…' : fmt(summary.totalPayments)}
+          icon={<CreditCard size={20} />}
+          description="Credit transactions received"
+        />
+        <StatCard
+          title="Net Balance"
+          value={loading ? 'Loading…' : fmt(summary.totalSales - summary.totalPayments)}
+          icon={<TrendingUp size={20} />}
+          description="Outstanding amount after payments"
+        />
       </div>
 
-      <div className="report-stat-grid">
-        <SummaryCard label="Total Sale" value={loading ? 'Loading…' : fmt(summary.totalSales)} accent="var(--color-primary)" hint="Debit transactions in the period." />
-        <SummaryCard label="Total Fuel Sold" value={loading ? 'Loading…' : fmtL(summary.totalFuelSold)} accent="var(--color-warning)" hint="Total litres sold across all entries." />
-        <SummaryCard label="Total Payments" value={loading ? 'Loading…' : fmt(summary.totalPayments)} accent="var(--color-success)" hint="Credit transactions received." />
-        <SummaryCard label="Remaining" value={loading ? 'Loading…' : fmt(summary.totalSales - summary.totalPayments)} accent="var(--color-warning)" hint="Outstanding amount after payments." />
-      </div>
-
-      <div style={{ display: 'flex', gap: 'var(--space-3)', alignItems: 'flex-end', flexWrap: 'wrap', marginBottom: 'var(--space-4)', marginTop: 'var(--space-6)' }}>
-        <div className="report-filter" style={{ minWidth: 'min(100%, 200px)', maxWidth: 400 }}>
-          <span className="report-filter__label">Search</span>
+      <Card style={{ padding: '14px 18px' }}>
+        <div style={{ display: 'flex', gap: '10px', alignItems: 'center', maxWidth: 400 }}>
+          <Search size={16} style={{ color: 'var(--text-muted)' }} />
           <input
-            className="report-filter__control"
             type="search"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search customer name..."
+            style={{
+              width: '100%',
+              border: 'none',
+              outline: 'none',
+              background: 'transparent',
+              color: 'var(--text-primary)',
+              fontSize: '14px',
+            }}
           />
         </div>
-
-        <div style={{ flex: 1, minWidth: '40px' }} />
-
-        <div style={{ minWidth: '100px' }}>
-          <Select label="Month" value={month} onChange={(e) => setMonth(Number(e.target.value))}>
-            {availableMonths.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
-          </Select>
-        </div>
-
-        <div style={{ minWidth: '90px' }}>
-          <Select label="Year" value={year} onChange={(e) => handleYearChange(Number(e.target.value))}>
-            {availableYears.map((item) => <option key={item} value={item}>{item}</option>)}
-          </Select>
-        </div>
-
-        <Button size="lg" onClick={handleReload} loading={reloading}>Reload</Button>
-      </div>
+      </Card>
 
       <CustomerStatementGroups
         groups={filteredStatementGroups}
         loading={loading}
         error={error}
         onRetry={handleReload}
-        emptyIcon="🧾"
+        emptyIcon={<FileText size={36} color="var(--text-muted)" />}
         emptyTitle="No purchases for this month"
         emptyDescription="No customer purchases found for the selected month."
       />

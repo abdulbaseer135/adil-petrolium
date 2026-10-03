@@ -1,4 +1,5 @@
 import React from 'react';
+import { FileText } from 'lucide-react';
 import { Badge } from '../ui/Badge';
 import { SkeletonTable } from '../ui/Skeleton';
 import { EmptyState }    from '../ui/EmptyState';
@@ -42,11 +43,13 @@ const fmtQty = (n) => n !== undefined && n !== null && n !== ''
 
 const fmtDate = (d) => formatDatePK(d);
 
-export const Ledger = ({ data, loading, error, onRetry, pagination, onPageChange }) => {
+export const Ledger = ({ data, transactions, loading, error, onRetry, pagination, meta, onPageChange }) => {
+  const rows = data || transactions || [];
+  const pag = pagination || meta;
   if (loading) return <SkeletonTable rows={8} cols={7} />;
   if (error)   return <ErrorState message={error} onRetry={onRetry} />;
-  if (!data?.length) return (
-    <EmptyState icon="🧾" title="No transactions yet" description="Transactions will appear here once recorded." />
+  if (!rows?.length) return (
+    <EmptyState icon={<FileText size={36} color="var(--text-muted)" />} title="No transactions yet" description="Transactions will appear here once recorded." />
   );
 
   return (
@@ -67,7 +70,7 @@ export const Ledger = ({ data, loading, error, onRetry, pagination, onPageChange
             </tr>
           </thead>
           <tbody>
-            {data.map((tx) => {
+            {rows.map((tx) => {
               const dateOnly = fmtDate(tx.transactionDate);
               const typeInfo = TYPE_VARIANTS[tx.transactionType] || { label: tx.transactionType, color: 'neutral' };
               const balance  = tx.updatedBalance;
@@ -106,10 +109,10 @@ export const Ledger = ({ data, loading, error, onRetry, pagination, onPageChange
         </table>
       </div>
       </div>
-      {pagination && (
+      {pag && (
         <Pagination
-          page={pagination.page}
-          totalPages={pagination.totalPages}
+          page={pag.page}
+          totalPages={pag.totalPages}
           onPageChange={onPageChange}
         />
       )}

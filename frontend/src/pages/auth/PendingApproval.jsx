@@ -1,8 +1,10 @@
 import React from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
+import { Clock } from 'lucide-react';
 import { logoutUser } from '../../store/authSlice';
 import { Button } from '../../components/ui/Button';
+import { Badge } from '../../components/ui/Badge';
 
 export default function PendingApproval() {
   const dispatch = useDispatch();
@@ -20,7 +22,7 @@ export default function PendingApproval() {
         minHeight: '100dvh',
         display: 'grid',
         placeItems: 'center',
-        background: 'var(--color-bg)',
+        background: 'var(--bg-page, #F5F7F8)',
         padding: '24px 16px',
       }}
     >
@@ -28,30 +30,29 @@ export default function PendingApproval() {
         style={{
           width: '100%',
           maxWidth: 480,
-          background: 'var(--color-surface)',
-          border: '1px solid var(--color-border)',
-          borderRadius: '16px',
-          boxShadow: 'var(--shadow-md)',
+          background: 'var(--bg-surface, #FFFFFF)',
+          border: '1px solid var(--border-default, #E2E8EC)',
+          borderRadius: 'var(--radius-xl, 14px)',
+          boxShadow: 'var(--shadow-card)',
           padding: '36px 28px',
           textAlign: 'center',
         }}
       >
         <div
           style={{
-            width: 64,
-            height: 64,
+            width: 56,
+            height: 56,
             borderRadius: '50%',
-            background: 'var(--color-warning-soft, #FFF6E5)',
+            background: 'var(--color-warning-bg, #FFF8EC)',
             color: 'var(--color-warning, #C47B12)',
-            border: '1px solid rgba(196, 123, 18, 0.25)',
+            border: '1px solid var(--color-warning-border, #FDE6B8)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            fontSize: 32,
             margin: '0 auto 20px',
           }}
         >
-          ⏳
+          <Clock size={28} />
         </div>
 
         <h1
@@ -59,7 +60,7 @@ export default function PendingApproval() {
             margin: '0 0 10px',
             fontSize: '22px',
             fontWeight: 700,
-            color: 'var(--color-text)',
+            color: 'var(--text-primary)',
           }}
         >
           Registration Pending Approval
@@ -67,7 +68,7 @@ export default function PendingApproval() {
 
         <p
           style={{
-            color: 'var(--color-text-muted)',
+            color: 'var(--text-secondary)',
             fontSize: '14px',
             lineHeight: 1.6,
             marginBottom: '20px',
@@ -79,36 +80,22 @@ export default function PendingApproval() {
 
         <div
           style={{
-            background: 'var(--color-surface-secondary, #F9FAFB)',
-            border: '1px solid var(--color-border)',
-            borderRadius: '10px',
+            background: 'var(--bg-surface-secondary, #F9FAFB)',
+            border: '1px solid var(--border-default, #E2E8EC)',
+            borderRadius: 'var(--radius-md, 8px)',
             padding: '14px 16px',
             fontSize: '13px',
             textAlign: 'left',
-            color: 'var(--color-text-muted)',
+            color: 'var(--text-secondary, #5B6870)',
             marginBottom: '24px',
             display: 'flex',
             flexDirection: 'column',
-            gap: '6px',
+            gap: '8px',
           }}
         >
-          <div>
-            <strong>Status:</strong>{' '}
-            <span
-              style={{
-                display: 'inline-block',
-                padding: '2px 8px',
-                borderRadius: '999px',
-                background: 'var(--color-warning-soft, #FFF6E5)',
-                color: 'var(--color-warning, #C47B12)',
-                border: '1px solid rgba(196, 123, 18, 0.25)',
-                fontSize: '11px',
-                fontWeight: 600,
-                textTransform: 'uppercase',
-              }}
-            >
-              Pending Approval
-            </span>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <strong>Status:</strong>
+            <Badge variant="warning">Pending Approval</Badge>
           </div>
           <div>
             <strong>Email:</strong> {user?.email}
@@ -118,7 +105,7 @@ export default function PendingApproval() {
           </div>
         </div>
 
-        <Button onClick={handleLogout} variant="secondary" fullWidth style={{ minHeight: 42 }}>
+        <Button onClick={handleLogout} variant="outline" fullWidth>
           Sign Out
         </Button>
       </div>

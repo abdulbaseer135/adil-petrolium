@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { Fuel } from 'lucide-react';
 import { recoverAdminPassword } from '../../api/authApi';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
@@ -11,7 +12,6 @@ export default function AdminRecover() {
   const [newPassword, setNewPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [newRecoveryKey] = useState('');
   const [success, setSuccess] = useState(false);
 
   const handleSubmit = async (e) => {
@@ -40,26 +40,110 @@ export default function AdminRecover() {
     }
   };
 
-  // No clipboard handling — recovery key is not shown
-
   return (
-    <div style={{ minHeight: '100dvh', display: 'grid', placeItems: 'center', background: 'radial-gradient(circle at top, color-mix(in oklch, var(--color-primary) 8%, transparent), transparent 42%), var(--color-bg)', padding: '24px 16px' }}>
-      <div className="form-surface form-surface--padded form-section" style={{ width: '100%', maxWidth: 460, background: 'linear-gradient(180deg, color-mix(in oklch, var(--color-surface) 96%, white), var(--color-surface))', boxShadow: 'var(--shadow-md)', borderRadius: 'var(--radius-xl)' }}>
-        <div className="form-hero__titleGroup" style={{ marginBottom: 8 }}>
-          <p className="form-hero__eyebrow" style={{ margin: 0 }}>
-            Admin Access
-          </p>
-          <h1 className="form-hero__title" style={{ margin: '8px 0 0' }}>
-            Recover password
+    <div
+      style={{
+        minHeight: '100dvh',
+        display: 'grid',
+        placeItems: 'center',
+        background: 'var(--bg-page, #F5F7F8)',
+        padding: '24px 16px',
+      }}
+    >
+      <div
+        style={{
+          width: '100%',
+          maxWidth: 440,
+          background: 'var(--bg-surface, #FFFFFF)',
+          border: '1px solid var(--border-default, #E2E8EC)',
+          borderRadius: 'var(--radius-xl, 14px)',
+          boxShadow: 'var(--shadow-card)',
+          padding: '32px 28px',
+        }}
+      >
+        <div style={{ marginBottom: '24px', textAlign: 'center' }}>
+          <div
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '10px',
+              marginBottom: '12px',
+            }}
+          >
+            <div
+              style={{
+                width: 38,
+                height: 38,
+                borderRadius: 'var(--radius-md, 8px)',
+                background: 'var(--color-primary, #0B5D4B)',
+                color: '#ffffff',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: '0 4px 12px rgba(11, 93, 75, 0.35)',
+              }}
+            >
+              <Fuel size={20} strokeWidth={2.4} />
+            </div>
+            <span style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)' }}>
+              Petrol Management
+            </span>
+          </div>
+
+          <h1
+            style={{
+              margin: '0 0 6px',
+              fontSize: '22px',
+              fontWeight: 700,
+              color: 'var(--text-primary)',
+              letterSpacing: '-0.02em',
+            }}
+          >
+            Recover Password
           </h1>
-          <p className="form-hero__subtitle" style={{ margin: '10px 0 0' }}>
+          <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-secondary)' }}>
             Enter your admin email, current recovery key, and a new password to rotate access.
           </p>
         </div>
 
-        {!newRecoveryKey ? (
-          <form onSubmit={handleSubmit}>
-            <div className="form-section">
+        {success ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div
+              role="status"
+              style={{
+                padding: '12px 14px',
+                borderRadius: 'var(--radius-md, 8px)',
+                border: '1px solid var(--color-success-border, #C8EBD5)',
+                background: 'var(--color-success-bg, #EAF7EF)',
+                color: 'var(--color-success, #18864B)',
+                fontSize: '13px',
+                lineHeight: 1.5,
+              }}
+            >
+              Password reset successful. The new recovery key has been issued via a secure channel.
+            </div>
+
+            <Link
+              to="/login"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                minHeight: 40,
+                padding: '0 16px',
+                borderRadius: 'var(--radius-md, 8px)',
+                background: 'var(--color-primary, #0B5D4B)',
+                color: '#ffffff',
+                textDecoration: 'none',
+                fontSize: '14px',
+                fontWeight: 600,
+              }}
+            >
+              Go to Login
+            </Link>
+          </div>
+        ) : (
+          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
             <Input
               label="Email address"
               type="email"
@@ -69,6 +153,7 @@ export default function AdminRecover() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
+              placeholder="admin@station.com"
             />
 
             <Input
@@ -92,81 +177,41 @@ export default function AdminRecover() {
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
               required
+              placeholder="••••••••"
             />
 
-            {error ? (
+            {error && (
               <div
                 role="alert"
                 aria-live="polite"
                 style={{
-                  background: 'color-mix(in oklch, var(--color-error) 8%, var(--color-surface))',
-                  border: '1px solid color-mix(in oklch, var(--color-error) 20%, var(--color-divider))',
-                  borderRadius: 'var(--radius-md)',
+                  background: 'var(--color-danger-bg, #FDEEEE)',
+                  border: '1px solid var(--color-danger-border, #F7CACA)',
+                  borderRadius: 'var(--radius-md, 8px)',
                   padding: '10px 12px',
-                  fontSize: 'var(--text-sm)',
-                  color: 'var(--color-error)',
+                  fontSize: '13px',
+                  color: 'var(--color-danger, #C64040)',
                 }}
               >
                 {error}
               </div>
-            ) : null}
+            )}
 
-            <div className="form-actions--stacked" style={{ marginTop: 6 }}>
-              <Button
-                type="submit"
-                loading={loading}
-                fullWidth
-                style={{ justifyContent: 'center' }}
-              >
-                Reset Password
-              </Button>
-            </div>
-            </div>
-          </form>
-        ) : success ? (
-          <div className="form-section">
-            <div
-              role="status"
-              style={{
-                padding: '12px 14px',
-                borderRadius: 12,
-                border: '1px solid color-mix(in oklch, var(--color-success) 20%, var(--color-divider))',
-                background: 'color-mix(in oklch, var(--color-success) 8%, var(--color-surface))',
-                color: 'var(--color-text)',
-                fontSize: 'var(--text-sm)',
-                lineHeight: 1.6,
-              }}
+            <Button
+              type="submit"
+              loading={loading}
+              fullWidth
+              style={{ marginTop: '4px' }}
             >
-              Password reset successful. The new recovery key has been issued via a secure channel.
-            </div>
+              Reset Password
+            </Button>
 
-            <div className="form-footer__actions" style={{ justifyContent: 'flex-start' }}>
-              <Link
-                to="/admin/login"
-                style={{
-                  minWidth: 140,
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  minHeight: 38,
-                  padding: '0 16px',
-                  borderRadius: 'var(--radius-md)',
-                  border: '1px solid color-mix(in oklch, var(--color-primary) 24%, transparent)',
-                  background: 'color-mix(in oklch, var(--color-primary) 8%, var(--color-surface))',
-                  color: 'var(--color-primary)',
-                  textDecoration: 'none',
-                  fontSize: 'var(--text-sm)',
-                  fontWeight: 700,
-                }}
-              >
-                Go to Login
+            <div style={{ textAlign: 'center', marginTop: '12px', fontSize: '13px' }}>
+              <Link to="/login" style={{ color: 'var(--color-primary)', fontWeight: 600, textDecoration: 'none' }}>
+                Back to Login
               </Link>
             </div>
-          </div>
-        ) : (
-          <div className="form-section">
-            {/* fallback: show the form again if not successful */}
-          </div>
+          </form>
         )}
       </div>
     </div>

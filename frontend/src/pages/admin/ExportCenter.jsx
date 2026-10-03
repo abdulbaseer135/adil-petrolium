@@ -1,9 +1,13 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { Calendar, CalendarDays, BarChart3, Download } from 'lucide-react';
 import { exportDaily, exportMonthly, exportYearly } from '../../api/reportApi';
 import { toInputDatePK } from '../../utils/pkFormat';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
 import { Select } from '../../components/ui/Select';
+import { PageHeader } from '../../components/layout/PageHeader';
+import { Card } from '../../components/ui/Card';
+import { StatCard } from '../../components/dashboard/StatCard';
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
@@ -19,131 +23,6 @@ const triggerDownload = async (request, filename) => {
   link.remove();
   window.URL.revokeObjectURL(url);
 };
-
-const InfoChip = ({ color, children }) => (
-  <span
-    className="report-status-chip"
-    style={{
-      '--chip-accent': color,
-    }}
-  >
-    {children}
-  </span>
-);
-
-const StatCard = ({ label, value, hint, accent, icon }) => (
-  <div style={{
-    background: 'var(--color-surface)',
-    border: '1px solid var(--color-border)',
-    borderRadius: 'var(--radius-xl)',
-    boxShadow: 'var(--shadow-sm)',
-    padding: 'var(--space-4)',
-    display: 'flex',
-    flexDirection: 'column',
-  }}>
-    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-      <div style={{ fontSize: 'var(--text-xs)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--color-text-muted)' }}>{label}</div>
-      <div style={{ background: 'var(--color-surface-offset)', padding: 'var(--space-1)', borderRadius: 'var(--radius-md)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{icon}</div>
-    </div>
-    <div style={{ marginTop: 'var(--space-2)', fontSize: 'var(--text-xl)', fontWeight: 700, color: accent || 'var(--color-text)', fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.02em', lineHeight: 1.2 }}>{value}</div>
-    {hint ? <div style={{ marginTop: 'var(--space-1)', fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)', fontWeight: 500 }}>{hint}</div> : null}
-  </div>
-);
-
-const FieldLabel = ({ children }) => (
-  <label
-    style={{
-      fontSize: 'var(--text-xs)',
-      fontWeight: 600,
-      textTransform: 'uppercase',
-      letterSpacing: '0.07em',
-      color: 'var(--color-text-muted)',
-      display: 'block',
-      marginBottom: 'var(--space-1)',
-    }}
-  >
-    {children}
-  </label>
-);
-
-const ExportCard = ({
-  title,
-  description,
-  badge,
-  accent,
-  icon,
-  status = 'Ready',
-  controls,
-  onSubmit,
-  loading,
-  error,
-  buttonLabel,
-}) => (
-  <div
-    className="report-export-card"
-    style={{
-      '--card-accent': accent,
-    }}
-  >
-    <div className="report-export-card__header">
-      <div className="report-export-card__titleRow">
-        <div className="report-export-card__icon">
-          {icon}
-        </div>
-
-        <div className="report-export-card__titleGroup">
-          <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center', flexWrap: 'wrap' }}>
-            <h2 className="report-export-card__title">
-              {title}
-            </h2>
-            {badge}
-          </div>
-          <p className="report-export-card__description">
-            {description}
-          </p>
-        </div>
-      </div>
-
-      <InfoChip color={accent}>{loading ? 'Processing' : status}</InfoChip>
-    </div>
-
-    <div className="report-export-card__body">
-      <div className="report-export-card__controls">
-        {controls}
-        <Button size="lg" onClick={onSubmit} loading={loading}>
-          {buttonLabel}
-        </Button>
-      </div>
-
-      {error ? (
-        <div
-          style={{
-            background: 'color-mix(in oklch, var(--color-error) 8%, var(--color-surface))',
-            border: '1px solid color-mix(in oklch, var(--color-error) 20%, var(--color-divider))',
-            borderRadius: 'var(--radius-md)',
-            padding: 'var(--space-3)',
-          }}
-        >
-          <div
-            style={{
-              fontSize: 'var(--text-xs)',
-              color: 'var(--color-error)',
-              textTransform: 'uppercase',
-              letterSpacing: '0.07em',
-              fontWeight: 700,
-              marginBottom: 'var(--space-1)',
-            }}
-          >
-            Export Error
-          </div>
-          <p style={{ color: 'var(--color-error)', fontSize: 'var(--text-sm)', margin: 0 }}>
-            {error}
-          </p>
-        </div>
-      ) : null}
-    </div>
-  </div>
-);
 
 export default function ExportCenter() {
   const currentDate = new Date();
@@ -198,120 +77,160 @@ export default function ExportCenter() {
   };
 
   return (
-    <div className="animate-fadeIn report-page" style={{ maxWidth: 1120 }}>
-      <div className="report-hero">
-        <div className="page-shell__title-group">
-          <h1 style={{ fontSize: 'var(--text-xl)', fontWeight: 700, letterSpacing: '-0.02em' }}>
-            Export Center
-          </h1>
-          <p style={{ color: 'var(--color-text-muted)', fontSize: 'var(--text-sm)', marginTop: 'var(--space-1)' }}>
-            Download formatted operational reports for daily activity, monthly billing, and annual summaries.
-          </p>
-        </div>
+    <div className="animate-fadeIn" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+      <PageHeader
+        title="Export Center"
+        subtitle="Download formatted operational reports for daily activity, monthly billing, and annual summaries."
+        actions={
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <Badge variant="info">Admin Export</Badge>
+            <Badge variant="success">Excel / XLSX</Badge>
+          </div>
+        }
+      />
 
-        <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
-          <InfoChip color="var(--color-primary)">Admin Export</InfoChip>
-          <InfoChip color="var(--color-success)">Excel</InfoChip>
-        </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' }}>
+        <StatCard
+          title="Daily Export"
+          value={date}
+          icon={<Calendar size={20} />}
+          description="Selected posting date"
+        />
+        <StatCard
+          title="Monthly Export"
+          value={`${MONTHS[month - 1]} ${year}`}
+          icon={<CalendarDays size={20} />}
+          description="Selected billing period"
+        />
+        <StatCard
+          title="Yearly Export"
+          value={String(yearOnly)}
+          icon={<BarChart3 size={20} />}
+          description="Selected annual range"
+        />
       </div>
 
-      <div className="report-stat-grid">
-        <StatCard label="Daily Export" value={date} hint="Selected posting date" accent="var(--color-primary)" icon="🗓️" />
-        <StatCard label="Monthly Export" value={`${MONTHS[month - 1]} ${year}`} hint="Selected billing period" accent="var(--color-warning)" icon="📆" />
-        <StatCard label="Yearly Export" value={yearOnly} hint="Selected annual range" accent="var(--color-success)" icon="📊" />
-      </div>
-
-      <div className="report-export-grid">
-        <ExportCard
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '16px' }}>
+        {/* Daily Card */}
+        <Card
           title="Daily Report"
-          description="Download the full daily workbook for one date."
-          badge={<Badge variant="primary">Excel</Badge>}
-          accent="var(--color-primary)"
-          icon="📅"
-          loading={loading.daily}
-          error={errors.daily}
-          buttonLabel="Export Daily Excel"
-          controls={
-            <div className="report-filter">
-              <FieldLabel>Date</FieldLabel>
+          subtitle="Download the full daily workbook for one date."
+          headerActions={<Badge variant="primary">Excel</Badge>}
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <label style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-primary)' }}>Date</label>
               <input
-                className="report-filter__control"
                 type="date"
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
                 max={todayStr}
-                style={{ height: 44, minHeight: 44 }}
+                style={{
+                  height: 40,
+                  padding: '0 12px',
+                  borderRadius: 'var(--radius-md, 8px)',
+                  border: '1px solid var(--border-default)',
+                  background: 'var(--bg-surface)',
+                  color: 'var(--text-primary)',
+                  fontSize: '14px',
+                }}
               />
             </div>
-          }
-          onSubmit={() =>
-            run('daily', () =>
-              triggerDownload(() => exportDaily(date), `petro_daily_${date}.xlsx`)
-            )
-          }
-        />
 
-        <ExportCard
+            <Button
+              onClick={() => run('daily', () => triggerDownload(() => exportDaily(date), `petro_daily_${date}.xlsx`))}
+              loading={loading.daily}
+              fullWidth
+            >
+              <Download size={16} />
+              <span>Export Daily Excel</span>
+            </Button>
+
+            {errors.daily && (
+              <p style={{ color: 'var(--color-danger)', fontSize: '13px', margin: 0 }}>
+                {errors.daily}
+              </p>
+            )}
+          </div>
+        </Card>
+
+        {/* Monthly Card */}
+        <Card
           title="Monthly Report"
-          description="Download a month-by-month workbook for billing and review."
-          badge={<Badge variant="primary">Excel</Badge>}
-          accent="var(--color-warning)"
-          icon="📆"
-          loading={loading.monthly}
-          error={errors.monthly}
-          buttonLabel="Export Monthly Excel"
-          controls={
-            <div className="report-export-card__controlGroup">
-              <div style={{ minWidth: 120 }}>
-                <Select label="Month" value={month} onChange={(e) => setMonth(Number(e.target.value))}>
-                  {availableMonths.map((m) => (
-                    <option key={m.value} value={m.value}>{m.label}</option>
-                  ))}
-                </Select>
-              </div>
-              <div style={{ minWidth: 100 }}>
-                <Select label="Year" value={year} onChange={(e) => setYear(Number(e.target.value))}>
-                  {availableYears.map((optionYear) => (
-                    <option key={optionYear} value={optionYear}>{optionYear}</option>
-                  ))}
-                </Select>
-              </div>
-            </div>
-          }
-          onSubmit={() =>
-            run('monthly', () =>
-              triggerDownload(
-                () => exportMonthly(year, month),
-                `petro_monthly_${year}_${String(month).padStart(2, '0')}.xlsx`
-              )
-            )
-          }
-        />
-
-        <ExportCard
-          title="Yearly Report"
-          description="Download an annual Excel statement grouped by customer."
-          badge={<Badge variant="success">Excel</Badge>}
-          accent="var(--color-success)"
-          icon="📈"
-          loading={loading.yearly}
-          error={errors.yearly}
-          buttonLabel="Export Yearly Excel"
-          controls={
-            <div style={{ minWidth: 120 }}>
-              <Select label="Year" value={yearOnly} onChange={(e) => setYearOnly(Number(e.target.value))}>
+          subtitle="Download a month-by-month workbook for billing and review."
+          headerActions={<Badge variant="primary">Excel</Badge>}
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+              <Select label="Month" value={month} onChange={(e) => setMonth(Number(e.target.value))}>
+                {availableMonths.map((m) => (
+                  <option key={m.value} value={m.value}>{m.label}</option>
+                ))}
+              </Select>
+              <Select label="Year" value={year} onChange={(e) => setYear(Number(e.target.value))}>
                 {availableYears.map((optionYear) => (
                   <option key={optionYear} value={optionYear}>{optionYear}</option>
                 ))}
               </Select>
             </div>
-          }
-          onSubmit={() =>
-            run('yearly', () =>
-              triggerDownload(() => exportYearly(yearOnly), `petro_yearly_${yearOnly}.xlsx`)
-            )
-          }
-        />
+
+            <Button
+              onClick={() =>
+                run('monthly', () =>
+                  triggerDownload(
+                    () => exportMonthly(year, month),
+                    `petro_monthly_${year}_${String(month).padStart(2, '0')}.xlsx`
+                  )
+                )
+              }
+              loading={loading.monthly}
+              fullWidth
+            >
+              <Download size={16} />
+              <span>Export Monthly Excel</span>
+            </Button>
+
+            {errors.monthly && (
+              <p style={{ color: 'var(--color-danger)', fontSize: '13px', margin: 0 }}>
+                {errors.monthly}
+              </p>
+            )}
+          </div>
+        </Card>
+
+        {/* Yearly Card */}
+        <Card
+          title="Yearly Report"
+          subtitle="Download an annual Excel statement grouped by customer."
+          headerActions={<Badge variant="success">Excel</Badge>}
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <Select label="Financial Year" value={yearOnly} onChange={(e) => setYearOnly(Number(e.target.value))}>
+              {availableYears.map((optionYear) => (
+                <option key={optionYear} value={optionYear}>{optionYear}</option>
+              ))}
+            </Select>
+
+            <Button
+              onClick={() =>
+                run('yearly', () =>
+                  triggerDownload(() => exportYearly(yearOnly), `petro_yearly_${yearOnly}.xlsx`)
+                )
+              }
+              loading={loading.yearly}
+              fullWidth
+            >
+              <Download size={16} />
+              <span>Export Yearly Excel</span>
+            </Button>
+
+            {errors.yearly && (
+              <p style={{ color: 'var(--color-danger)', fontSize: '13px', margin: 0 }}>
+                {errors.yearly}
+              </p>
+            )}
+          </div>
+        </Card>
       </div>
     </div>
   );

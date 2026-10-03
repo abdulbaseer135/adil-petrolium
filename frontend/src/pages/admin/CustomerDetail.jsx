@@ -1,13 +1,16 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { ArrowLeft, Wallet, CreditCard, Calendar, FileText, AlertCircle } from 'lucide-react';
 import { getCustomerById, updateCustomer } from '../../api/customerApi';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { Badge } from '../../components/ui/Badge';
 import { SkeletonCard } from '../../components/ui/Skeleton';
 import { EmptyState } from '../../components/ui/EmptyState';
-
-const formatMoney = (value) => `PKR ${(Number(value) || 0).toLocaleString('en-PK', { minimumFractionDigits: 2 })}`;
+import { PageHeader } from '../../components/layout/PageHeader';
+import { Card } from '../../components/ui/Card';
+import { StatCard } from '../../components/dashboard/StatCard';
+import { formatPKR, formatDate } from '../../utils/pkFormat';
 
 export default function CustomerDetail() {
 	const { id } = useParams();
@@ -84,91 +87,137 @@ export default function CustomerDetail() {
 	}
 
 	if (error && !profile) {
-		return <EmptyState icon="⚠️" title="Could not load customer" description={error} action={() => nav('/admin/customers')} actionLabel="Back to Customers" />;
+		return <EmptyState icon={<AlertCircle size={36} color="var(--color-danger)" />} title="Could not load customer" description={error} action={() => nav('/admin/customers')} actionLabel="Back to Customers" />;
 	}
 
 	return (
-		<div className="animate-fadeIn form-page">
-			<div className="form-hero">
-				<div className="form-hero__titleGroup">
-					<Button variant="ghost" onClick={() => nav('/admin/customers')} style={{ alignSelf: 'flex-start' }}>← Back</Button>
-					<h1 className="form-hero__title">{profile?.customerCode}</h1>
-					<p className="form-hero__subtitle">{profile?.userId?.name} · {profile?.userId?.email}</p>
-				</div>
-				<div className="form-badges">
-					<Badge variant={profile?.isActive ? 'success' : 'neutral'}>{profile?.isActive ? 'Active' : 'Inactive'}</Badge>
-					<Button variant="secondary" onClick={openStatementLedger}>Open Statement Ledger</Button>
-				</div>
+		<div className="animate-fadeIn" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+			<PageHeader
+				title={profile?.customerCode || 'Customer Profile'}
+				subtitle={`${profile?.userId?.name || ''} · ${profile?.userId?.email || ''}`}
+				actions={
+					<div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+						<Button variant="outline" onClick={() => nav('/admin/customers')}>
+							<ArrowLeft size={16} />
+							<span>Back</span>
+						</Button>
+						<Badge variant={profile?.isActive ? 'success' : 'neutral'}>
+							{profile?.isActive ? 'Active' : 'Inactive'}
+						</Badge>
+						<Button variant="secondary" onClick={openStatementLedger}>
+							<FileText size={16} />
+							<span>Open Statement Ledger</span>
+						</Button>
+					</div>
+				}
+			/>
+
+			<div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' }}>
+				<StatCard
+					title="Current Balance"
+					value={formatPKR(Math.abs(profile?.currentBalance || 0))}
+					icon={<Wallet size={20} />}
+					description={Number(profile?.currentBalance || 0) > 0 ? 'Receivable outstanding' : 'Cleared'}
+				/>
+				<StatCard
+					title="Credit Limit"
+					value={formatPKR(profile?.creditLimit || 0)}
+					icon={<CreditCard size={20} />}
+					description="Allowed credit buffer"
+				/>
+				<StatCard
+					title="Created On"
+					value={profile?.createdAt ? formatDate(profile.createdAt) : '—'}
+					icon={<Calendar size={20} />}
+					description="Account enrollment date"
+				/>
 			</div>
 
-			<div className="report-stat-grid">
-				{[
-					{ label: 'Current Balance', value: formatMoney(Math.abs(profile?.currentBalance || 0)) },
-					{ label: 'Credit Limit', value: formatMoney(profile?.creditLimit) },
-					{ label: 'Created', value: profile?.createdAt ? new Date(profile.createdAt).toLocaleDateString('en-PK') : '—' },
-				].map((card) => (
-					<div key={card.label} className="financial-summary-card">
-						<div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{card.label}</div>
-						<div className="financial-summary-value" style={{ marginTop: 'var(--space-2)' }}>{card.value}</div>
+			<Card title="Edit Customer Profile" subtitle="Keep billing and operational details accurate for the selected customer.">
+				<form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+					<div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 240px), 1fr))', gap: '14px' }}>
+						<Input label="Phone" value={form.phone} onChange={(e) => setForm((current) => ({ ...current, phone: e.target.value }))} />
+						<Input label="Credit Limit (PKR)" type="text" inputMode="decimal" value={form.creditLimit} onChange={(e) => {
+							const value = e.target.value;
+							if (value === '' || /^\d*\.?\d*$/.test(value)) {
+								setForm((current) => ({ ...current, creditLimit: value }));
+							}
+						}} />
 					</div>
-				))}
-			</div>
 
+					<div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 240px), 1fr))', gap: '14px' }}>
+						<div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+							<label style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-primary)' }}>Address</label>
+							<textarea
+								value={form.address}
+								onChange={(e) => setForm((current) => ({ ...current, address: e.target.value }))}
+								rows={3}
+								style={{
+									width: '100%',
+									padding: '10px 12px',
+									border: '1px solid var(--border-default)',
+									borderRadius: 'var(--radius-md, 8px)',
+									background: 'var(--bg-surface)',
+									color: 'var(--text-primary)',
+									fontSize: '14px',
+									fontFamily: 'inherit',
+									minHeight: 80,
+								}}
+							/>
+						</div>
 
-
-			<form onSubmit={handleSave} className="form-surface form-surface--padded form-section">
-				<div className="form-section__header">
-					<div>
-						<div className="form-section__title">Edit Customer Profile</div>
-						<div className="form-section__subtitle">Keep billing and operational details accurate for the selected customer.</div>
+						<div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+							<label style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-primary)' }}>Notes</label>
+							<textarea
+								value={form.notes}
+								onChange={(e) => setForm((current) => ({ ...current, notes: e.target.value }))}
+								rows={3}
+								style={{
+									width: '100%',
+									padding: '10px 12px',
+									border: '1px solid var(--border-default)',
+									borderRadius: 'var(--radius-md, 8px)',
+									background: 'var(--bg-surface)',
+									color: 'var(--text-primary)',
+									fontSize: '14px',
+									fontFamily: 'inherit',
+									minHeight: 80,
+								}}
+							/>
+						</div>
 					</div>
-				</div>
 
-				<div className="form-grid-2">
-					<Input label="Phone" value={form.phone} onChange={(e) => setForm((current) => ({ ...current, phone: e.target.value }))} />
-					<Input label="Credit Limit" type="text" inputMode="decimal" value={form.creditLimit} onChange={(e) => {
-						const value = e.target.value;
-						// Allow empty, numbers, and single decimal point
-						if (value === '' || /^\d*\.?\d*$/.test(value)) {
-							setForm((current) => ({ ...current, creditLimit: value }));
-						}
-					}} />
-				</div>
+					<label style={{
+						display: 'flex', alignItems: 'center', gap: '8px',
+						fontSize: '14px', paddingTop: '4px',
+						cursor: hasOutstandingBalance ? 'not-allowed' : 'pointer',
+						opacity: hasOutstandingBalance ? 0.6 : 1,
+					}}>
+						<input
+							type="checkbox"
+							checked={form.isActive}
+							disabled={hasOutstandingBalance}
+							onChange={(e) => setForm((current) => ({ ...current, isActive: e.target.checked }))}
+						/>
+						<span>Active customer account</span>
+					</label>
 
-<div className="form-grid-2">
-				<div className="form-field">
-					<label className="form-field__label">Address</label>
-					<textarea value={form.address} onChange={(e) => setForm((current) => ({ ...current, address: e.target.value }))} rows={3} style={{ width: '100%', padding: 'var(--space-3)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)', background: 'var(--color-surface)', color: 'var(--color-text)', minHeight: 92 }} />
-				</div>
+					{error && (
+						<p style={{ color: 'var(--color-danger)', fontSize: '13px', margin: 0 }}>
+							{error}
+						</p>
+					)}
 
-				<div className="form-field">
-					<label className="form-field__label">Notes</label>
-					<textarea value={form.notes} onChange={(e) => setForm((current) => ({ ...current, notes: e.target.value }))} rows={3} style={{ width: '100%', padding: 'var(--space-3)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)', background: 'var(--color-surface)', color: 'var(--color-text)', minHeight: 92 }} />
-				</div>
-				</div>
-
-				<label style={{
-					display: 'flex', alignItems: 'center', gap: 'var(--space-2)',
-					fontSize: 'var(--text-sm)', paddingTop: 'var(--space-1)',
-					cursor: hasOutstandingBalance ? 'not-allowed' : 'pointer',
-					opacity: hasOutstandingBalance ? 0.55 : 1,
-				}}>
-					<input
-						type="checkbox"
-						checked={form.isActive}
-						disabled={hasOutstandingBalance}
-						onChange={(e) => setForm((current) => ({ ...current, isActive: e.target.checked }))}
-					/>
-					Active customer
-				</label>
-
-				{error ? <p style={{ color: 'var(--color-error)', fontSize: 'var(--text-sm)' }}>{error}</p> : null}
-
-				<div className="form-actions--stacked">
-					<Button type="button" variant="secondary" onClick={() => nav('/admin/customers')}>Cancel</Button>
-					<Button type="submit" loading={saving} disabled={!dirty}>Save Changes</Button>
-				</div>
-			</form>
+					<div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '8px' }}>
+						<Button type="button" variant="outline" onClick={() => nav('/admin/customers')}>
+							Cancel
+						</Button>
+						<Button type="submit" loading={saving} disabled={!dirty}>
+							Save Changes
+						</Button>
+					</div>
+				</form>
+			</Card>
 		</div>
 	);
 }

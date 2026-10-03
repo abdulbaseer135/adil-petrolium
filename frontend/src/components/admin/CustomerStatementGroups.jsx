@@ -1,4 +1,5 @@
 import React from 'react';
+import { AlertCircle, FileText } from 'lucide-react';
 import { EmptyState } from '../ui/EmptyState';
 import { SkeletonTable } from '../ui/Skeleton';
 import { formatCurrencyPK, formatDatePK, formatNumberPK, formatRatePK } from '../../utils/pkFormat';
@@ -273,7 +274,7 @@ export function CustomerStatementGroups({
   loading,
   error,
   onRetry,
-  emptyIcon = '🧾',
+  emptyIcon,
   emptyTitle = 'No customer statements found',
   emptyDescription = 'No transactions were found for the selected period.',
 }) {
@@ -284,7 +285,7 @@ export function CustomerStatementGroups({
   if (error) {
     return (
       <EmptyState
-        icon="⚠️"
+        icon={<AlertCircle size={32} color="var(--color-danger)" />}
         title="Could not load customer statements"
         description={error}
         action={onRetry}
@@ -296,7 +297,7 @@ export function CustomerStatementGroups({
   if (!groups?.length) {
     return (
       <EmptyState
-        icon={emptyIcon}
+        icon={emptyIcon || <FileText size={36} color="var(--text-muted)" />}
         title={emptyTitle}
         description={emptyDescription}
       />

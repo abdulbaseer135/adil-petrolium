@@ -1,8 +1,11 @@
 import React, { useEffect, useState } from 'react';
+import { Download } from 'lucide-react';
 import { getMyProfile } from '../../api/customerApi';
 import { BalanceCard } from '../../components/customer/BalanceCard';
 import { StatementDownload } from '../../components/customer/StatementDownload';
 import { SkeletonCard } from '../../components/ui/Skeleton';
+import Card from '../../components/ui/Card';
+import PageHeader from '../../components/layout/PageHeader';
 import { formatMoneyPK, formatDatePK } from '../../utils/pkFormat';
 
 export default function Statement() {
@@ -17,13 +20,11 @@ export default function Statement() {
   }, []);
 
   return (
-    <div className="animate-fadeIn" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-6)' }}>
-      <div>
-        <h1 style={{ fontSize: 'var(--text-xl)', fontWeight: 700, marginBottom: 'var(--space-2)' }}>Account Statement</h1>
-        <p style={{ color: 'var(--color-text-muted)', fontSize: 'var(--text-sm)', maxWidth: 640 }}>
-          Generate and download your account statement as an Excel file. Use the date fields below to export the exact period you need.
-        </p>
-      </div>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+      <PageHeader
+        title="Account Statement"
+        subtitle="Generate and download your account statement as an Excel file for any selected period."
+      />
 
       {loading ? (
         <SkeletonCard />
@@ -31,51 +32,43 @@ export default function Statement() {
         profile && (
           <>
             <BalanceCard balance={profile.currentBalance} customerCode={profile.customerCode} />
+
             <div
               style={{
                 display: 'grid',
                 gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 260px), 1fr))',
-                gap: 'var(--space-4)',
+                gap: '16px',
               }}
             >
-              <div
-                style={{
-                  border: '1px solid var(--color-border)',
-                  borderRadius: '16px',
-                  padding: '20px',
-                  background: 'var(--color-surface)',
-                }}
-              >
-                <div style={{ fontSize: '14px', fontWeight: 700, marginBottom: '12px' }}>Account Details</div>
-                <div style={{ display: 'grid', gap: '10px', fontSize: '13px', color: 'var(--color-text)' }}>
-                  <div><strong>Name:</strong> {profile.userId?.name || profile.name || '-'}</div>
-                  <div><strong>Code:</strong> {profile.customerCode || '-'}</div>
-                  <div><strong>Email:</strong> {profile.userId?.email || '-'}</div>
-                  <div><strong>Phone:</strong> {profile.phone || profile.userId?.phone || '-'}</div>
-                  <div><strong>Address:</strong> {profile.address || '-'}</div>
+              <Card title="Account Details">
+                <div style={{ display: 'grid', gap: '10px', fontSize: '13px', color: 'var(--text-primary)' }}>
+                  <div><strong>Name:</strong> {profile.userId?.name || profile.name || '—'}</div>
+                  <div><strong>Code:</strong> {profile.customerCode || '—'}</div>
+                  <div><strong>Email:</strong> {profile.userId?.email || '—'}</div>
+                  <div><strong>Phone:</strong> {profile.phone || profile.userId?.phone || '—'}</div>
+                  <div><strong>Address:</strong> {profile.address || '—'}</div>
                 </div>
-              </div>
-              <div
-                style={{
-                  border: '1px solid var(--color-border)',
-                  borderRadius: '16px',
-                  padding: '20px',
-                  background: 'var(--color-surface)',
-                }}
-              >
-                <div style={{ fontSize: '14px', fontWeight: 700, marginBottom: '12px' }}>Statement Summary</div>
-                <div style={{ display: 'grid', gap: '10px', fontSize: '13px', color: 'var(--color-text)' }}>
-                  <div><strong>Current Balance:</strong> {profile.currentBalance != null ? formatMoneyPK(profile.currentBalance) : '-'}</div>
-                  <div><strong>Customer Since:</strong> {profile.createdAt ? formatDatePK(profile.createdAt) : '-'}</div>
-                  <div><strong>Download:</strong> Use the button below to export.</div>
+              </Card>
+
+              <Card title="Statement Summary">
+                <div style={{ display: 'grid', gap: '10px', fontSize: '13px', color: 'var(--text-primary)' }}>
+                  <div><strong>Current Balance:</strong> {profile.currentBalance != null ? formatMoneyPK(profile.currentBalance) : '—'}</div>
+                  <div><strong>Customer Since:</strong> {profile.createdAt ? formatDatePK(profile.createdAt) : '—'}</div>
+                  <div><strong>Export:</strong> Use the generator below to export Excel workbooks.</div>
                 </div>
-              </div>
+              </Card>
             </div>
           </>
         )
       )}
 
-      <StatementDownload customerCode={profile?.customerCode || ''} />
+      <Card
+        title="Generate Statement File"
+        subtitle="Select an optional date range to filter transactions, or download your complete history."
+        icon={<Download size={16} />}
+      >
+        <StatementDownload customerCode={profile?.customerCode || ''} />
+      </Card>
     </div>
   );
 }
